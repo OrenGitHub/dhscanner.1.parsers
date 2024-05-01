@@ -37,9 +37,7 @@ executable parser
     other-modules:
         Ast,
         Token,
-        JsLexer,
         Location,
-        JsParser,
         PhpLexer,
         PhpParser
 

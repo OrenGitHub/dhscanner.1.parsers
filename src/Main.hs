@@ -41,7 +41,6 @@ data App = App
 
 mkYesod "App" [parseRoutes|
 /from/php/to/dhscanner/ast FromPhpR POST
-/from/js/to/dhscanner/ast FromJavascriptR POST
 /healthcheck HealthcheckR GET
 |]
 
@@ -54,13 +53,6 @@ postFromPhpR :: Handler Value
 postFromPhpR = do
     src <- requireCheckJsonBody :: Handler SourceFile
     case PhpParser.parseProgram (filename src) (content src) of
-        Left errorMsg -> returnJson (Error "FAILED" errorMsg)
-        Right ast -> returnJson ast
-
-postFromJavascriptR :: Handler Value
-postFromJavascriptR = do
-    src <- requireCheckJsonBody :: Handler SourceFile
-    case JsParser.parseProgram (filename src) (content src) of
         Left errorMsg -> returnJson (Error "FAILED" errorMsg)
         Right ast -> returnJson ast
 

@@ -9,7 +9,7 @@ module PhpParser( parseProgram ) where
 -- *                 *
 -- *******************
 import Ast
-import Lexer
+import PhpLexer
 import Location
 import qualified Token
 
