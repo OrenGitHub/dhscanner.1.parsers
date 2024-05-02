@@ -89,6 +89,7 @@ import Location
 @KW_STMT_USE        = "Stmt_Use"
 @KW_STMT_ECHO       = "Stmt_Echo"
 @KW_EXPR_VAR        = "Expr_Variable"
+@KW_EXPR_ASSIGN     = "Expr_Assign"
 @KW_EXPR_CALL       = "Expr_FuncCall"
 @KW_STMT_EXPR       = "Stmt_Expression"
 @KW_SCALAR_INT      = "Scalar_Int"
@@ -96,8 +97,11 @@ import Location
 @KW_RETURN_TYPE     = "returnType"
 @KW_STMT_RETURN     = "Stmt_Return"
 @KW_STMT_CLASS      = "Stmt_Class"
+@KW_STMT_PROPERTY   = "Stmt_Property"
+@KW_STMT_CLASSMETH  = "Stmt_ClassMethod"
 @KW_STMT_FUNCTION   = "Stmt_Function"
 @KW_EXPR_CONST_GET  = "Expr_ConstFetch"
+@KW_EXPR_PROP_GET   = "Expr_PropertyFetch"
 @KW_EXPR_BINOP_LT   = "Expr_BinaryOp_Smaller"
 @KW_EXPR_BINOP_PLUS = "Expr_BinaryOp_Plus"
 
@@ -183,6 +187,7 @@ tokens :-
 @KW_STMT_USE        { lex' AlexRawToken_STMT_USE        }
 @KW_STMT_ECHO       { lex' AlexRawToken_STMT_ECHO       }
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
+@KW_EXPR_ASSIGN     { lex' AlexRawToken_EXPR_ASSIGN     }
 @KW_EXPR_CALL       { lex' AlexRawToken_EXPR_CALL       }
 @KW_STMT_EXPR       { lex' AlexRawToken_STMT_EXPR       }
 @KW_SCALAR_INT      { lex' AlexRawToken_SCALAR_INT      }
@@ -190,8 +195,11 @@ tokens :-
 @KW_RETURN_TYPE     { lex' AlexRawToken_RETURN_TYPE     }
 @KW_STMT_RETURN     { lex' AlexRawToken_STMT_RETURN     }
 @KW_STMT_CLASS      { lex' AlexRawToken_STMT_CLASS      }
+@KW_STMT_PROPERTY   { lex' AlexRawToken_STMT_PROPERTY   }
+@KW_STMT_CLASSMETH  { lex' AlexRawToken_STMT_CLASSMETH  }
 @KW_STMT_FUNCTION   { lex' AlexRawToken_STMT_FUNCTION   }
 @KW_EXPR_CONST_GET  { lex' AlexRawToken_EXPR_CONST_GET  }
+@KW_EXPR_PROP_GET   { lex' AlexRawToken_EXPR_PROP_GET   }
 @KW_EXPR_BINOP_LT   { lex' AlexRawToken_EXPR_BINOP_LT   }
 @KW_EXPR_BINOP_PLUS { lex' AlexRawToken_EXPR_BINOP_PLUS }
 
@@ -299,6 +307,7 @@ data AlexRawToken
      | AlexRawToken_STMT_USE        -- ^ Reserved Keyword
      | AlexRawToken_STMT_ECHO       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_VAR        -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CALL       -- ^ Reserved Keyword
      | AlexRawToken_STMT_EXPR       -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_INT      -- ^ Reserved Keyword
@@ -306,8 +315,11 @@ data AlexRawToken
      | AlexRawToken_STMT_RETURN     -- ^ Reserved Keyword
      | AlexRawToken_RETURN_TYPE     -- ^ Reserved Keyword
      | AlexRawToken_STMT_CLASS      -- ^ Reserved Keyword
+     | AlexRawToken_STMT_PROPERTY   -- ^ Reserved Keyword
+     | AlexRawToken_STMT_CLASSMETH  -- ^ Reserved Keyword
      | AlexRawToken_STMT_FUNCTION   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CONST_GET  -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_PROP_GET   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_LT   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_PLUS -- ^ Reserved Keyword
 

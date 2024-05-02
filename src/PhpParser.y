@@ -106,14 +106,18 @@ import Data.Map ( fromList )
 'Expr_Variable'         { AlexTokenTag AlexRawToken_EXPR_VAR        _ }
 'Expr_FuncCall'         { AlexTokenTag AlexRawToken_EXPR_CALL       _ }
 'Stmt_Use'              { AlexTokenTag AlexRawToken_STMT_USE        _ }
-'Stmt_Expr'             { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
+'Stmt_Expression'       { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'Scalar_Int'            { AlexTokenTag AlexRawToken_SCALAR_INT      _ }
 'Identifier'            { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
 'Stmt_Return'           { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
+'Stmt_Property'         { AlexTokenTag AlexRawToken_STMT_PROPERTY   _ }
+'Stmt_ClassMethod'      { AlexTokenTag AlexRawToken_STMT_CLASSMETH  _ }
 'returnType'            { AlexTokenTag AlexRawToken_RETURN_TYPE     _ }
 'Stmt_Class'            { AlexTokenTag AlexRawToken_STMT_CLASS      _ }
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
+'Expr_Assign'           { AlexTokenTag AlexRawToken_EXPR_ASSIGN     _ }
 'Expr_ConstFetch'       { AlexTokenTag AlexRawToken_EXPR_CONST_GET  _ }
+'Expr_PropertyFetch'    { AlexTokenTag AlexRawToken_EXPR_PROP_GET   _ }
 'Expr_BinaryOp_Plus'    { AlexTokenTag AlexRawToken_EXPR_BINOP_PLUS _ }
 'Expr_BinaryOp_Smaller' { AlexTokenTag AlexRawToken_EXPR_BINOP_LT   _ }
 
@@ -259,14 +263,14 @@ numbered_params: listof(numbered_param) { $1 }
 -- * numbered_param *
 -- *                *
 -- ******************
-numbered_param: INT ':' param { $3 }
+-- numbered_param: INT ':' param { $3 }
 
 -- *********
 -- *       *
 -- * param *
 -- *       *
 -- *********
-param: 'Param' loc '(' listof(param_attr) ')' { paramify $4 $2 }
+-- param: 'Param' loc '(' listof(param_attr) ')' { paramify $4 $2 }
 
 -- **************
 -- *            *
@@ -356,6 +360,7 @@ stmt:
 stmt_if     { $1 } | 
 stmt_use    { $1 } |
 stmt_for    { $1 } |
+stmt_assign { $1 } |
 stmt_class  { $1 } |
 stmt_return { $1 }
 
@@ -391,8 +396,76 @@ stmt_use:
 
 identifier: 'Identifier' loc '(' 'name' ':' ID ')' { $6 }
 
+numbered_class_attr: INT ':' class_attr { $3 }
+
+class_attr: method { Nothing } | data_member { Nothing }
+
+dec_var:
+ID loc
+'('
+    'name' ':' ID loc '(' 'name' ':' ID ')'
+    ID ':' 'Expr_ConstFetch' loc '(' 'name' ':' 'Name' loc '(' 'name' ':' ID ')' ')'
+')'
+{
+    Nothing
+}
+
+data_member:
+'Stmt_Property' loc
+'('
+    ID ':' 'array' '(' ')'
+    ID ':' ID '(' INT ')'
+    'type' ':' ID
+    ID ':' 'array' '(' INT ':' dec_var ')'
+')'
+{
+    Nothing
+}
+
+param:
+'Param' loc
+'('
+    ID ':' 'array' '(' ')'
+    ID ':' INT
+    'type' ':' ID
+    ID ':' ID
+    ID ':' ID
+    'var' ':' 'Expr_Variable' loc '(' 'name' ':' ID ')'
+    ID ':' ID
+')'
+{
+    Nothing
+}
+
+numbered_param: INT ':' param { $3 }
+
+params: { [] } | listof(numbered_param) { $1 }
+
+method:
+'Stmt_ClassMethod' loc
+'('
+    ID ':' 'array' '(' ')'
+    ID ':' ID '(' INT ')'
+    ID ':' ID
+    'name' ':' identifier
+    ID ':' 'array' '(' params ')' 
+    'returnType' ':' ID
+    'stmts' ':' 'array' '(' listof(numbered_stmt) ')' 
+')'
+{
+    Nothing
+}
+
+
 stmt_class:
-'Stmt_Class' loc '(' ID ':' 'array' '(' ')' ID ':' INT 'name' ':' identifier ID ')'
+'Stmt_Class' loc '('
+    ID ':' 'array' '(' ')'
+    ID ':' INT
+    'name' ':' identifier
+    ID ':' ID
+    ID ':' 'array' '(' ')'
+    'stmts' ':' 'array' '(' listof(numbered_class_attr) ')' 
+')'
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
@@ -412,6 +485,34 @@ stmt_if: 'Stmt_If' loc '(' 'cond' ':' exp 'stmts' ':' stmts ')'
         Ast.stmtIfCond = $6,
         Ast.stmtIfBody = $9,
         Ast.stmtIfLocation = $2
+    }
+}
+
+var: var_field { $1 }
+
+var_field:
+'Expr_PropertyFetch' loc
+'('
+    'var' ':' exp_var
+    'name' ':' identifier
+')'
+{
+    Nothing
+}
+
+stmt_assign:
+'Stmt_Expression' loc
+'('
+    'expr' ':' 'Expr_Assign' loc
+    '('
+        'var' ':' var
+        'expr' ':' exp
+    ')'
+')'
+{
+    Ast.StmtImport $ Ast.StmtImportContent
+    {
+        Ast.stmtImportLocation = $2
     }
 }
 
@@ -463,10 +564,10 @@ numbered_exp: INT ':' exp { $3 }
 -- *     *
 -- *******
 exp:
-exp_int   { $1 } |
-exp_bool  { $1 } |
-exp_binop { $1 } |
-exp_var   { $1 }
+exp_int     { $1 } |
+exp_bool    { $1 } |
+exp_binop   { $1 } |
+exp_var     { $1 }
 
 -- ***********
 -- *         *
