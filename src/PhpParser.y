@@ -72,6 +72,7 @@ import Data.Map ( fromList )
 -- ***************
 
 ':'    { AlexTokenTag AlexRawToken_COLON  _ }
+'\\'   { AlexTokenTag AlexRawToken_SLASH  _ }
 '-'    { AlexTokenTag AlexRawToken_HYPHEN _ }
 
 -- *********************
@@ -84,6 +85,7 @@ import Data.Map ( fromList )
 'var'                   { AlexTokenTag AlexRawToken_VAR             _ }
 'args'                  { AlexTokenTag AlexRawToken_ARGS            _ }
 'name'                  { AlexTokenTag AlexRawToken_NAME            _ }
+'uses'                  { AlexTokenTag AlexRawToken_USES            _ }
 'expr'                  { AlexTokenTag AlexRawToken_EXPR            _ }
 'Name'                  { AlexTokenTag AlexRawToken_MAME            _ }
 'type'                  { AlexTokenTag AlexRawToken_TYPE            _ }
@@ -97,16 +99,19 @@ import Data.Map ( fromList )
 'stmts'                 { AlexTokenTag AlexRawToken_STMTS           _ }
 'array'                 { AlexTokenTag AlexRawToken_ARRAY           _ }
 'Param'                 { AlexTokenTag AlexRawToken_PARAM           _ }
+'UseItem'               { AlexTokenTag AlexRawToken_USE_ITEM        _ }
 'Stmt_If'               { AlexTokenTag AlexRawToken_STMT_IF         _ }
 'Stmt_For'              { AlexTokenTag AlexRawToken_STMT_FOR        _ }
 'Stmt_Echo'             { AlexTokenTag AlexRawToken_STMT_ECHO       _ }
 'Expr_Variable'         { AlexTokenTag AlexRawToken_EXPR_VAR        _ }
 'Expr_FuncCall'         { AlexTokenTag AlexRawToken_EXPR_CALL       _ }
+'Stmt_Use'              { AlexTokenTag AlexRawToken_STMT_USE        _ }
 'Stmt_Expr'             { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'Scalar_Int'            { AlexTokenTag AlexRawToken_SCALAR_INT      _ }
 'Identifier'            { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
 'Stmt_Return'           { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
 'returnType'            { AlexTokenTag AlexRawToken_RETURN_TYPE     _ }
+'Stmt_Class'            { AlexTokenTag AlexRawToken_STMT_CLASS      _ }
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'Expr_ConstFetch'       { AlexTokenTag AlexRawToken_EXPR_CONST_GET  _ }
 'Expr_BinaryOp_Plus'    { AlexTokenTag AlexRawToken_EXPR_BINOP_PLUS _ }
@@ -133,7 +138,7 @@ ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
 -- * Ast root: program *
 -- *                   *
 -- *********************
-program: 'array' '(' decs ')'
+program: 'array' '(' stmts ')'
 {
     Ast.Root
     {
@@ -326,14 +331,14 @@ dec_func_attr_body: 'stmts' ':' stmts { $3 }
 -- * stmts *
 -- *       *
 -- *********
-stmts: 'array' '(' numbered_stmts ')' { $3 }
+stmts: numbered_stmts { $1 }
 
 -- ******************
 -- *                *
 -- * numbered_stmts *
 -- *                *
 -- ******************
-numbered_stmts: numbered_stmt numbered_stmts { $1:$2 } | numbered_stmt { [$1] }
+numbered_stmts: listof(numbered_stmt) { $1 }
 
 -- *****************
 -- *               *
@@ -349,10 +354,51 @@ numbered_stmt: INT ':' stmt { $3 }
 -- ********
 stmt:
 stmt_if     { $1 } | 
+stmt_use    { $1 } |
 stmt_for    { $1 } |
+stmt_class  { $1 } |
 stmt_return { $1 }
 
+importee: ID { $1 } | ID '\\' importee { $1 }
 
+name: 'Name' loc '(' 'name' ':' importee ')' { $6 }
+
+use_item:
+'UseItem' loc '(' 'type' ':' stmt_use_type 'name' ':' name ID ':' ID ')'
+{
+    Nothing
+}
+
+numbered_use_item: INT ':' use_item { $3 }
+
+use_items: listof(numbered_use_item) { $1 }
+
+stmt_use_type: ID '(' INT ')' { Nothing }
+
+-- ************
+-- *          *
+-- * stmt_use *
+-- *          *
+-- ************
+stmt_use:
+'Stmt_Use' loc '(' 'type' ':' stmt_use_type 'uses' ':' 'array' '(' use_items ')' ')'
+{
+    Ast.StmtImport $ Ast.StmtImportContent
+    {
+        Ast.stmtImportLocation = $2
+    }
+} 
+
+identifier: 'Identifier' loc '(' 'name' ':' ID ')' { $6 }
+
+stmt_class:
+'Stmt_Class' loc '(' ID ':' 'array' '(' ')' ID ':' INT 'name' ':' identifier ID ')'
+{
+    Ast.StmtImport $ Ast.StmtImportContent
+    {
+        Ast.stmtImportLocation = $2
+    }
+} 
 
 -- ***********
 -- *         *
