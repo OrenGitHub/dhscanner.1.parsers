@@ -89,10 +89,13 @@ import Location
 @KW_STMT_USE        = "Stmt_Use"
 @KW_STMT_ECHO       = "Stmt_Echo"
 @KW_EXPR_VAR        = "Expr_Variable"
+@KW_EXPR_LAMBDA     = "Expr_Closure"
 @KW_EXPR_ASSIGN     = "Expr_Assign"
 @KW_EXPR_CALL       = "Expr_FuncCall"
+@KW_EXPR_SCALL      = "Expr_StaticCall"
 @KW_STMT_EXPR       = "Stmt_Expression"
 @KW_SCALAR_INT      = "Scalar_Int"
+@KW_SCALAR_STR      = "Scalar_String"
 @KW_IDENTIFIER      = "Identifier"
 @KW_RETURN_TYPE     = "returnType"
 @KW_STMT_RETURN     = "Stmt_Return"
@@ -121,6 +124,13 @@ import Location
 @LETTER = [A-Za-z_]
 @LETTER_OR_DIGIT = @LETTER | @DIGIT
 @ID = @LETTER(@LETTER_OR_DIGIT*)
+
+-- ***********
+-- *         *
+-- * strings *
+-- *         *
+-- ***********
+@REST = "/token"
 
 -- ***************
 -- *             *
@@ -187,10 +197,13 @@ tokens :-
 @KW_STMT_USE        { lex' AlexRawToken_STMT_USE        }
 @KW_STMT_ECHO       { lex' AlexRawToken_STMT_ECHO       }
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
+@KW_EXPR_LAMBDA     { lex' AlexRawToken_EXPR_LAMBDA     }
 @KW_EXPR_ASSIGN     { lex' AlexRawToken_EXPR_ASSIGN     }
 @KW_EXPR_CALL       { lex' AlexRawToken_EXPR_CALL       }
+@KW_EXPR_SCALL      { lex' AlexRawToken_EXPR_SCALL      }
 @KW_STMT_EXPR       { lex' AlexRawToken_STMT_EXPR       }
 @KW_SCALAR_INT      { lex' AlexRawToken_SCALAR_INT      }
+@KW_SCALAR_STR      { lex' AlexRawToken_SCALAR_STR      }
 @KW_IDENTIFIER      { lex' AlexRawToken_IDENTIFIER      }
 @KW_RETURN_TYPE     { lex' AlexRawToken_RETURN_TYPE     }
 @KW_STMT_RETURN     { lex' AlexRawToken_STMT_RETURN     }
@@ -219,6 +232,7 @@ tokens :-
 
 @ID        { lex  AlexRawToken_ID                 }
 @INT       { lex (AlexRawToken_INT . round. read) }
+@REST      { lex AlexRawToken_REST                }
 
 {
 
@@ -276,7 +290,8 @@ data AlexTokenTag
 data AlexRawToken
 
      = AlexRawToken_INT Int         -- ^ locations and numbers
-     | AlexRawToken_ID String       -- ^ including constant strings
+     | AlexRawToken_ID String       -- ^ including consant strings
+     | AlexRawToken_REST String     -- ^ constant strings with non ID chars
       
      | AlexRawToken_LPAREN          -- ^ Parentheses __(__
      | AlexRawToken_RPAREN          -- ^ Parentheses __)__
@@ -307,10 +322,13 @@ data AlexRawToken
      | AlexRawToken_STMT_USE        -- ^ Reserved Keyword
      | AlexRawToken_STMT_ECHO       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_VAR        -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_LAMBDA     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CALL       -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_SCALL      -- ^ Reserved Keyword
      | AlexRawToken_STMT_EXPR       -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_INT      -- ^ Reserved Keyword
+     | AlexRawToken_SCALAR_STR      -- ^ Reserved Keyword
      | AlexRawToken_IDENTIFIER      -- ^ Reserved Keyword
      | AlexRawToken_STMT_RETURN     -- ^ Reserved Keyword
      | AlexRawToken_RETURN_TYPE     -- ^ Reserved Keyword
@@ -407,6 +425,14 @@ tokIntValue t = case (tokenRaw t) of { AlexRawToken_INT i -> i; _ -> 0; }
 -- **************
 tokIDValue :: AlexTokenTag -> String
 tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> s; _ -> ""; }
+
+-- **************
+-- *            *
+-- * tokIDValue *
+-- *            *
+-- **************
+tokStrValue :: AlexTokenTag -> String
+tokStrValue t = case (tokenRaw t) of { AlexRawToken_REST s -> s; _ -> ""; }
 
 -- ************
 -- *          *

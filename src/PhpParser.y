@@ -103,11 +103,14 @@ import Data.Map ( fromList )
 'Stmt_If'               { AlexTokenTag AlexRawToken_STMT_IF         _ }
 'Stmt_For'              { AlexTokenTag AlexRawToken_STMT_FOR        _ }
 'Stmt_Echo'             { AlexTokenTag AlexRawToken_STMT_ECHO       _ }
+'Expr_Closure'          { AlexTokenTag AlexRawToken_EXPR_LAMBDA     _ }
 'Expr_Variable'         { AlexTokenTag AlexRawToken_EXPR_VAR        _ }
 'Expr_FuncCall'         { AlexTokenTag AlexRawToken_EXPR_CALL       _ }
+'Expr_StaticCall'       { AlexTokenTag AlexRawToken_EXPR_SCALL      _ }
 'Stmt_Use'              { AlexTokenTag AlexRawToken_STMT_USE        _ }
 'Stmt_Expression'       { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'Scalar_Int'            { AlexTokenTag AlexRawToken_SCALAR_INT      _ }
+'Scalar_String'         { AlexTokenTag AlexRawToken_SCALAR_STR      _ }
 'Identifier'            { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
 'Stmt_Return'           { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
 'Stmt_Property'         { AlexTokenTag AlexRawToken_STMT_PROPERTY   _ }
@@ -129,6 +132,7 @@ import Data.Map ( fromList )
 
 INT    { AlexTokenTag (AlexRawToken_INT  i) _ }
 ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
+REST   { AlexTokenTag (AlexRawToken_REST r) _ }
 
 -- *************************
 -- *                       *
@@ -627,9 +631,36 @@ numbered_exp: INT ':' exp { $3 }
 -- *******
 exp:
 exp_int     { $1 } |
+exp_str     { $1 } |
 exp_bool    { $1 } |
+exp_call    { $1 } |
 exp_binop   { $1 } |
+exp_lambda  { $1 } |
 exp_var     { Ast.ExpVar $1 }
+
+-- **************
+-- *            *
+-- * exp_lambda *
+-- *            *
+-- **************
+exp_lambda:
+'Expr_Closure' loc
+'('
+    ID ':' 'array' '(' ')'
+    ID ':' ID
+    ID ':' ID
+    ID ':' 'array' '(' ')'
+    'uses' ':' 'array' '(' ')'
+    'returnType' ':' ID
+    'stmts' ':' 'array' '(' listof(numbered_stmt) ')'
+')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 3333,
+        Token.constIntLocation = $2
+    }
+}
 
 -- ***********
 -- *         *
@@ -642,6 +673,25 @@ exp_int: 'Scalar_Int' loc '(' 'value' ':' INT ')'
     {
         Token.constIntValue = tokIntValue $6,
         Token.constIntLocation = $2
+    }
+}
+
+str:
+ID   { tokIDValue  $1 } |
+REST { tokStrValue $1 } |
+INT  { show $ tokIntValue $1 }
+
+-- ***********
+-- *         *
+-- * exp_str *
+-- *         *
+-- ***********
+exp_str: 'Scalar_String' loc '(' 'value' ':' str ')'
+{
+    Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
+    {
+        Token.constStrValue = $6,
+        Token.constStrLocation = $2
     }
 }
 
@@ -684,9 +734,39 @@ exp_call:
 '('
     'name' ':' 'Name' loc '(' 'name' ':' ID ')'
     'args' ':' args
+')' 
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent
+        {
+            Ast.varName = Token.VarName $ Token.Named { Token.content = tokIDValue $11, Token.location = $2 }
+        },
+        Ast.args = [],
+        Ast.expCallLocation = $2
+    }
+} |
+'Expr_StaticCall' loc
+'('
+    ID ':' 'Name' loc '(' 'name' ':' ID ')'
+    'name' ':' identifier
+    'args' ':' args
 ')'
 {
-    Nothing
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
+        {
+            Ast.varFieldLhs = Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent
+            {
+                Ast.varName = Token.VarName $ Token.Named { Token.content = tokIDValue $11, Token.location = $7 }
+            },
+            Ast.varFieldName = Token.FieldName $15,
+            Ast.varFieldLocation = $2
+        },
+        Ast.args = [],
+        Ast.expCallLocation = $2
+    }
 }
 
 -- ********
@@ -694,7 +774,9 @@ exp_call:
 -- * args *
 -- *      *
 -- ********
-args: 'array' '(' listof(numbered_arg) ')' { $3 }
+args:
+'array' '('                      ')' { [] } |
+'array' '(' listof(numbered_arg) ')' { $3 }
 
 -- ****************
 -- *              *
