@@ -360,6 +360,7 @@ stmt:
 stmt_if     { $1 } | 
 stmt_use    { $1 } |
 stmt_for    { $1 } |
+stmt_call   { $1 } |
 stmt_assign { $1 } |
 stmt_class  { $1 } |
 stmt_return { $1 }
@@ -394,7 +395,19 @@ stmt_use:
     }
 } 
 
-identifier: 'Identifier' loc '(' 'name' ':' ID ')' { $6 }
+-- **************
+-- *            *
+-- * identifier *
+-- *            *
+-- **************
+identifier: 'Identifier' loc '(' 'name' ':' ID ')'
+{
+    Token.Named
+    {
+        Token.content = tokIDValue $6,
+        Token.location = $2
+    }
+}
 
 numbered_class_attr: INT ':' class_attr { $3 }
 
@@ -473,6 +486,23 @@ stmt_class:
     }
 } 
 
+-- *************
+-- *           *
+-- * stmt_call *
+-- *           *
+-- *************
+stmt_call:
+'Stmt_Expression' loc
+'('
+    'expr' ':' exp_call
+')'
+{
+    Ast.StmtImport $ Ast.StmtImportContent
+    {
+        Ast.stmtImportLocation = $2
+    }
+}
+
 -- ***********
 -- *         *
 -- * stmt_if *
@@ -488,8 +518,35 @@ stmt_if: 'Stmt_If' loc '(' 'cond' ':' exp 'stmts' ':' stmts ')'
     }
 }
 
-var: var_field { $1 }
+-- *******
+-- *     *
+-- * var *
+-- *     *
+-- *******
+var:
+var_simple { $1 } |
+var_field  { $1 }
 
+-- **************
+-- *            *
+-- * var_simple *
+-- *            *
+-- **************
+var_simple:
+'Expr_Variable' loc '(' 'name' ':' ID ')'
+{
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+    {
+        Token.content = tokIDValue $6,
+        Token.location = $2
+    }
+}
+
+-- *************
+-- *           *
+-- * var_field *
+-- *           *
+-- *************
 var_field:
 'Expr_PropertyFetch' loc
 '('
@@ -497,7 +554,12 @@ var_field:
     'name' ':' identifier
 ')'
 {
-    Nothing
+    Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = $6,
+        Ast.varFieldName = Token.FieldName $9,
+        Ast.varFieldLocation = $2
+    }
 }
 
 stmt_assign:
@@ -567,7 +629,7 @@ exp:
 exp_int     { $1 } |
 exp_bool    { $1 } |
 exp_binop   { $1 } |
-exp_var     { $1 }
+exp_var     { Ast.ExpVar $1 }
 
 -- ***********
 -- *         *
@@ -603,14 +665,7 @@ exp_bool:
 -- * exp_var *
 -- *         *
 -- ***********
-exp_var: 'Expr_Variable' loc '(' 'name' ':' ID ')'
-{
-    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
-    {
-        Token.content = tokIDValue $6,
-        Token.location = $2
-    }
-}
+exp_var: var { Ast.ExpVarContent $1 }
 
 -- *************
 -- *           *
@@ -625,7 +680,11 @@ exp_binop: 'Expr_BinaryOp_Smaller' loc '(' 'left' ':' exp 'right' ':' exp ')' { 
 -- *          *
 -- ************
 exp_call: 
-'Expr_FuncCall' loc '(' 'name' ':' 'Name' loc '(' 'name' ':' ID ')' 'args' ':' args ')'
+'Expr_FuncCall' loc
+'('
+    'name' ':' 'Name' loc '(' 'name' ':' ID ')'
+    'args' ':' args
+')'
 {
     Nothing
 }
@@ -635,14 +694,7 @@ exp_call:
 -- * args *
 -- *      *
 -- ********
-args: 'array' '(' numbered_args ')' { $3 }
-
--- *****************
--- *               *
--- * numbered_args *
--- *               *
--- *****************
-numbered_args: numbered_arg numbered_args { $1:$2 } | numbered_arg { [$1] }
+args: 'array' '(' listof(numbered_arg) ')' { $3 }
 
 -- ****************
 -- *              *
@@ -689,7 +741,9 @@ arg_attr_value: 'value' ':' exp { $3 }
 -- * arg_attr_ignore *
 -- *                 *
 -- *******************
-arg_attr_ignore: ID ':' ID { Nothing }
+arg_attr_ignore:
+ID     ':' ID { Nothing } |
+'name' ':' ID { Nothing }
 
 -- ************
 -- *          *
