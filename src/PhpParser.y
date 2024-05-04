@@ -146,7 +146,7 @@ REST   { AlexTokenTag (AlexRawToken_REST r) _ }
 -- * Ast root: program *
 -- *                   *
 -- *********************
-program: 'array' '(' stmts ')'
+program: stmts
 {
     Ast.Root
     {
@@ -339,7 +339,7 @@ dec_func_attr_body: 'stmts' ':' stmts { $3 }
 -- * stmts *
 -- *       *
 -- *********
-stmts: numbered_stmts { $1 }
+stmts: 'array' '(' listof(numbered_stmt) ')' { $3 }
 
 -- ******************
 -- *                *
@@ -512,7 +512,14 @@ stmt_call:
 -- * stmt_if *
 -- *         *
 -- ***********
-stmt_if: 'Stmt_If' loc '(' 'cond' ':' exp 'stmts' ':' stmts ')'
+stmt_if:
+'Stmt_If' loc
+'('
+    'cond' ':' exp
+    'stmts' ':' stmts
+    ID ':' 'array' '(' ')'
+    ID ':' ID loc '(' 'stmts' ':' stmts ')'
+')'
 {
     Ast.StmtIf $ Ast.StmtIfContent
     {

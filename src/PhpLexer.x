@@ -130,7 +130,7 @@ import Location
 -- * strings *
 -- *         *
 -- ***********
-@REST = "/token"
+@REST = "/token"|"/status"|"/frontend/public/pwned"|"You've been pwned !"|"Everything seems fine"|"/upload/profile/photo"
 
 -- ***************
 -- *             *
