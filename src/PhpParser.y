@@ -304,14 +304,23 @@ param_attr_name: 'var' ':' 'Expr_Variable' loc '(' 'name' ':' ID ')'
 -- * param_attr_type *
 -- *                 *
 -- *******************
-param_attr_type: 'type' ':' 'Identifier' loc '(' 'name' ':' ID ')'
+param_attr_type:
+'type' ':' 'Identifier' loc '(' 'name' ':' ID ')'
 {
     Token.NominalTy $ Token.Named
     {
         Token.content = tokIDValue $8,
         Token.location = $4
     }    
-}
+} |
+'type' ':' 'Name' loc '(' 'name' ':' ID ')'
+{
+    Token.NominalTy $ Token.Named
+    {
+        Token.content = tokIDValue $8,
+        Token.location = $4
+    }    
+} 
 
 -- ****************************
 -- *                          *
@@ -439,12 +448,16 @@ data_member:
     Nothing
 }
 
+type:
+ID { Nothing } |
+'Name' loc '(' 'name' ':' ID ')' { Nothing }
+
 param:
 'Param' loc
 '('
     ID ':' 'array' '(' ')'
     ID ':' INT
-    'type' ':' ID
+    'type' ':' type
     ID ':' ID
     ID ':' ID
     'var' ':' 'Expr_Variable' loc '(' 'name' ':' ID ')'
@@ -656,7 +669,7 @@ exp_lambda:
     ID ':' 'array' '(' ')'
     ID ':' ID
     ID ':' ID
-    ID ':' 'array' '(' ')'
+    ID ':' 'array' '(' params ')'
     'uses' ':' 'array' '(' ')'
     'returnType' ':' ID
     'stmts' ':' 'array' '(' listof(numbered_stmt) ')'
