@@ -104,6 +104,7 @@ import Data.Map ( fromList )
 'Stmt_For'              { AlexTokenTag AlexRawToken_STMT_FOR        _ }
 'Stmt_Echo'             { AlexTokenTag AlexRawToken_STMT_ECHO       _ }
 'Expr_Closure'          { AlexTokenTag AlexRawToken_EXPR_LAMBDA     _ }
+'Expr_New'              { AlexTokenTag AlexRawToken_EXPR_NEW        _ }
 'Expr_Variable'         { AlexTokenTag AlexRawToken_EXPR_VAR        _ }
 'Expr_FuncCall'         { AlexTokenTag AlexRawToken_EXPR_CALL       _ }
 'Expr_MethodCall'       { AlexTokenTag AlexRawToken_EXPR_MCALL      _ }
@@ -120,6 +121,7 @@ import Data.Map ( fromList )
 'Stmt_Class'            { AlexTokenTag AlexRawToken_STMT_CLASS      _ }
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'Expr_Assign'           { AlexTokenTag AlexRawToken_EXPR_ASSIGN     _ }
+'Expr_Array'            { AlexTokenTag AlexRawToken_EXPR_ARRAY      _ }
 'Expr_ConstFetch'       { AlexTokenTag AlexRawToken_EXPR_CONST_GET  _ }
 'Expr_PropertyFetch'    { AlexTokenTag AlexRawToken_EXPR_PROP_GET   _ }
 'Expr_BinaryOp_Plus'    { AlexTokenTag AlexRawToken_EXPR_BINOP_PLUS _ }
@@ -153,7 +155,7 @@ program: stmts
     {
         Ast.filename = "DDD",
         Ast.decs = [],
-        Ast.stmts = []
+        Ast.stmts = $1
     }
 }
 
@@ -350,13 +352,6 @@ dec_func_attr_body: 'stmts' ':' stmts { $3 }
 -- *       *
 -- *********
 stmts: 'array' '(' listof(numbered_stmt) ')' { $3 }
-
--- ******************
--- *                *
--- * numbered_stmts *
--- *                *
--- ******************
-numbered_stmts: listof(numbered_stmt) { $1 }
 
 -- *****************
 -- *               *
@@ -653,11 +648,28 @@ numbered_exp: INT ':' exp { $3 }
 exp:
 exp_int     { $1 } |
 exp_str     { $1 } |
+exp_new     { $1 } |
 exp_bool    { $1 } |
 exp_call    { $1 } |
 exp_binop   { $1 } |
+exp_array   { $1 } |
 exp_lambda  { $1 } |
 exp_var     { Ast.ExpVar $1 }
+
+-- *************
+-- *           *
+-- * exp_array *
+-- *           *
+-- *************
+exp_array:
+'Expr_Array' loc '(' ID ':' 'array' '(' ')' ')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 3333,
+        Token.constIntLocation = $2
+    }
+}
 
 -- **************
 -- *            *
@@ -744,6 +756,30 @@ exp_var: var { Ast.ExpVarContent $1 }
 -- *           *
 -- *************
 exp_binop: 'Expr_BinaryOp_Smaller' loc '(' 'left' ':' exp 'right' ':' exp ')' { $6 } 
+
+-- ***********
+-- *         *
+-- * exp_new *
+-- *         *
+-- ***********
+exp_new:
+'Expr_New' loc
+'('
+    ID ':' 'Name' loc '(' 'name' ':' ID ')'
+    'args' ':' args
+')' 
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent
+        {
+            Ast.varName = Token.VarName $ Token.Named { Token.content = tokIDValue $11, Token.location = $2 }
+        },
+        Ast.args = [],
+        Ast.expCallLocation = $2
+    }
+}
+
 
 -- ************
 -- *          *
@@ -915,7 +951,7 @@ loc: '[' INT ':' INT '-' INT ':' INT ']'
 {
     Location
     {
-        Location.filename = "",
+        Location.filename = getFilename $1,
         lineStart = tokIntValue $2,
         colStart = tokIntValue $4,
         lineEnd = tokIntValue $6,

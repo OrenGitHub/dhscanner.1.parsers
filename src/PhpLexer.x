@@ -89,8 +89,10 @@ import Location
 @KW_STMT_USE        = "Stmt_Use"
 @KW_STMT_ECHO       = "Stmt_Echo"
 @KW_EXPR_VAR        = "Expr_Variable"
+@KW_EXPR_NEW        = "Expr_New"
 @KW_EXPR_LAMBDA     = "Expr_Closure"
 @KW_EXPR_ASSIGN     = "Expr_Assign"
+@KW_EXPR_ARRAY      = "Expr_Array"
 @KW_EXPR_CALL       = "Expr_FuncCall"
 @KW_EXPR_SCALL      = "Expr_StaticCall"
 @KW_EXPR_MCALL      = "Expr_MethodCall"
@@ -131,7 +133,7 @@ import Location
 -- * strings *
 -- *         *
 -- ***********
-@REST = "/token"|"/status"|"/frontend/public/pwned"|"You've been pwned !"|"Everything seems fine"|"/upload/profile/photo"|"/uploads/v1/user/profile.png"|"saved profile picture to /uploads/v1/user/profile.png"|"/test"|"999 666 MMM"|"/ghsa_97m3"
+@REST = "/token"|"/status"|"/frontend/public/pwned"|"You've been pwned !"|"Everything seems fine"|"/upload/profile/photo"|"/uploads/v1/user/profile.png"|"saved profile picture to /uploads/v1/user/profile.png"|"/test"|"999 666 MMM"|"/ghsa_97m3"|"DDD 444 111"
 
 -- ***************
 -- *             *
@@ -198,8 +200,10 @@ tokens :-
 @KW_STMT_USE        { lex' AlexRawToken_STMT_USE        }
 @KW_STMT_ECHO       { lex' AlexRawToken_STMT_ECHO       }
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
+@KW_EXPR_NEW        { lex' AlexRawToken_EXPR_NEW        }
 @KW_EXPR_LAMBDA     { lex' AlexRawToken_EXPR_LAMBDA     }
 @KW_EXPR_ASSIGN     { lex' AlexRawToken_EXPR_ASSIGN     }
+@KW_EXPR_ARRAY      { lex' AlexRawToken_EXPR_ARRAY      }
 @KW_EXPR_CALL       { lex' AlexRawToken_EXPR_CALL       }
 @KW_EXPR_MCALL      { lex' AlexRawToken_EXPR_MCALL      }
 @KW_EXPR_SCALL      { lex' AlexRawToken_EXPR_SCALL      }
@@ -324,8 +328,10 @@ data AlexRawToken
      | AlexRawToken_STMT_USE        -- ^ Reserved Keyword
      | AlexRawToken_STMT_ECHO       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_VAR        -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_NEW        -- ^ Reserved Keyword
      | AlexRawToken_EXPR_LAMBDA     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_ARRAY      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CALL       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_MCALL      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_SCALL      -- ^ Reserved Keyword
@@ -404,6 +410,14 @@ lex' = lex . const
 -- **************
 alexError' :: Location -> Alex a
 alexError' location = alexError $ "ERROR[" ++ show location ++ "]\n"
+
+-- ************
+-- *          *
+-- * filename *
+-- *          *
+-- ************
+getFilename :: AlexTokenTag -> String
+getFilename = Location.filename . location
 
 -- ************
 -- *          *
