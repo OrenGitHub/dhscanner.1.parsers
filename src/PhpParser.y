@@ -256,28 +256,7 @@ dec_func_attr_name: 'name' ':' 'Identifier' loc '(' 'name' ':' ID ')'
 -- * dec_func_params *
 -- *                 *
 -- *******************
-dec_func_attr_params: 'array' '(' numbered_params ')' { catMaybes $3 }
-
--- *******************
--- *                 *
--- * numbered_params *
--- *                 *
--- *******************
-numbered_params: listof(numbered_param) { $1 }
-
--- ******************
--- *                *
--- * numbered_param *
--- *                *
--- ******************
--- numbered_param: INT ':' param { $3 }
-
--- *********
--- *       *
--- * param *
--- *       *
--- *********
--- param: 'Param' loc '(' listof(param_attr) ')' { paramify $4 $2 }
+dec_func_attr_params: 'array' '(' listof(numbered_param) ')' { $3 }
 
 -- **************
 -- *            *
@@ -459,7 +438,12 @@ param:
     ID ':' ID
 ')'
 {
-    Nothing
+    Ast.Param
+    {
+        Ast.paramName = Token.ParamName $ Token.Named (tokIDValue $28) $24,
+        Ast.paramNominalType = Token.NominalTy $ Token.Named "any" $24,
+        paramSerialIdx = 15555
+    }
 }
 
 numbered_param: INT ':' param { $3 }
@@ -677,13 +661,14 @@ exp_lambda:
     ID ':' 'array' '(' params ')'
     'uses' ':' 'array' '(' ')'
     'returnType' ':' ID
-    'stmts' ':' 'array' '(' listof(numbered_stmt) ')'
+    'stmts' ':' stmts
 ')'
 {
-    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    Ast.ExpLambda $ Ast.ExpLambdaContent
     {
-        Token.constIntValue = 3333,
-        Token.constIntLocation = $2
+        Ast.expLambdaParams = $19,
+        Ast.expLambdaBody = $31,
+        Ast.expLambdaLocation = $2
     }
 }
 
@@ -801,7 +786,7 @@ exp_func_call:
         {
             Ast.varName = Token.VarName $ Token.Named { Token.content = tokIDValue $11, Token.location = $2 }
         },
-        Ast.args = [],
+        Ast.args = $15,
         Ast.expCallLocation = $2
     }
 }
@@ -827,7 +812,7 @@ exp_method_call:
             Ast.varFieldName = Token.FieldName $ Token.Named { Token.content = tokIDValue $14, Token.location = $10 },
             Ast.varFieldLocation = $10
         },
-        Ast.args = [],
+        Ast.args = $18,
         Ast.expCallLocation = $2
     }
 }
@@ -856,7 +841,7 @@ exp_static_method_call:
             Ast.varFieldName = Token.FieldName $15,
             Ast.varFieldLocation = $2
         },
-        Ast.args = [],
+        Ast.args = $18,
         Ast.expCallLocation = $2
     }
 }
@@ -882,42 +867,7 @@ numbered_arg: INT ':' arg { $3 }
 -- * arg *
 -- *     *
 -- *******
-arg: 'Arg' loc '(' arg_attrs ')'
-{
-    catMaybes $4
-}
-
--- *************
--- *           *
--- * arg_attrs *
--- *           *
--- *************
-arg_attrs: arg_attr arg_attrs { $1:$2 } | arg_attr { [$1] }
-
--- ************
--- *          *
--- * arg_attr *
--- *          *
--- ************
-arg_attr:
-arg_attr_value  { Just $1 } |
-arg_attr_ignore { Nothing }
-
--- ******************
--- *                *
--- * arg_attr_value *
--- *                *
--- ******************
-arg_attr_value: 'value' ':' exp { $3 }
-
--- *******************
--- *                 *
--- * arg_attr_ignore *
--- *                 *
--- *******************
-arg_attr_ignore:
-ID     ':' ID { Nothing } |
-'name' ':' ID { Nothing }
+arg: 'Arg' loc '(' 'name' ':' ID 'value' ':' exp ID ':' ID ID ':' ID ')' { $9 }
 
 -- ************
 -- *          *
