@@ -810,7 +810,13 @@ exp_method_call:
         {
             Ast.varFieldLhs = Ast.ExpVarContent $6,
             Ast.varFieldName = Token.FieldName $ Token.Named { Token.content = tokIDValue $14, Token.location = $10 },
-            Ast.varFieldLocation = $10
+            Ast.varFieldLocation = Location {
+                Location.filename = getFilename $1,
+                lineStart = lineStart $2,
+                colStart = colStart $2,
+                lineEnd = lineEnd $10,
+                colEnd = colEnd $10
+            }
         },
         Ast.args = $18,
         Ast.expCallLocation = $2
