@@ -93,6 +93,7 @@ import Location
 @KW_EXPR_ASSIGN     = "Expr_Assign"
 @KW_EXPR_CALL       = "Expr_FuncCall"
 @KW_EXPR_SCALL      = "Expr_StaticCall"
+@KW_EXPR_MCALL      = "Expr_MethodCall"
 @KW_STMT_EXPR       = "Stmt_Expression"
 @KW_SCALAR_INT      = "Scalar_Int"
 @KW_SCALAR_STR      = "Scalar_String"
@@ -130,7 +131,7 @@ import Location
 -- * strings *
 -- *         *
 -- ***********
-@REST = "/token"|"/status"|"/frontend/public/pwned"|"You've been pwned !"|"Everything seems fine"|"/upload/profile/photo"
+@REST = "/token"|"/status"|"/frontend/public/pwned"|"You've been pwned !"|"Everything seems fine"|"/upload/profile/photo"|"/uploads/v1/user/profile.png"|"saved profile picture to /uploads/v1/user/profile.png"|"/test"|"999 666 MMM"|"/ghsa_97m3"
 
 -- ***************
 -- *             *
@@ -200,6 +201,7 @@ tokens :-
 @KW_EXPR_LAMBDA     { lex' AlexRawToken_EXPR_LAMBDA     }
 @KW_EXPR_ASSIGN     { lex' AlexRawToken_EXPR_ASSIGN     }
 @KW_EXPR_CALL       { lex' AlexRawToken_EXPR_CALL       }
+@KW_EXPR_MCALL      { lex' AlexRawToken_EXPR_MCALL      }
 @KW_EXPR_SCALL      { lex' AlexRawToken_EXPR_SCALL      }
 @KW_STMT_EXPR       { lex' AlexRawToken_STMT_EXPR       }
 @KW_SCALAR_INT      { lex' AlexRawToken_SCALAR_INT      }
@@ -325,6 +327,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_LAMBDA     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CALL       -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_MCALL      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_SCALL      -- ^ Reserved Keyword
      | AlexRawToken_STMT_EXPR       -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_INT      -- ^ Reserved Keyword

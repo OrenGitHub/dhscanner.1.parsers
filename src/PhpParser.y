@@ -106,6 +106,7 @@ import Data.Map ( fromList )
 'Expr_Closure'          { AlexTokenTag AlexRawToken_EXPR_LAMBDA     _ }
 'Expr_Variable'         { AlexTokenTag AlexRawToken_EXPR_VAR        _ }
 'Expr_FuncCall'         { AlexTokenTag AlexRawToken_EXPR_CALL       _ }
+'Expr_MethodCall'       { AlexTokenTag AlexRawToken_EXPR_MCALL      _ }
 'Expr_StaticCall'       { AlexTokenTag AlexRawToken_EXPR_SCALL      _ }
 'Stmt_Use'              { AlexTokenTag AlexRawToken_STMT_USE        _ }
 'Stmt_Expression'       { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
@@ -749,7 +750,17 @@ exp_binop: 'Expr_BinaryOp_Smaller' loc '(' 'left' ':' exp 'right' ':' exp ')' { 
 -- * exp_call *
 -- *          *
 -- ************
-exp_call: 
+exp_call:
+exp_func_call          { $1 } |
+exp_method_call        { $1 } |
+exp_static_method_call { $1 }
+
+-- *****************
+-- *               *
+-- * exp_func_call *
+-- *               *
+-- *****************
+exp_func_call:
 'Expr_FuncCall' loc
 '('
     'name' ':' 'Name' loc '(' 'name' ':' ID ')'
@@ -765,7 +776,40 @@ exp_call:
         Ast.args = [],
         Ast.expCallLocation = $2
     }
-} |
+}
+
+-- *******************
+-- *                 *
+-- * exp_method_call *
+-- *                 *
+-- *******************
+exp_method_call:
+'Expr_MethodCall' loc
+'('
+    'var' ':' var
+    'name' ':' 'Identifier' loc '(' 'name' ':' ID ')'
+    'args' ':' args
+')' 
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
+        {
+            Ast.varFieldLhs = Ast.ExpVarContent $6,
+            Ast.varFieldName = Token.FieldName $ Token.Named { Token.content = tokIDValue $14, Token.location = $10 },
+            Ast.varFieldLocation = $10
+        },
+        Ast.args = [],
+        Ast.expCallLocation = $2
+    }
+}
+
+-- **************************
+-- *                        *
+-- * exp_static_method_call *
+-- *                        *
+-- **************************
+exp_static_method_call:
 'Expr_StaticCall' loc
 '('
     ID ':' 'Name' loc '(' 'name' ':' ID ')'
