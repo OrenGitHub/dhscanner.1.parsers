@@ -20,7 +20,7 @@ import qualified Token
 -- *******************
 import Data.Maybe
 import Data.Either
-import Data.List ( map )
+import Data.List ( map, foldl' )
 import Data.Map ( fromList )
 
 }
@@ -353,7 +353,7 @@ stmt_assign { $1 } |
 stmt_class  { $1 } |
 stmt_return { $1 }
 
-importee: ID { tokIDValue $1 } | ID '\\' importee { $3 }
+importee: ID { [tokIDValue $1] } | ID '\\' importee { (tokIDValue $1) : $3 }
 
 name: 'Name' loc '(' 'name' ':' importee ')' { $6 }
 
@@ -376,8 +376,8 @@ stmt_use:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName = $11,
-        Ast.stmtImportAlias = $11,
+        Ast.stmtImportName = (Data.List.foldl' (++) "" $11),
+        Ast.stmtImportAlias = last $11,
         Ast.stmtImportLocation = $2
     }
 } 
