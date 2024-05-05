@@ -504,17 +504,7 @@ stmt_class:
 -- * stmt_call *
 -- *           *
 -- *************
-stmt_call:
-'Stmt_Expression' loc
-'('
-    'expr' ':' exp_call
-')'
-{
-    Ast.StmtImport $ Ast.StmtImportContent
-    {
-        Ast.stmtImportLocation = $2
-    }
-}
+stmt_call: 'Stmt_Expression' loc '(' 'expr' ':' exp_call ')' { Ast.StmtCall $6 }
 
 -- ***********
 -- *         *
@@ -650,7 +640,7 @@ exp_int     { $1 } |
 exp_str     { $1 } |
 exp_new     { $1 } |
 exp_bool    { $1 } |
-exp_call    { $1 } |
+exp_call    { Ast.ExpCall $1 } |
 exp_binop   { $1 } |
 exp_array   { $1 } |
 exp_lambda  { $1 } |
@@ -803,7 +793,7 @@ exp_func_call:
     'args' ':' args
 ')' 
 {
-    Ast.ExpCall $ Ast.ExpCallContent
+    Ast.ExpCallContent
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent
         {
@@ -827,7 +817,7 @@ exp_method_call:
     'args' ':' args
 ')' 
 {
-    Ast.ExpCall $ Ast.ExpCallContent
+    Ast.ExpCallContent
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
         {
@@ -853,7 +843,7 @@ exp_static_method_call:
     'args' ':' args
 ')'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
+    Ast.ExpCallContent
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
         {
