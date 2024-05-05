@@ -374,19 +374,16 @@ stmt_assign { $1 } |
 stmt_class  { $1 } |
 stmt_return { $1 }
 
-importee: ID { $1 } | ID '\\' importee { $1 }
+importee: ID { tokIDValue $1 } | ID '\\' importee { $3 }
 
 name: 'Name' loc '(' 'name' ':' importee ')' { $6 }
 
 use_item:
-'UseItem' loc '(' 'type' ':' stmt_use_type 'name' ':' name ID ':' ID ')'
-{
-    Nothing
-}
+'UseItem' loc '(' 'type' ':' stmt_use_type 'name' ':' name ID ':' ID ')' { $9 }
 
 numbered_use_item: INT ':' use_item { $3 }
 
-use_items: listof(numbered_use_item) { $1 }
+use_items: listof(numbered_use_item) { head $1 }
 
 stmt_use_type: ID '(' INT ')' { Nothing }
 
@@ -400,6 +397,8 @@ stmt_use:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
+        Ast.stmtImportName = $11,
+        Ast.stmtImportAlias = $11,
         Ast.stmtImportLocation = $2
     }
 } 
@@ -495,6 +494,8 @@ stmt_class:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
+        Ast.stmtImportName = tokIDValue $4,
+        Ast.stmtImportAlias = tokIDValue $4,
         Ast.stmtImportLocation = $2
     }
 } 
@@ -582,9 +583,10 @@ stmt_assign:
     ')'
 ')'
 {
-    Ast.StmtImport $ Ast.StmtImportContent
+    Ast.StmtAssign $ Ast.StmtAssignContent
     {
-        Ast.stmtImportLocation = $2
+        Ast.stmtAssignLhs = $11,
+        Ast.stmtAssignRhs = $14
     }
 }
 
