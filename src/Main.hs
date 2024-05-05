@@ -10,13 +10,11 @@ import Yesod
 import Prelude
 import Data.Aeson()
 import GHC.Generics
--- import Data.Text ( Text )
 import Data.Text.Lazy
--- import System.Environment ( getArgs )
--- import Data.Text.Lazy.IO ( writeFile )
 import Data.Aeson.Text (encodeToLazyText)
 
 -- project imports
+import qualified JsParser
 import qualified PhpParser
 
 data SourceFile
@@ -41,6 +39,7 @@ data App = App
 
 mkYesod "App" [parseRoutes|
 /from/php/to/dhscanner/ast FromPhpR POST
+/from/js/to/dhscanner/ast FromJsR POST
 /healthcheck HealthcheckR GET
 |]
 
@@ -53,6 +52,13 @@ postFromPhpR :: Handler Value
 postFromPhpR = do
     src <- requireCheckJsonBody :: Handler SourceFile
     case PhpParser.parseProgram (filename src) (content src) of
+        Left errorMsg -> returnJson (Error "FAILED" errorMsg)
+        Right ast -> returnJson ast
+
+postFromJsR :: Handler Value
+postFromJsR = do
+    src <- requireCheckJsonBody :: Handler SourceFile
+    case JsParser.parseProgram (filename src) (content src) of
         Left errorMsg -> returnJson (Error "FAILED" errorMsg)
         Right ast -> returnJson ast
 

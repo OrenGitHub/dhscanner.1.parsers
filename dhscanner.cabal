@@ -38,6 +38,8 @@ executable parser
         Ast,
         Token,
         Location,
+        JsLexer,
+        JsParser,
         PhpLexer,
         PhpParser
 
