@@ -376,7 +376,7 @@ stmt_use:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName = (Data.List.foldl' (++) "" $11),
+        Ast.stmtImportName = (Data.List.foldl' (\x y -> x ++ "." ++ y) "" $11),
         Ast.stmtImportAlias = last $11,
         Ast.stmtImportLocation = $2
     }
