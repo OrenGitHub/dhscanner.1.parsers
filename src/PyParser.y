@@ -89,14 +89,42 @@ import Data.Map ( fromList )
 -- *                   *
 -- *********************
 
+'id'                        { AlexTokenTag AlexRawToken_KWID            _ }
+'op'                        { AlexTokenTag AlexRawToken_OPERATOR        _ }
+'operand'                   { AlexTokenTag AlexRawToken_OPERAND         _ }
+'Return'                    { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
+'Constant'                  { AlexTokenTag AlexRawToken_EXPR_CONST      _ }
+'Not'                       { AlexTokenTag AlexRawToken_NOT             _ }
+'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ }
+'kwonlyargs'                { AlexTokenTag AlexRawToken_ARGS4           _ }
+'posonlyargs'               { AlexTokenTag AlexRawToken_ARGS3           _ }
+'arguments'                 { AlexTokenTag AlexRawToken_ARGS2           _ }
+'arg'                       { AlexTokenTag AlexRawToken_ARG             _ }
+'args'                      { AlexTokenTag AlexRawToken_ARGS            _ }
+'attr'                      { AlexTokenTag AlexRawToken_ATTR            _ }
+'Attribute'                 { AlexTokenTag AlexRawToken_ATTR2           _ }
+'func'                      { AlexTokenTag AlexRawToken_FUNC            _ }
 'body'                      { AlexTokenTag AlexRawToken_BODY            _ }
+'test'                      { AlexTokenTag AlexRawToken_TEST            _ }
+'Name'                      { AlexTokenTag AlexRawToken_NAME2           _ }
+'Call'                      { AlexTokenTag AlexRawToken_CALL            _ }
+'Expr'                      { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'level'                     { AlexTokenTag AlexRawToken_LEVEL           _ }
+'value'                     { AlexTokenTag AlexRawToken_VALUE           _ }
 'name'                      { AlexTokenTag AlexRawToken_NAME            _ }
 'asname'                    { AlexTokenTag AlexRawToken_ASNAME          _ }
+'orelse'                    { AlexTokenTag AlexRawToken_ORELSE          _ }
+'defaults'                  { AlexTokenTag AlexRawToken_DEFAULTS        _ }
+'kw_defaults'               { AlexTokenTag AlexRawToken_KW_DEFAULTS     _ }
+'targets'                   { AlexTokenTag AlexRawToken_TARGETS         _ }
 'names'                     { AlexTokenTag AlexRawToken_NAMES           _ }
 'alias'                     { AlexTokenTag AlexRawToken_ALIAS           _ }
+'keywords'                  { AlexTokenTag AlexRawToken_KEYWORDS        _ }
 'Import'                    { AlexTokenTag AlexRawToken_IMPORT          _ }
 'ImportFrom'                { AlexTokenTag AlexRawToken_IMPORTF         _ }
+'Load'                      { AlexTokenTag AlexRawToken_LOAD            _ }
+'Store'                     { AlexTokenTag AlexRawToken_STORE           _ }
+'Assign'                    { AlexTokenTag AlexRawToken_ASSIGN          _ }
 'Module'                    { AlexTokenTag AlexRawToken_MODULE          _ }
 'module'                    { AlexTokenTag AlexRawToken_MODULE2         _ }
 
@@ -116,12 +144,8 @@ import Data.Map ( fromList )
 -- * expressions *
 -- *             *
 -- ***************
+'UnaryOp'                   { AlexTokenTag AlexRawToken_EXPR_UNOP       _ }
 
--- ***************
--- *             *
--- * expressions *
--- *             *
--- ***************
 
 -- **************
 -- *            *
@@ -129,7 +153,8 @@ import Data.Map ( fromList )
 -- *            *
 -- **************
 
-'IfStatement'         { AlexTokenTag AlexRawToken_STMT_IF     _ }
+'If'                        { AlexTokenTag AlexRawToken_STMT_IF         _ }
+'FunctionDef'               { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 
 -- *************
 -- *           *
@@ -178,7 +203,7 @@ commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
 -- * Ast root: program *
 -- *                   *
 -- *********************
-program: 'Module' '(' stmts ')'
+program: 'Module' '(' 'body' '=' stmts ')'
 {
     Ast.Root
     {
@@ -188,12 +213,181 @@ program: 'Module' '(' stmts ')'
     }
 }
 
+-- ********
+-- *      *
+-- * args *
+-- *      *
+-- ********
+args:
+'[' ']'                  { Nothing } |
+'[' commalistof(arg) ']' { Nothing }
+
+-- *******
+-- *     *
+-- * arg *
+-- *     *
+-- *******
+arg: exp { $1 }
+
+-- ******
+-- *    *
+-- * op *
+-- *    *
+-- ******
+op: 'Not' '(' ')' { Nothing }
+
+-- ************
+-- *          *
+-- * exp_unop *
+-- *          *
+-- ************
+exp_unop:
+'UnaryOp'
+'('
+    'op' '=' op ','
+    'operand' '=' exp ','
+    loc
+')'
+{
+    Nothing
+}
+
+-- **************
+-- *            *
+-- * var_simple *
+-- *            *
+-- **************
+var_simple: name { $1 }
+
+-- *************
+-- *           *
+-- * var_field *
+-- *           *
+-- *************
+var_field:
+'Attribute'
+'('
+    'value' '=' exp_var ','
+    'attr' '=' ID ','
+    'ctx' '=' ctx ','
+    loc
+')'
+{
+    Nothing
+}
+
+-- *******
+-- *     *
+-- * var *
+-- *     *
+-- *******
+var:
+var_simple { $1 } |
+var_field  { $1 }
+
+-- ***********
+-- *         *
+-- * exp_var *
+-- *         *
+-- ***********
+exp_var: var { $1 }
+
+-- ***********
+-- *         *
+-- * exp_str *
+-- *         *
+-- ***********
+exp_str:
+'Constant'
+'('
+    'value' '=' ID ','
+    loc
+')'
+{
+    Nothing
+}
+
+-- *******
+-- *     *
+-- * exp *
+-- *     *
+-- *******
+exp:
+exp_str  { $1 } |
+exp_var  { $1 } |
+exp_unop { $1 } |
+exp_call { $1 }
+
+-- ************
+-- *          *
+-- * keywords *
+-- *          *
+-- ************
+keywords: '[' ']' { Nothing }
+
+-- ************
+-- *          *
+-- * exp_call *
+-- *          *
+-- ************
+exp_call:
+'Call'
+'('
+    'func' '=' exp ','
+    'args' '=' args ','
+    'keywords' '=' keywords ','
+    loc
+')'
+{
+    Nothing
+}
+
 -- *********
 -- *       *
 -- * stmts *
 -- *       *
 -- *********
-stmts: 'body' '=' '[' commalistof(stmt) ']' { $4 }
+stmts: '[' ']' { [] } | '[' commalistof(stmt) ']' { $2 }
+
+-- ***********
+-- *         *
+-- * stmt_if *
+-- *         *
+-- ***********
+stmt_if:
+'If'
+'('
+    'test' '=' exp ','
+    'body' '=' stmts ','
+    'orelse' '=' stmts ','
+    loc 
+')'
+{
+    Nothing
+}
+
+-- *************
+-- *           *
+-- * stmt_call *
+-- *           *
+-- *************
+stmt_call:
+'Expr'
+'('
+    'value' '=' exp_call ','
+    loc
+')'
+{
+    $5
+}
+
+-- ***************
+-- *             *
+-- * stmt_return *
+-- *             *
+-- ***************
+stmt_return:
+'Return' '(' loc ')'  { Nothing }
 
 -- ********
 -- *      *
@@ -201,8 +395,102 @@ stmts: 'body' '=' '[' commalistof(stmt) ']' { $4 }
 -- *      *
 -- ********
 stmt:
+stmt_if          { $1 } |
+stmt_call        { $1 } |
 stmt_import      { $1 } |
+stmt_return      { $1 } |
+stmt_assign      { $1 } |
+stmt_function    { $1 } |
 stmt_import_from { $1 }
+
+-- *********
+-- *       *
+-- * param *
+-- *       *
+-- *********
+param:
+'arg'
+'('
+    'arg' '=' ID ',' loc
+')'
+{
+    Nothing
+}
+
+-- **********
+-- *        *
+-- * params *
+-- *        *
+-- **********
+params:
+'arguments'
+'('
+    'posonlyargs' '=' '[' ']' ','
+    'args' '=' '[' commalistof(param) ']' ','
+    'kwonlyargs' '=' '[' ']' ','
+    'kw_defaults' '=' '[' ']' ','
+    'defaults' '=' '[' ']'
+')'
+{
+    Nothing
+}
+
+-- *****************
+-- *               *
+-- * stmt_function *
+-- *               *
+-- *****************
+stmt_function:
+'FunctionDef'
+'('
+    'name' '=' ID ','
+    'args' '=' params ','
+    'body' '=' stmts
+')'
+{
+    Nothing
+}
+
+-- *******
+-- *     *
+-- * ctx *
+-- *     *
+-- *******
+ctx:
+'Store' '(' ')' { Nothing } |
+'Load'  '(' ')' { Nothing }
+
+-- ********
+-- *      *
+-- * name *
+-- *      *
+-- ********
+name:
+'Name'
+'('
+    'id' '=' ID ','
+    'ctx' '=' ctx ','
+    loc
+')'
+{
+    Nothing
+}
+
+-- ***************
+-- *             *
+-- * stmt_assign *
+-- *             *
+-- ***************
+stmt_assign:
+'Assign'
+'('
+    'targets' '=' '[' listof(name) ']' ','
+    'value' '=' exp ','
+    loc
+')'
+{
+    Nothing
+}
 
 -- ***************
 -- *             *
