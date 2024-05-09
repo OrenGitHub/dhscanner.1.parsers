@@ -91,12 +91,15 @@ import Location
 @KW_INIT            = \"init\"
 @KW_COND            = "cond"
 @KW_BODY            = body
+@KW_LEVEL           = level
 @KW_NAME            = name
 @KW_ASNAME          = asname
 @KW_NAMES           = names
 @KW_ALIAS           = alias
 @KW_IMPORT          = Import
+@KW_IMPORTF         = ImportFrom
 @KW_MODULE          = Module
+@KW_MODULE2         = module
 @KW_UPDATE          = \"update\"
 @KW_QUASIS          = \"quasis\"
 @KW_FALSE           = false
@@ -266,12 +269,15 @@ tokens :-
 @KW_INIT            { lex' AlexRawToken_INIT            }
 @KW_COND            { lex' AlexRawToken_COND            }
 @KW_BODY            { lex' AlexRawToken_BODY            }
+@KW_LEVEL           { lex' AlexRawToken_LEVEL           }
 @KW_NAME            { lex' AlexRawToken_NAME            }
 @KW_ASNAME          { lex' AlexRawToken_ASNAME          }
 @KW_NAMES           { lex' AlexRawToken_NAMES           }
 @KW_ALIAS           { lex' AlexRawToken_ALIAS           }
 @KW_IMPORT          { lex' AlexRawToken_IMPORT          }
+@KW_IMPORTF         { lex' AlexRawToken_IMPORTF         }
 @KW_MODULE          { lex' AlexRawToken_MODULE          }
+@KW_MODULE2         { lex' AlexRawToken_MODULE2         }
 @KW_UPDATE          { lex' AlexRawToken_UPDATE          }
 @KW_QUASIS          { lex' AlexRawToken_QUASIS          }
 @KW_FALSE           { lex' AlexRawToken_FALSE           }
@@ -471,12 +477,15 @@ data AlexRawToken
      | AlexRawToken_INIT            -- ^ Reserved Keyword
      | AlexRawToken_COND            -- ^ Reserved Keyword
      | AlexRawToken_BODY            -- ^ Reserved Keyword
+     | AlexRawToken_LEVEL           -- ^ Reserved Keyword
      | AlexRawToken_NAME            -- ^ Reserved Keyword
      | AlexRawToken_ASNAME          -- ^ Reserved Keyword
      | AlexRawToken_NAMES           -- ^ Reserved Keyword
      | AlexRawToken_ALIAS           -- ^ Reserved Keyword
      | AlexRawToken_IMPORT          -- ^ Reserved Keyword
+     | AlexRawToken_IMPORTF         -- ^ Reserved Keyword
      | AlexRawToken_MODULE          -- ^ Reserved Keyword
+     | AlexRawToken_MODULE2         -- ^ Reserved Keyword
      | AlexRawToken_START           -- ^ Reserved Keyword
      | AlexRawToken_COOKED          -- ^ Reserved Keyword
      | AlexRawToken_UPDATE          -- ^ Reserved Keyword

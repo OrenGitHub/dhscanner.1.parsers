@@ -90,12 +90,15 @@ import Data.Map ( fromList )
 -- *********************
 
 'body'                      { AlexTokenTag AlexRawToken_BODY            _ }
+'level'                     { AlexTokenTag AlexRawToken_LEVEL           _ }
 'name'                      { AlexTokenTag AlexRawToken_NAME            _ }
 'asname'                    { AlexTokenTag AlexRawToken_ASNAME          _ }
 'names'                     { AlexTokenTag AlexRawToken_NAMES           _ }
 'alias'                     { AlexTokenTag AlexRawToken_ALIAS           _ }
 'Import'                    { AlexTokenTag AlexRawToken_IMPORT          _ }
+'ImportFrom'                { AlexTokenTag AlexRawToken_IMPORTF         _ }
 'Module'                    { AlexTokenTag AlexRawToken_MODULE          _ }
+'module'                    { AlexTokenTag AlexRawToken_MODULE2         _ }
 
 -- ************
 -- *          *
@@ -155,6 +158,13 @@ ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
 -- *************************
 %%
 
+-- ************
+-- *          *
+-- * optional *
+-- *          *
+-- ************
+opt(a): { Nothing } | a { Just $1 }
+
 -- **********************
 -- *                    *
 -- * parametrized lists *
@@ -183,7 +193,7 @@ program: 'Module' '(' stmts ')'
 -- * stmts *
 -- *       *
 -- *********
-stmts: 'body' '=' '[' listof(stmt) ']' { $4 }
+stmts: 'body' '=' '[' commalistof(stmt) ']' { $4 }
 
 -- ********
 -- *      *
@@ -191,9 +201,35 @@ stmts: 'body' '=' '[' listof(stmt) ']' { $4 }
 -- *      *
 -- ********
 stmt:
+stmt_import      { $1 } |
+stmt_import_from { $1 }
+
+-- ***************
+-- *             *
+-- * stmt_import *
+-- *             *
+-- ***************
+stmt_import:
 'Import'
 '('
-    'names' '=' '[' listof(alias) ']' ','
+    'names' '=' '[' commalistof(alias) ']' ','
+    loc
+')'
+{
+    Nothing
+}
+
+-- ********************
+-- *                  *
+-- * stmt_import_from *
+-- *                  *
+-- ********************
+stmt_import_from:
+'ImportFrom'
+'('
+    'module' '=' ID ','
+    'names' '=' '[' commalistof(alias) ']' ','
+    'level' '=' INT ','
     loc
 ')'
 {
@@ -209,12 +245,19 @@ alias:
 'alias'
 '('
     'name' '=' ID ','
-    'asname' '=' ID ','
+    opt(asname)
     loc
 ')'
 {
     Nothing
 }
+
+-- **********
+-- *        *
+-- * asname *
+-- *        *
+-- **********
+asname: 'asname' '=' ID ',' { Nothing }
 
 -- ************
 -- *          *
