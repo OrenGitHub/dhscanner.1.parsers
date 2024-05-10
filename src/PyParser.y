@@ -90,12 +90,26 @@ import Data.Map ( fromList )
 -- *********************
 
 'id'                        { AlexTokenTag AlexRawToken_KWID            _ }
+'left'                      { AlexTokenTag AlexRawToken_LEFT            _ }
 'op'                        { AlexTokenTag AlexRawToken_OPERATOR        _ }
+'ops'                       { AlexTokenTag AlexRawToken_OPERATOR2       _ }
+'decorator_list'            { AlexTokenTag AlexRawToken_DECORATORS      _ }
+'type_params'               { AlexTokenTag AlexRawToken_TYPE_PARAMS     _ }
+'comparators'               { AlexTokenTag AlexRawToken_COMPARE2        _ }
+'BoolOp'                    { AlexTokenTag AlexRawToken_COMPARE3        _ }
+'Compare'                   { AlexTokenTag AlexRawToken_COMPARE         _ }
 'operand'                   { AlexTokenTag AlexRawToken_OPERAND         _ }
 'Return'                    { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
+'With'                      { AlexTokenTag AlexRawToken_WITH            _ }
+'withitem'                  { AlexTokenTag AlexRawToken_WITH2           _ }
+'context_expr'              { AlexTokenTag AlexRawToken_CTX_MANAGER     _ }
+'items'                     { AlexTokenTag AlexRawToken_ITEMS           _ }
+'False'                     { AlexTokenTag AlexRawToken_FALSE           _ }
 'Constant'                  { AlexTokenTag AlexRawToken_EXPR_CONST      _ }
 'Not'                       { AlexTokenTag AlexRawToken_NOT             _ }
 'Add'                       { AlexTokenTag AlexRawToken_ADD             _ }
+'Eq'                        { AlexTokenTag AlexRawToken_EQ              _ }
+'Or'                        { AlexTokenTag AlexRawToken_OR              _ }
 'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ }
 'kwonlyargs'                { AlexTokenTag AlexRawToken_ARGS4           _ }
 'posonlyargs'               { AlexTokenTag AlexRawToken_ARGS3           _ }
@@ -122,6 +136,7 @@ import Data.Map ( fromList )
 'targets'                   { AlexTokenTag AlexRawToken_TARGETS         _ }
 'names'                     { AlexTokenTag AlexRawToken_NAMES           _ }
 'alias'                     { AlexTokenTag AlexRawToken_ALIAS           _ }
+'keyword'                   { AlexTokenTag AlexRawToken_KEYWORD         _ }
 'keywords'                  { AlexTokenTag AlexRawToken_KEYWORDS        _ }
 'Import'                    { AlexTokenTag AlexRawToken_IMPORT          _ }
 'conversion'                { AlexTokenTag AlexRawToken_CONVERSION      _ }
@@ -243,7 +258,9 @@ arg: exp { $1 }
 -- ******
 op:
 'Not' '(' ')' { Nothing } |
-'Add' '(' ')' { Nothing }
+'Add' '(' ')' { Nothing } |
+'Eq'  '(' ')' { Nothing } |
+'Or'  '(' ')' { Nothing }
 
 -- ************
 -- *          *
@@ -316,6 +333,21 @@ exp_str:
     Nothing
 }
 
+-- ************
+-- *          *
+-- * exp_bool *
+-- *          *
+-- ************
+exp_bool:
+'Constant'
+'('
+    'value' '=' 'False' ','
+    loc
+')'
+{
+    Nothing
+}
+
 -- **************
 -- *            *
 -- * conversion *
@@ -363,6 +395,48 @@ exp_fstring:
     Nothing
 }
 
+-- *****************
+-- *               *
+-- * exp_binop_cmp *
+-- *               *
+-- *****************
+exp_binop_cmp:
+'Compare'
+'('
+    'left' '=' exp ','
+    'ops' '=' '[' op ']' ','
+    'comparators' '=' '[' commalistof(exp) ']' ','
+    loc
+')'
+{
+    Nothing
+}
+
+-- ******************
+-- *                *
+-- * exp_binop_cmp2 *
+-- *                *
+-- ******************
+exp_binop_cmp2:
+'BoolOp'
+'('
+    'op' '=' op ','
+    'values' '=' '[' commalistof(exp) ']' ','
+    loc
+')'
+{
+    Nothing
+}
+
+-- *************
+-- *           *
+-- * exp_binop *
+-- *           *
+-- *************
+exp_binop:
+exp_binop_cmp  { $1 } |
+exp_binop_cmp2 { $1 }
+
 -- *******
 -- *     *
 -- * exp *
@@ -371,16 +445,36 @@ exp_fstring:
 exp:
 exp_str     { $1 } |
 exp_var     { $1 } |
+exp_bool    { $1 } |
 exp_unop    { $1 } |
+exp_binop   { $1 } |
 exp_call    { $1 } |
 exp_fstring { $1 }
+
+-- ***********
+-- *         *
+-- * keyword *
+-- *         *
+-- ***********
+keyword:
+'keyword'
+'('
+    'arg' '=' ID ','
+    'value' '=' exp ','
+    loc
+')'
+{
+    Nothing
+}
 
 -- ************
 -- *          *
 -- * keywords *
 -- *          *
 -- ************
-keywords: '[' ']' { Nothing }
+keywords:
+'[' ']'                      { Nothing } | 
+'[' commalistof(keyword) ']' { Nothing }
 
 -- ************
 -- *          *
@@ -463,6 +557,36 @@ stmt_aug_assign:
     Nothing
 }
 
+-- *************
+-- *           *
+-- * with_item *
+-- *           *
+-- *************
+with_item:
+'withitem'
+'('
+    'context_expr' '=' exp
+')'
+{
+    Nothing
+}
+
+-- *************
+-- *           *
+-- * stmt_with *
+-- *           *
+-- *************
+stmt_with:
+'With'
+'('
+    'items' '=' '[' commalistof(with_item) ']' ','
+    'body' '=' stmts ','
+    loc
+')'
+{
+    Nothing
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -471,6 +595,7 @@ stmt_aug_assign:
 stmt:
 stmt_if          { $1 } |
 stmt_call        { $1 } |
+stmt_with        { $1 } |
 stmt_import      { $1 } |
 stmt_return      { $1 } |
 stmt_assign      { $1 } |
@@ -492,6 +617,10 @@ param:
     Nothing
 }
 
+defaults:
+'['                  ']' { Nothing } |
+'[' commalistof(exp) ']' { Nothing }
+
 -- **********
 -- *        *
 -- * params *
@@ -504,7 +633,7 @@ params:
     'args' '=' '[' commalistof(param) ']' ','
     'kwonlyargs' '=' '[' ']' ','
     'kw_defaults' '=' '[' ']' ','
-    'defaults' '=' '[' ']'
+    'defaults' '=' defaults
 ')'
 {
     Nothing
@@ -520,7 +649,10 @@ stmt_function:
 '('
     'name' '=' ID ','
     'args' '=' params ','
-    'body' '=' stmts
+    'body' '=' stmts ','
+    'decorator_list' '=' '[' ']' ','
+    'type_params' '=' '[' ']' ','
+    loc
 ')'
 {
     Nothing

@@ -69,6 +69,8 @@ import Location
 -- ************
 @KW_ID              = id
 @KW_CTX             = ctx
+@KW_EQ              = Eq
+@KW_OR              = Or
 @KW_NOT             = Not
 @KW_ADD             = Add
 @KW_END             = \"end\"
@@ -113,6 +115,7 @@ import Location
 @KW_NAMES           = names
 @KW_ALIAS           = alias
 @KW_ORELSE          = orelse
+@KW_KEYWORD         = keyword
 @KW_KEYWORDS        = keywords
 @KW_IMPORT          = Import
 @KW_FSTRING         = JoinedStr
@@ -125,14 +128,25 @@ import Location
 @KW_MODULE2         = module
 @KW_UPDATE          = \"update\"
 @KW_QUASIS          = \"quasis\"
-@KW_FALSE           = false
+@KW_FALSE           = False
+@KW_ITEMS           = items
+@KW_WITH            = With
+@KW_WITH2           = withitem
+@KW_CTX_MANAGER     = context_expr
 @KW_START           = \"start\"
 @KW_EXPRS           = "exprs"
 @KW_VALUE           = value
 @KW_VALUES          = values
 @KW_ARRAY           = array
 @KW_PARAM           = Param
+@KW_COMPARE         = Compare
+@KW_COMPARE3        = BoolOp
+@KW_COMPARE2        = comparators
+@KW_DECORATORS      = decorator_list
+@KW_TYPE_PARAMS     = type_params
+@KW_LEFT            = left
 @KW_OPERATOR        = op
+@KW_OPERATOR2       = ops
 @KW_OPERAND         = operand
 @KW_ARGUMENT        = \"argument\"
 @KW_ARGUMENTS       = \"arguments\"
@@ -254,6 +268,8 @@ tokens :-
 
 @KW_ID              { lex' AlexRawToken_KWID            }
 @KW_CTX             { lex' AlexRawToken_CTX             }
+@KW_OR              { lex' AlexRawToken_OR              }
+@KW_EQ              { lex' AlexRawToken_EQ              }
 @KW_NOT             { lex' AlexRawToken_NOT             }
 @KW_ADD             { lex' AlexRawToken_ADD             }
 @KW_END             { lex' AlexRawToken_END             }
@@ -299,6 +315,7 @@ tokens :-
 @KW_NAMES           { lex' AlexRawToken_NAMES           }
 @KW_ALIAS           { lex' AlexRawToken_ALIAS           }
 @KW_ORELSE          { lex' AlexRawToken_ORELSE          }
+@KW_KEYWORD         { lex' AlexRawToken_KEYWORD         }
 @KW_KEYWORDS        { lex' AlexRawToken_KEYWORDS        }
 @KW_IMPORT          { lex' AlexRawToken_IMPORT          }
 @KW_CONVERSION      { lex' AlexRawToken_CONVERSION      }
@@ -312,13 +329,23 @@ tokens :-
 @KW_UPDATE          { lex' AlexRawToken_UPDATE          }
 @KW_QUASIS          { lex' AlexRawToken_QUASIS          }
 @KW_FALSE           { lex' AlexRawToken_FALSE           }
+@KW_ITEMS           { lex' AlexRawToken_ITEMS           }
+@KW_WITH            { lex' AlexRawToken_WITH            }
+@KW_WITH2           { lex' AlexRawToken_WITH2           }
+@KW_CTX_MANAGER     { lex' AlexRawToken_CTX_MANAGER     }
 @KW_START           { lex' AlexRawToken_START           }
 @KW_EXPRS           { lex' AlexRawToken_EXPRS           }
 @KW_VALUE           { lex' AlexRawToken_VALUE           }
 @KW_VALUES          { lex' AlexRawToken_VALUES          }
 @KW_ARRAY           { lex' AlexRawToken_ARRAY           }
 @KW_PARAM           { lex' AlexRawToken_PARAM           }
+@KW_COMPARE         { lex' AlexRawToken_COMPARE         }
+@KW_DECORATORS      { lex' AlexRawToken_DECORATORS      }
+@KW_TYPE_PARAMS     { lex' AlexRawToken_TYPE_PARAMS     }
+@KW_COMPARE3        { lex' AlexRawToken_COMPARE3        }
+@KW_COMPARE2        { lex' AlexRawToken_COMPARE2        }
 @KW_OPERATOR        { lex' AlexRawToken_OPERATOR        }
+@KW_OPERATOR2       { lex' AlexRawToken_OPERATOR2       }
 @KW_OPERAND         { lex' AlexRawToken_OPERAND         }
 @KW_ALTERNATE       { lex' AlexRawToken_ALTERNATE       }
 @KW_CONSEQUENT      { lex' AlexRawToken_CONSEQUENT      }
@@ -461,6 +488,8 @@ data AlexRawToken
  
      | AlexRawToken_KWID            -- ^ Reserved Keyword
      | AlexRawToken_CTX             -- ^ Reserved Keyword
+     | AlexRawToken_OR              -- ^ Reserved Keyword
+     | AlexRawToken_EQ              -- ^ Reserved Keyword
      | AlexRawToken_NOT             -- ^ Reserved Keyword
      | AlexRawToken_ADD             -- ^ Reserved Keyword
      | AlexRawToken_END             -- ^ Reserved Keyword
@@ -505,6 +534,7 @@ data AlexRawToken
      | AlexRawToken_NAMES           -- ^ Reserved Keyword
      | AlexRawToken_ALIAS           -- ^ Reserved Keyword
      | AlexRawToken_ORELSE          -- ^ Reserved Keyword
+     | AlexRawToken_KEYWORD         -- ^ Reserved Keyword
      | AlexRawToken_KEYWORDS        -- ^ Reserved Keyword
      | AlexRawToken_IMPORT          -- ^ Reserved Keyword
      | AlexRawToken_FSTRING         -- ^ Reserved Keyword
@@ -520,6 +550,10 @@ data AlexRawToken
      | AlexRawToken_UPDATE          -- ^ Reserved Keyword
      | AlexRawToken_QUASIS          -- ^ Reserved Keyword
      | AlexRawToken_FALSE           -- ^ Reserved Keyword
+     | AlexRawToken_ITEMS           -- ^ Reserved Keyword
+     | AlexRawToken_WITH            -- ^ Reserved Keyword
+     | AlexRawToken_WITH2           -- ^ Reserved Keyword
+     | AlexRawToken_CTX_MANAGER     -- ^ Reserved Keyword
      | AlexRawToken_EXPRS           -- ^ Reserved Keyword
      | AlexRawToken_VALUE           -- ^ Reserved Keyword
      | AlexRawToken_VALUES          -- ^ Reserved Keyword
@@ -535,7 +569,13 @@ data AlexRawToken
      | AlexRawToken_PROGRAM         -- ^ Reserved Keyword
      | AlexRawToken_PROPERTY        -- ^ Reserved Keyword
      | AlexRawToken_COMPUTED        -- ^ Reserved Keyword
+     | AlexRawToken_DECORATORS      -- ^ Reserved Keyword
+     | AlexRawToken_TYPE_PARAMS     -- ^ Reserved Keyword
+     | AlexRawToken_COMPARE         -- ^ Reserved Keyword
+     | AlexRawToken_COMPARE3        -- ^ Reserved Keyword
+     | AlexRawToken_COMPARE2        -- ^ Reserved Keyword
      | AlexRawToken_OPERATOR        -- ^ Reserved Keyword
+     | AlexRawToken_OPERATOR2       -- ^ Reserved Keyword
      | AlexRawToken_OPERAND         -- ^ Reserved Keyword
      | AlexRawToken_ALTERNATE       -- ^ Reserved Keyword
      | AlexRawToken_CONSEQUENT      -- ^ Reserved Keyword
