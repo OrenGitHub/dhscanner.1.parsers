@@ -95,6 +95,7 @@ import Data.Map ( fromList )
 'Return'                    { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
 'Constant'                  { AlexTokenTag AlexRawToken_EXPR_CONST      _ }
 'Not'                       { AlexTokenTag AlexRawToken_NOT             _ }
+'Add'                       { AlexTokenTag AlexRawToken_ADD             _ }
 'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ }
 'kwonlyargs'                { AlexTokenTag AlexRawToken_ARGS4           _ }
 'posonlyargs'               { AlexTokenTag AlexRawToken_ARGS3           _ }
@@ -111,20 +112,26 @@ import Data.Map ( fromList )
 'Expr'                      { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'level'                     { AlexTokenTag AlexRawToken_LEVEL           _ }
 'value'                     { AlexTokenTag AlexRawToken_VALUE           _ }
+'values'                    { AlexTokenTag AlexRawToken_VALUES          _ }
 'name'                      { AlexTokenTag AlexRawToken_NAME            _ }
 'asname'                    { AlexTokenTag AlexRawToken_ASNAME          _ }
 'orelse'                    { AlexTokenTag AlexRawToken_ORELSE          _ }
 'defaults'                  { AlexTokenTag AlexRawToken_DEFAULTS        _ }
 'kw_defaults'               { AlexTokenTag AlexRawToken_KW_DEFAULTS     _ }
+'target'                    { AlexTokenTag AlexRawToken_TARGET          _ }
 'targets'                   { AlexTokenTag AlexRawToken_TARGETS         _ }
 'names'                     { AlexTokenTag AlexRawToken_NAMES           _ }
 'alias'                     { AlexTokenTag AlexRawToken_ALIAS           _ }
 'keywords'                  { AlexTokenTag AlexRawToken_KEYWORDS        _ }
 'Import'                    { AlexTokenTag AlexRawToken_IMPORT          _ }
+'conversion'                { AlexTokenTag AlexRawToken_CONVERSION      _ }
+'JoinedStr'                 { AlexTokenTag AlexRawToken_FSTRING         _ }
 'ImportFrom'                { AlexTokenTag AlexRawToken_IMPORTF         _ }
+'FormattedValue'            { AlexTokenTag AlexRawToken_FORMATTED_VAL   _ }
 'Load'                      { AlexTokenTag AlexRawToken_LOAD            _ }
 'Store'                     { AlexTokenTag AlexRawToken_STORE           _ }
 'Assign'                    { AlexTokenTag AlexRawToken_ASSIGN          _ }
+'AugAssign'                 { AlexTokenTag AlexRawToken_ASSIGN2         _ }
 'Module'                    { AlexTokenTag AlexRawToken_MODULE          _ }
 'module'                    { AlexTokenTag AlexRawToken_MODULE2         _ }
 
@@ -234,7 +241,9 @@ arg: exp { $1 }
 -- * op *
 -- *    *
 -- ******
-op: 'Not' '(' ')' { Nothing }
+op:
+'Not' '(' ')' { Nothing } |
+'Add' '(' ')' { Nothing }
 
 -- ************
 -- *          *
@@ -307,16 +316,64 @@ exp_str:
     Nothing
 }
 
+-- **************
+-- *            *
+-- * conversion *
+-- *            *
+-- **************
+conversion: '-' INT { Nothing }
+
+-- *******************
+-- *                 *
+-- * formatted_value *
+-- *                 *
+-- *******************
+formatted_value:
+'FormattedValue'
+'('
+    'value' '=' exp ','
+    'conversion' '=' conversion ','
+    loc
+')'
+{
+    Nothing
+}
+
+-- ****************
+-- *              *
+-- * fstring elem *
+-- *              *
+-- ****************
+fstring_elem:
+exp_str         { $1 } |
+formatted_value { $1 }
+
+-- ***************
+-- *             *
+-- * exp_fstring *
+-- *             *
+-- ***************
+exp_fstring:
+'JoinedStr'
+'('
+    'values' '=' '[' commalistof(fstring_elem) ']' ','
+    loc
+')'
+{
+    Nothing
+}
+
 -- *******
 -- *     *
 -- * exp *
 -- *     *
 -- *******
 exp:
-exp_str  { $1 } |
-exp_var  { $1 } |
-exp_unop { $1 } |
-exp_call { $1 }
+exp_str     { $1 } |
+exp_var     { $1 } |
+exp_unop    { $1 } |
+exp_call    { $1 } |
+exp_fstring { $1 }
 
 -- ************
 -- *          *
@@ -389,6 +446,23 @@ stmt_call:
 stmt_return:
 'Return' '(' loc ')'  { Nothing }
 
+-- *******************
+-- *                 *
+-- * stmt_aug_assign *
+-- *                 *
+-- *******************
+stmt_aug_assign:
+'AugAssign'
+'('
+    'target' '=' var ','
+    'op' '=' op ','
+    'value' '=' exp ','
+    loc
+')'
+{
+    Nothing
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -401,6 +475,7 @@ stmt_import      { $1 } |
 stmt_return      { $1 } |
 stmt_assign      { $1 } |
 stmt_function    { $1 } |
+stmt_aug_assign  { $1 } |
 stmt_import_from { $1 }
 
 -- *********

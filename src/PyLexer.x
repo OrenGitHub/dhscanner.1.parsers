@@ -70,6 +70,7 @@ import Location
 @KW_ID              = id
 @KW_CTX             = ctx
 @KW_NOT             = Not
+@KW_ADD             = Add
 @KW_END             = \"end\"
 @KW_RAW             = \"raw\"
 @KW_LOC             = \"loc\"
@@ -84,6 +85,7 @@ import Location
 @KW_STORE           = Store
 @KW_LINENO          = lineno
 @KW_ELINENO         = end_lineno
+@KW_TARGET          = target
 @KW_TARGETS         = targets
 @KW_DEFAULTS        = defaults
 @KW_KW_DEFAULTS     = kw_defaults
@@ -113,8 +115,12 @@ import Location
 @KW_ORELSE          = orelse
 @KW_KEYWORDS        = keywords
 @KW_IMPORT          = Import
+@KW_FSTRING         = JoinedStr
 @KW_IMPORTF         = ImportFrom
+@KW_CONVERSION      = conversion
+@KW_FORMATTED_VAL   = FormattedValue
 @KW_ASSIGN          = Assign
+@KW_ASSIGN2         = AugAssign
 @KW_MODULE          = Module
 @KW_MODULE2         = module
 @KW_UPDATE          = \"update\"
@@ -123,18 +129,9 @@ import Location
 @KW_START           = \"start\"
 @KW_EXPRS           = "exprs"
 @KW_VALUE           = value
-@KW_RIGHT           = \"right\"
-@KW_STMTS           = "stmts"
+@KW_VALUES          = values
 @KW_ARRAY           = array
 @KW_PARAM           = Param
-@KW_PARAMS          = \"params\"
-@KW_OBJECT          = \"object\"
-@KW_PREFIX          = \"prefix\"
-@KW_COLUMN          = \"column\"
-@KW_LITERAL         = \"Literal\"
-@KW_PROGRAM         = \"Program\"
-@KW_COMPUTED        = \"computed\"
-@KW_PROPERTY        = \"property\"
 @KW_OPERATOR        = op
 @KW_OPERAND         = operand
 @KW_ARGUMENT        = \"argument\"
@@ -182,12 +179,6 @@ import Location
 -- ***************
 
 @KW_EXPR_NEW    = \"NewExpression\"
-@KW_EXPR_CALL   = \"CallExpression\"
-@KW_EXPR_BINOP  = \"BinaryExpression\"
-@KW_EXPR_MEMBER = \"MemberExpression\"
-@KW_EXPR_UPDATE = \"UpdateExpression\"
-@KW_EXPR_ASSIGN = \"AssignmentExpression\"
-@KW_EXPR_LAMBDA = \"ArrowFunctionExpression\"
 
 -- *************
 -- *           *
@@ -199,7 +190,6 @@ import Location
 @KW_OP_EQ       = \"==\"
 @KW_OP_ASSIGN   = "="
 @KW_OP_TIMES    = \"\*\"
-@KW_OP_PLUSPLUS = \"\+\+\"
 
 -- ************
 -- *          *
@@ -214,7 +204,7 @@ import Location
 -- * identifiers *
 -- *             *
 -- ***************
-@LETTER = [A-Za-z_\.\ ]
+@LETTER = [A-Za-z_\.\ \"\/\-\=]
 @LETTER_OR_DIGIT = @LETTER | @DIGIT
 @SQUOTE = \'
 @ID = (@SQUOTE)(@LETTER_OR_DIGIT+)(@SQUOTE)
@@ -265,6 +255,7 @@ tokens :-
 @KW_ID              { lex' AlexRawToken_KWID            }
 @KW_CTX             { lex' AlexRawToken_CTX             }
 @KW_NOT             { lex' AlexRawToken_NOT             }
+@KW_ADD             { lex' AlexRawToken_ADD             }
 @KW_END             { lex' AlexRawToken_END             }
 @KW_RAW             { lex' AlexRawToken_RAW             }
 @KW_LOC             { lex' AlexRawToken_LOC             }
@@ -279,6 +270,7 @@ tokens :-
 @KW_LOAD            { lex' AlexRawToken_LOAD            }
 @KW_STORE           { lex' AlexRawToken_STORE           }
 @KW_LINENO          { lex' AlexRawToken_LINE            }
+@KW_TARGET          { lex' AlexRawToken_TARGET          }
 @KW_TARGETS         { lex' AlexRawToken_TARGETS         }
 @KW_DEFAULTS        { lex' AlexRawToken_DEFAULTS        }
 @KW_KW_DEFAULTS     { lex' AlexRawToken_KW_DEFAULTS     }
@@ -309,8 +301,12 @@ tokens :-
 @KW_ORELSE          { lex' AlexRawToken_ORELSE          }
 @KW_KEYWORDS        { lex' AlexRawToken_KEYWORDS        }
 @KW_IMPORT          { lex' AlexRawToken_IMPORT          }
+@KW_CONVERSION      { lex' AlexRawToken_CONVERSION      }
+@KW_FSTRING         { lex' AlexRawToken_FSTRING         }
 @KW_IMPORTF         { lex' AlexRawToken_IMPORTF         }
+@KW_FORMATTED_VAL   { lex' AlexRawToken_FORMATTED_VAL   }
 @KW_ASSIGN          { lex' AlexRawToken_ASSIGN          }
+@KW_ASSIGN2         { lex' AlexRawToken_ASSIGN2         }
 @KW_MODULE          { lex' AlexRawToken_MODULE          }
 @KW_MODULE2         { lex' AlexRawToken_MODULE2         }
 @KW_UPDATE          { lex' AlexRawToken_UPDATE          }
@@ -319,18 +315,9 @@ tokens :-
 @KW_START           { lex' AlexRawToken_START           }
 @KW_EXPRS           { lex' AlexRawToken_EXPRS           }
 @KW_VALUE           { lex' AlexRawToken_VALUE           }
-@KW_RIGHT           { lex' AlexRawToken_RIGHT           }
-@KW_STMTS           { lex' AlexRawToken_STMTS           }
+@KW_VALUES          { lex' AlexRawToken_VALUES          }
 @KW_ARRAY           { lex' AlexRawToken_ARRAY           }
 @KW_PARAM           { lex' AlexRawToken_PARAM           }
-@KW_PARAMS          { lex' AlexRawToken_PARAMS          }
-@KW_OBJECT          { lex' AlexRawToken_OBJECT          }
-@KW_PREFIX          { lex' AlexRawToken_PREFIX          }
-@KW_COLUMN          { lex' AlexRawToken_COLUMN          }
-@KW_LITERAL         { lex' AlexRawToken_LITERAL         }
-@KW_PROGRAM         { lex' AlexRawToken_PROGRAM         }
-@KW_PROPERTY        { lex' AlexRawToken_PROPERTY        }
-@KW_COMPUTED        { lex' AlexRawToken_COMPUTED        }
 @KW_OPERATOR        { lex' AlexRawToken_OPERATOR        }
 @KW_OPERAND         { lex' AlexRawToken_OPERAND         }
 @KW_ALTERNATE       { lex' AlexRawToken_ALTERNATE       }
@@ -347,7 +334,6 @@ tokens :-
 @KW_STMT_IF         { lex' AlexRawToken_STMT_IF         }
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
 @KW_EXPR_NEW        { lex' AlexRawToken_EXPR_NEW        }
-@KW_EXPR_CALL       { lex' AlexRawToken_EXPR_CALL       }
 @KW_STMT_EXPR       { lex' AlexRawToken_STMT_EXPR       }
 @KW_SCALAR_INT      { lex' AlexRawToken_SCALAR_INT      }
 @KW_IDENTIFIER      { lex' AlexRawToken_IDENTIFIER      }
@@ -360,20 +346,6 @@ tokens :-
 @KW_EXPR_BINOP_PLUS { lex' AlexRawToken_EXPR_BINOP_PLUS }
 @KW_VAR_DECLARATION { lex' AlexRawToken_VAR_DECLARATION }
 @KW_VAR_DECLARATOR  { lex' AlexRawToken_VAR_DECLARATOR  }
-
--- ***************
--- *             *
--- * expressions *
--- *             *
--- ***************
-
-@KW_EXPR_NEW    { lex' AlexRawToken_EXPR_CALL   }
-@KW_EXPR_CALL   { lex' AlexRawToken_EXPR_CALL   }
-@KW_EXPR_MEMBER { lex' AlexRawToken_EXPR_MEMBER }
-@KW_EXPR_BINOP  { lex' AlexRawToken_EXPR_BINOP  }
-@KW_EXPR_UPDATE { lex' AlexRawToken_EXPR_UPDATE }
-@KW_EXPR_ASSIGN { lex' AlexRawToken_EXPR_ASSIGN }
-@KW_EXPR_LAMBDA { lex' AlexRawToken_EXPR_LAMBDA }
 
 -- **************
 -- *            *
@@ -398,7 +370,6 @@ tokens :-
 @KW_OP_EQ       { lex' AlexRawToken_OP_EQ       }
 @KW_OP_ASSIGN   { lex' AlexRawToken_OP_ASSIGN   }
 @KW_OP_TIMES    { lex' AlexRawToken_OP_TIMES    }
-@KW_OP_PLUSPLUS { lex' AlexRawToken_OP_PLUSPLUS }
 
 -- ***************************
 -- *                         *
@@ -491,6 +462,7 @@ data AlexRawToken
      | AlexRawToken_KWID            -- ^ Reserved Keyword
      | AlexRawToken_CTX             -- ^ Reserved Keyword
      | AlexRawToken_NOT             -- ^ Reserved Keyword
+     | AlexRawToken_ADD             -- ^ Reserved Keyword
      | AlexRawToken_END             -- ^ Reserved Keyword
      | AlexRawToken_RAW             -- ^ Reserved Keyword
      | AlexRawToken_LOC             -- ^ Reserved Keyword
@@ -505,6 +477,7 @@ data AlexRawToken
      | AlexRawToken_LINE            -- ^ Reserved Keyword
      | AlexRawToken_LOAD            -- ^ Reserved Keyword
      | AlexRawToken_STORE           -- ^ Reserved Keyword
+     | AlexRawToken_TARGET          -- ^ Reserved Keyword
      | AlexRawToken_TARGETS         -- ^ Reserved Keyword
      | AlexRawToken_DEFAULTS        -- ^ Reserved Keyword
      | AlexRawToken_KW_DEFAULTS     -- ^ Reserved Keyword
@@ -534,8 +507,12 @@ data AlexRawToken
      | AlexRawToken_ORELSE          -- ^ Reserved Keyword
      | AlexRawToken_KEYWORDS        -- ^ Reserved Keyword
      | AlexRawToken_IMPORT          -- ^ Reserved Keyword
+     | AlexRawToken_FSTRING         -- ^ Reserved Keyword
      | AlexRawToken_IMPORTF         -- ^ Reserved Keyword
+     | AlexRawToken_CONVERSION      -- ^ Reserved Keyword
+     | AlexRawToken_FORMATTED_VAL   -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN          -- ^ Reserved Keyword
+     | AlexRawToken_ASSIGN2         -- ^ Reserved Keyword
      | AlexRawToken_MODULE          -- ^ Reserved Keyword
      | AlexRawToken_MODULE2         -- ^ Reserved Keyword
      | AlexRawToken_START           -- ^ Reserved Keyword
@@ -545,6 +522,7 @@ data AlexRawToken
      | AlexRawToken_FALSE           -- ^ Reserved Keyword
      | AlexRawToken_EXPRS           -- ^ Reserved Keyword
      | AlexRawToken_VALUE           -- ^ Reserved Keyword
+     | AlexRawToken_VALUES          -- ^ Reserved Keyword
      | AlexRawToken_RIGHT           -- ^ Reserved Keyword
      | AlexRawToken_STMTS           -- ^ Reserved Keyword
      | AlexRawToken_ARRAY           -- ^ Reserved Keyword
