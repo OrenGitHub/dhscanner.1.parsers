@@ -95,6 +95,7 @@ import Data.Map ( fromList )
 'ops'                       { AlexTokenTag AlexRawToken_OPERATOR2       _ }
 'decorator_list'            { AlexTokenTag AlexRawToken_DECORATORS      _ }
 'type_params'               { AlexTokenTag AlexRawToken_TYPE_PARAMS     _ }
+'type_ignores'              { AlexTokenTag AlexRawToken_TYPE_IGNORES    _ }
 'comparators'               { AlexTokenTag AlexRawToken_COMPARE2        _ }
 'BoolOp'                    { AlexTokenTag AlexRawToken_COMPARE3        _ }
 'Compare'                   { AlexTokenTag AlexRawToken_COMPARE         _ }
@@ -104,7 +105,10 @@ import Data.Map ( fromList )
 'withitem'                  { AlexTokenTag AlexRawToken_WITH2           _ }
 'context_expr'              { AlexTokenTag AlexRawToken_CTX_MANAGER     _ }
 'items'                     { AlexTokenTag AlexRawToken_ITEMS           _ }
+'List'                      { AlexTokenTag AlexRawToken_LIST            _ }
+'elts'                      { AlexTokenTag AlexRawToken_ELTS            _ }
 'False'                     { AlexTokenTag AlexRawToken_FALSE           _ }
+'True'                      { AlexTokenTag AlexRawToken_TRUE            _ }
 'Constant'                  { AlexTokenTag AlexRawToken_EXPR_CONST      _ }
 'Not'                       { AlexTokenTag AlexRawToken_NOT             _ }
 'Add'                       { AlexTokenTag AlexRawToken_ADD             _ }
@@ -225,7 +229,7 @@ commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
 -- * Ast root: program *
 -- *                   *
 -- *********************
-program: 'Module' '(' 'body' '=' stmts ')'
+program: 'Module' '(' 'body' '=' stmts ',' 'type_ignores' '=' '[' ']' ')'
 {
     Ast.Root
     {
@@ -333,12 +337,12 @@ exp_str:
     Nothing
 }
 
--- ************
--- *          *
--- * exp_bool *
--- *          *
--- ************
-exp_bool:
+-- ******************
+-- *                *
+-- * exp_bool_false *
+-- *                *
+-- ******************
+exp_bool_false:
 'Constant'
 '('
     'value' '=' 'False' ','
@@ -347,6 +351,30 @@ exp_bool:
 {
     Nothing
 }
+
+-- *****************
+-- *               *
+-- * exp_bool_true *
+-- *               *
+-- *****************
+exp_bool_true:
+'Constant'
+'('
+    'value' '=' 'True' ','
+    loc
+')'
+{
+    Nothing
+}
+
+-- ************
+-- *          *
+-- * exp_bool *
+-- *          *
+-- ************
+exp_bool:
+exp_bool_true  { $1 } |
+exp_bool_false { $1 }
 
 -- **************
 -- *            *
@@ -437,6 +465,22 @@ exp_binop:
 exp_binop_cmp  { $1 } |
 exp_binop_cmp2 { $1 }
 
+-- ************
+-- *          *
+-- * exp_list *
+-- *          *
+-- ************
+exp_list:
+'List'
+'('
+    'elts' '=' '[' commalistof(exp) ']' ','
+    'ctx' '=' ctx ','
+    loc
+')'
+{
+    Nothing
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -446,6 +490,7 @@ exp:
 exp_str     { $1 } |
 exp_var     { $1 } |
 exp_bool    { $1 } |
+exp_list    { $1 } |
 exp_unop    { $1 } |
 exp_binop   { $1 } |
 exp_call    { $1 } |

@@ -129,6 +129,9 @@ import Location
 @KW_UPDATE          = \"update\"
 @KW_QUASIS          = \"quasis\"
 @KW_FALSE           = False
+@KW_LIST            = List
+@KW_ELTS            = elts
+@KW_TRUE            = True
 @KW_ITEMS           = items
 @KW_WITH            = With
 @KW_WITH2           = withitem
@@ -144,6 +147,7 @@ import Location
 @KW_COMPARE2        = comparators
 @KW_DECORATORS      = decorator_list
 @KW_TYPE_PARAMS     = type_params
+@KW_TYPE_IGNORES    = type_ignores
 @KW_LEFT            = left
 @KW_OPERATOR        = op
 @KW_OPERATOR2       = ops
@@ -218,7 +222,7 @@ import Location
 -- * identifiers *
 -- *             *
 -- ***************
-@LETTER = [A-Za-z_\.\ \"\/\-\=]
+@LETTER = [^\']
 @LETTER_OR_DIGIT = @LETTER | @DIGIT
 @SQUOTE = \'
 @ID = (@SQUOTE)(@LETTER_OR_DIGIT+)(@SQUOTE)
@@ -329,6 +333,8 @@ tokens :-
 @KW_UPDATE          { lex' AlexRawToken_UPDATE          }
 @KW_QUASIS          { lex' AlexRawToken_QUASIS          }
 @KW_FALSE           { lex' AlexRawToken_FALSE           }
+@KW_LIST            { lex' AlexRawToken_LIST            }
+@KW_ELTS            { lex' AlexRawToken_ELTS            }
 @KW_ITEMS           { lex' AlexRawToken_ITEMS           }
 @KW_WITH            { lex' AlexRawToken_WITH            }
 @KW_WITH2           { lex' AlexRawToken_WITH2           }
@@ -342,6 +348,7 @@ tokens :-
 @KW_COMPARE         { lex' AlexRawToken_COMPARE         }
 @KW_DECORATORS      { lex' AlexRawToken_DECORATORS      }
 @KW_TYPE_PARAMS     { lex' AlexRawToken_TYPE_PARAMS     }
+@KW_TYPE_IGNORES    { lex' AlexRawToken_TYPE_IGNORES    }
 @KW_COMPARE3        { lex' AlexRawToken_COMPARE3        }
 @KW_COMPARE2        { lex' AlexRawToken_COMPARE2        }
 @KW_OPERATOR        { lex' AlexRawToken_OPERATOR        }
@@ -550,6 +557,8 @@ data AlexRawToken
      | AlexRawToken_UPDATE          -- ^ Reserved Keyword
      | AlexRawToken_QUASIS          -- ^ Reserved Keyword
      | AlexRawToken_FALSE           -- ^ Reserved Keyword
+     | AlexRawToken_LIST            -- ^ Reserved Keyword
+     | AlexRawToken_ELTS            -- ^ Reserved Keyword
      | AlexRawToken_ITEMS           -- ^ Reserved Keyword
      | AlexRawToken_WITH            -- ^ Reserved Keyword
      | AlexRawToken_WITH2           -- ^ Reserved Keyword
@@ -571,6 +580,7 @@ data AlexRawToken
      | AlexRawToken_COMPUTED        -- ^ Reserved Keyword
      | AlexRawToken_DECORATORS      -- ^ Reserved Keyword
      | AlexRawToken_TYPE_PARAMS     -- ^ Reserved Keyword
+     | AlexRawToken_TYPE_IGNORES    -- ^ Reserved Keyword
      | AlexRawToken_COMPARE         -- ^ Reserved Keyword
      | AlexRawToken_COMPARE3        -- ^ Reserved Keyword
      | AlexRawToken_COMPARE2        -- ^ Reserved Keyword
