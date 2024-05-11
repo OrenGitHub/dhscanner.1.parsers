@@ -796,7 +796,7 @@ param:
     {
         Ast.paramName = Token.ParamName $ Token.Named
         {
-            Token.content = tokIDValue $5,
+            Token.content = unquote (tokIDValue $5),
             Token.location = $7
         },
         Ast.paramNominalType = Token.NominalTy $ Token.Named
@@ -850,7 +850,7 @@ stmt_function:
     {
         Ast.stmtFuncReturnType = Token.NominalTy $ Token.Named
         {
-            Token.content = tokIDValue $5,
+            Token.content = unquote (tokIDValue $5),
             Token.location = $25
         },
         Ast.stmtFuncName = Token.FuncName $ Token.Named
@@ -887,7 +887,7 @@ name:
 {
     Token.Named
     {
-        Token.content = tokIDValue $5,
+        Token.content = unquote (tokIDValue $5),
         Token.location = $11
     }
 }
@@ -952,7 +952,7 @@ stmt_import_from:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName = tokIDValue $4,
+        Ast.stmtImportName = unquote (tokIDValue $4),
         Ast.stmtImportAlias = case $10 of { [] -> tokIDValue $4; (a:_) -> a },
         Ast.stmtImportLocation = $17
     }
