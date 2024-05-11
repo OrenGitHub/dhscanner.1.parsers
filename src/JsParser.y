@@ -260,7 +260,7 @@ program:
     Ast.Root
     {
         Ast.filename = "DDD",
-        decs = lefts $9,
+        decs = [],
         stmts = rights $9
     }
 }
@@ -271,7 +271,6 @@ program:
 -- *             *
 -- ***************
 dec_or_stmt:
-dec  { Left  $1 } |
 stmt { Right $1 }
 
 -- ***************
@@ -310,14 +309,6 @@ dec_var:
 {
    head $9 
 }
-
--- *******
--- *     *
--- * dec *
--- *     *
--- *******
-dec:
-dec_function { $1 }
 
 -- ************
 -- *          *
@@ -871,7 +862,8 @@ stmt_for    { $1 } |
 stmt_call   { $1 } |
 stmt_assign { $1 } |
 stmt_decvar { $1 } |
-stmt_return { $1 }
+stmt_return { $1 } |
+dec_function { $1 }
 
 -- *********
 -- *       *
@@ -913,12 +905,12 @@ dec_function:
     'loc' ':' location
 '}'
 {
-    Ast.DecFunc $ Ast.DecFuncContent
+    Ast.StmtFunc $ Ast.StmtFuncContent
     {
-        Ast.decFuncReturnType = Token.NominalTy $ Token.Named "any" $32,
-        Ast.decFuncName = Token.FuncName $8,
-        Ast.decFuncParams = $12,
-        Ast.decFuncBody = $16
+        Ast.stmtFuncReturnType = Token.NominalTy $ Token.Named "any" $32,
+        Ast.stmtFuncName = Token.FuncName $8,
+        Ast.stmtFuncParams = $12,
+        Ast.stmtFuncBody = $16
     }
 }
 

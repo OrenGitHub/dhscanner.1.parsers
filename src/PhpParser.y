@@ -211,11 +211,11 @@ dec_function: 'Stmt_Function' '(' dec_function_attrs ')'
                     Nothing -> Left "Function missing body"
                     Just body' -> case returnType of
                         Nothing -> Left "MMM"
-                        Just returnType' -> Right $ Ast.DecFunc $ Ast.DecFuncContent {
-                            Ast.decFuncReturnType = returnType',
-                            Ast.decFuncName = name',
-                            Ast.decFuncParams = params',
-                            Ast.decFuncBody = body'
+                        Just returnType' -> Right $ Ast.StmtFunc $ Ast.StmtFuncContent {
+                            Ast.stmtFuncReturnType = returnType',
+                            Ast.stmtFuncName = name',
+                            Ast.stmtFuncParams = params',
+                            Ast.stmtFuncBody = body'
                         }
 }
 

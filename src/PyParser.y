@@ -229,13 +229,18 @@ commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
 -- * Ast root: program *
 -- *                   *
 -- *********************
-program: 'Module' '(' 'body' '=' stmts ',' 'type_ignores' '=' '[' ']' ')'
+program:
+'Module'
+'('
+    'body' '=' stmts ','
+    'type_ignores' '=' '[' ']'
+')'
 {
     Ast.Root
     {
         Ast.filename = "DDD",
         decs = [],
-        stmts = []
+        stmts = $5
     }
 }
 
@@ -245,8 +250,8 @@ program: 'Module' '(' 'body' '=' stmts ',' 'type_ignores' '=' '[' ']' ')'
 -- *      *
 -- ********
 args:
-'[' ']'                  { Nothing } |
-'[' commalistof(arg) ']' { Nothing }
+'[' ']'                  { [] } |
+'[' commalistof(arg) ']' { $2 }
 
 -- *******
 -- *     *
@@ -279,7 +284,7 @@ exp_unop:
     loc
 ')'
 {
-    Nothing
+    $9
 }
 
 -- **************
@@ -287,7 +292,14 @@ exp_unop:
 -- * var_simple *
 -- *            *
 -- **************
-var_simple: name { $1 }
+var_simple:
+name
+{
+    Ast.VarSimple $ Ast.VarSimpleContent
+    {
+        Ast.varName = Token.VarName $1
+    }
+}
 
 -- *************
 -- *           *
@@ -303,7 +315,16 @@ var_field:
     loc
 ')'
 {
-    Nothing
+    Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = $5,
+        Ast.varFieldName = Token.FieldName $ Token.Named
+        {
+            Token.content = tokIDValue $9,
+            Token.location = $15
+        },
+        Ast.varFieldLocation = $15
+    }
 }
 
 -- *******
@@ -320,7 +341,7 @@ var_field  { $1 }
 -- * exp_var *
 -- *         *
 -- ***********
-exp_var: var { $1 }
+exp_var: var { Ast.ExpVarContent $1 }
 
 -- ***********
 -- *         *
@@ -334,7 +355,14 @@ exp_str:
     loc
 ')'
 {
-    Nothing
+    Ast.ExpStr $ Ast.ExpStrContent
+    {
+        Ast.expStrValue = Token.ConstStr
+        {
+            Token.constStrValue = tokIDValue $5,
+            Token.constStrLocation = $7
+        }
+    }
 }
 
 -- ******************
@@ -349,7 +377,14 @@ exp_bool_false:
     loc
 ')'
 {
-    Nothing
+    Ast.ExpBool $ Ast.ExpBoolContent
+    {
+        Ast.expBoolValue = Token.ConstBool
+        {
+            Token.constBoolValue = False,
+            Token.constBoolLocation = $7
+        }
+    }
 }
 
 -- *****************
@@ -364,7 +399,14 @@ exp_bool_true:
     loc
 ')'
 {
-    Nothing
+    Ast.ExpBool $ Ast.ExpBoolContent
+    {
+        Ast.expBoolValue = Token.ConstBool
+        {
+            Token.constBoolValue = True,
+            Token.constBoolLocation = $7
+        }
+    }
 }
 
 -- ************
@@ -396,7 +438,7 @@ formatted_value:
     loc
 ')'
 {
-    Nothing
+    $5
 }
 
 -- ****************
@@ -420,7 +462,22 @@ exp_fstring:
     loc
 ')'
 {
-    Nothing
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent
+        {
+            Ast.actualExpVar = Ast.VarSimple $ Ast.VarSimpleContent
+            {
+                Ast.varName = Token.VarName $ Token.Named
+                {
+                    Token.content = "fstring",
+                    Token.location = $9
+                }
+            }
+        },
+        Ast.args = $6,
+        Ast.expCallLocation = $9
+    }
 }
 
 -- *****************
@@ -437,7 +494,13 @@ exp_binop_cmp:
     loc
 ')'
 {
-    Nothing
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $5,
+        Ast.expBinopRight = case $16 of { [] -> $5; (rhs:_) -> rhs },
+        Ast.expBinopOperator = Ast.PLUS, -- FIXME
+        Ast.expBinopLocation = $19
+    }
 }
 
 -- ******************
@@ -453,7 +516,25 @@ exp_binop_cmp2:
     loc
 ')'
 {
-    Nothing
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = case $10 of
+        {
+            [] -> dummyExp $13;
+            [e] -> e;
+            [lhs,rhs] -> lhs;
+            (lhs:rhs:_) -> lhs
+        },
+        Ast.expBinopRight = case $10 of
+        {
+            [] -> dummyExp $13;
+            [e] -> e;
+            [lhs,rhs] -> rhs;
+            (lhs:rhs:_) -> rhs
+        },
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $13
+    }  
 }
 
 -- *************
@@ -478,7 +559,22 @@ exp_list:
     loc
 ')'
 {
-    Nothing
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent
+        {
+            Ast.actualExpVar = Ast.VarSimple $ Ast.VarSimpleContent
+            {
+                Ast.varName = Token.VarName $ Token.Named
+                {
+                    Token.content = "listify",
+                    Token.location = $13
+                }
+            }
+        },
+        Ast.args = $6,
+        Ast.expCallLocation = $13
+    }
 }
 
 -- *******
@@ -488,12 +584,12 @@ exp_list:
 -- *******
 exp:
 exp_str     { $1 } |
-exp_var     { $1 } |
+exp_var     { Ast.ExpVar $1 } |
 exp_bool    { $1 } |
 exp_list    { $1 } |
 exp_unop    { $1 } |
 exp_binop   { $1 } |
-exp_call    { $1 } |
+exp_call    { Ast.ExpCall $1 } |
 exp_fstring { $1 }
 
 -- ***********
@@ -535,7 +631,12 @@ exp_call:
     loc
 ')'
 {
-    Nothing
+    Ast.ExpCallContent
+    {
+        Ast.callee = $5,
+        Ast.args = $9,
+        Ast.expCallLocation = $15
+    }
 }
 
 -- *********
@@ -559,7 +660,12 @@ stmt_if:
     loc 
 ')'
 {
-    Nothing
+    Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = $5,
+        Ast.stmtIfBody = $9,
+        Ast.stmtIfLocation = $15
+    }
 }
 
 -- *************
@@ -574,7 +680,7 @@ stmt_call:
     loc
 ')'
 {
-    $5
+    Ast.StmtCall $5
 }
 
 -- ***************
@@ -582,8 +688,14 @@ stmt_call:
 -- * stmt_return *
 -- *             *
 -- ***************
-stmt_return:
-'Return' '(' loc ')'  { Nothing }
+stmt_return: 'Return' '(' loc ')'
+{
+    Ast.StmtReturn $ Ast.StmtReturnContent
+    {
+        Ast.stmtReturnValue = Nothing,
+        Ast.stmtReturnLocation = $3
+    }
+}
 
 -- *******************
 -- *                 *
@@ -599,7 +711,11 @@ stmt_aug_assign:
     loc
 ')'
 {
-    Nothing
+    Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = $5,
+        Ast.stmtAssignRhs = $13
+    }
 }
 
 -- *************
@@ -613,7 +729,7 @@ with_item:
     'context_expr' '=' exp
 ')'
 {
-    Nothing
+    $5
 }
 
 -- *************
@@ -629,7 +745,24 @@ stmt_with:
     loc
 ')'
 {
-    Nothing
+    Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = Ast.ExpCall $ Ast.ExpCallContent
+        {
+            Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent
+            {
+                Ast.varName = Token.VarName $ Token.Named
+                {
+                    Token.content = "nop",
+                    Token.location = $13
+                }
+            },
+            Ast.args = $6,
+            Ast.expCallLocation = $13
+        },
+        Ast.stmtIfBody = $11,
+        Ast.stmtIfLocation = $13
+    }
 }
 
 -- ********
@@ -659,7 +792,20 @@ param:
     'arg' '=' ID ',' loc
 ')'
 {
-    Nothing
+    Ast.Param
+    {
+        Ast.paramName = Token.ParamName $ Token.Named
+        {
+            Token.content = tokIDValue $5,
+            Token.location = $7
+        },
+        Ast.paramNominalType = Token.NominalTy $ Token.Named
+        {
+            Token.content = "any",
+            Token.location = $7
+        },
+        Ast.paramSerialIdx = 156
+    }
 }
 
 defaults:
@@ -681,7 +827,7 @@ params:
     'defaults' '=' defaults
 ')'
 {
-    Nothing
+    $11
 }
 
 -- *****************
@@ -700,7 +846,21 @@ stmt_function:
     loc
 ')'
 {
-    Nothing
+    Ast.StmtFunc $ Ast.StmtFuncContent
+    {
+        Ast.stmtFuncReturnType = Token.NominalTy $ Token.Named
+        {
+            Token.content = tokIDValue $5,
+            Token.location = $25
+        },
+        Ast.stmtFuncName = Token.FuncName $ Token.Named
+        {
+            Token.content = tokIDValue $5,
+            Token.location = $25
+        },
+        Ast.stmtFuncParams = $9,
+        Ast.stmtFuncBody = $13
+    }
 }
 
 -- *******
@@ -725,7 +885,11 @@ name:
     loc
 ')'
 {
-    Nothing
+    Token.Named
+    {
+        Token.content = tokIDValue $5,
+        Token.location = $11
+    }
 }
 
 -- ***************
@@ -741,7 +905,15 @@ stmt_assign:
     loc
 ')'
 {
-    Nothing
+    Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = case $6 of
+        {
+            [] -> dummyVar $13;
+            (v:_) -> Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName v
+        },
+        Ast.stmtAssignRhs = $11
+    }
 }
 
 -- ***************
@@ -756,7 +928,12 @@ stmt_import:
     loc
 ')'
 {
-    Nothing
+    Ast.StmtImport $ Ast.StmtImportContent
+    {
+        Ast.stmtImportName = tokIDValue $4,
+        Ast.stmtImportAlias = case $6 of { [] -> tokIDValue $4; (a:_) -> a },
+        Ast.stmtImportLocation = $9
+    }
 }
 
 -- ********************
@@ -773,7 +950,12 @@ stmt_import_from:
     loc
 ')'
 {
-    Nothing
+    Ast.StmtImport $ Ast.StmtImportContent
+    {
+        Ast.stmtImportName = tokIDValue $4,
+        Ast.stmtImportAlias = case $10 of { [] -> tokIDValue $4; (a:_) -> a },
+        Ast.stmtImportLocation = $17
+    }
 }
 
 -- *********
@@ -789,7 +971,7 @@ alias:
     loc
 ')'
 {
-    Nothing
+    case $7 of { Nothing -> tokIDValue $5; Just n -> n }
 }
 
 -- **********
@@ -797,7 +979,7 @@ alias:
 -- * asname *
 -- *        *
 -- **********
-asname: 'asname' '=' ID ',' { Nothing }
+asname: 'asname' '=' ID ',' { tokIDValue $3 }
 
 -- ************
 -- *          *
@@ -812,7 +994,7 @@ loc:
 {
     Location
     {
-        Location.filename = "",
+        Location.filename = getFilename $1,
         lineStart = tokIntValue $3,
         colStart = tokIntValue $7,
         lineEnd = tokIntValue $11,
@@ -821,6 +1003,17 @@ loc:
 }
 
 {
+
+dummyExp :: Location -> Ast.Exp
+dummyExp loc = Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 888 loc
+
+dummyVar :: Location -> Ast.Var
+dummyVar loc = Ast.VarSimple $ Ast.VarSimpleContent {
+    Ast.varName = Token.VarName $ Token.Named {
+        Token.content = "bestVarInTheWorld",
+        Token.location = loc
+    }
+}
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
