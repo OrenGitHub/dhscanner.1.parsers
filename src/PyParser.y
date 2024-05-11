@@ -320,7 +320,7 @@ var_field:
         Ast.varFieldLhs = $5,
         Ast.varFieldName = Token.FieldName $ Token.Named
         {
-            Token.content = tokIDValue $9,
+            Token.content = unquote (tokIDValue $9),
             Token.location = $15
         },
         Ast.varFieldLocation = $15
