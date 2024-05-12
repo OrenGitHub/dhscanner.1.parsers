@@ -821,6 +821,7 @@ stmt_if:
     {
         Ast.stmtIfCond = $8,
         Ast.stmtIfBody = $12,
+        Ast.stmtElseBody = $16,
         Ast.stmtIfLocation = $20
     }
 }

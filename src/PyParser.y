@@ -664,6 +664,7 @@ stmt_if:
     {
         Ast.stmtIfCond = $5,
         Ast.stmtIfBody = $9,
+        Ast.stmtElseBody = $13,
         Ast.stmtIfLocation = $15
     }
 }
@@ -761,6 +762,7 @@ stmt_with:
             Ast.expCallLocation = $13
         },
         Ast.stmtIfBody = $11,
+        Ast.stmtElseBody = [],
         Ast.stmtIfLocation = $13
     }
 }
