@@ -215,7 +215,8 @@ dec_function: 'Stmt_Function' '(' dec_function_attrs ')'
                             Ast.stmtFuncReturnType = returnType',
                             Ast.stmtFuncName = name',
                             Ast.stmtFuncParams = params',
-                            Ast.stmtFuncBody = body'
+                            Ast.stmtFuncBody = body',
+                            Ast.stmtFuncLocation = Location "php" 0 0 0 0
                         }
 }
 

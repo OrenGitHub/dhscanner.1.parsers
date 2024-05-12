@@ -861,7 +861,8 @@ stmt_function:
             Token.location = $25
         },
         Ast.stmtFuncParams = $9,
-        Ast.stmtFuncBody = $13
+        Ast.stmtFuncBody = $13,
+        Ast.stmtFuncLocation = $25
     }
 }
 

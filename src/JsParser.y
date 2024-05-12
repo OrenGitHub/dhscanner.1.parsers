@@ -911,7 +911,8 @@ dec_function:
         Ast.stmtFuncReturnType = Token.NominalTy $ Token.Named "any" $32,
         Ast.stmtFuncName = Token.FuncName $8,
         Ast.stmtFuncParams = $12,
-        Ast.stmtFuncBody = $16
+        Ast.stmtFuncBody = $16,
+        Ast.stmtFuncLocation = $32
     }
 }
 
