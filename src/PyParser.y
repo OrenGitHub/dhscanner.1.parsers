@@ -930,8 +930,8 @@ stmt_import:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName = tokIDValue $4,
-        Ast.stmtImportAlias = case $6 of { [] -> tokIDValue $4; (a:_) -> a },
+        Ast.stmtImportName  = case $6 of { [] -> "BBB"; ((name, alias):_) -> name  },
+        Ast.stmtImportAlias = case $6 of { [] -> "YYY"; ((name, alias):_) -> alias },
         Ast.stmtImportLocation = $9
     }
 }
@@ -952,8 +952,8 @@ stmt_import_from:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName = unquote (tokIDValue $4),
-        Ast.stmtImportAlias = case $10 of { [] -> tokIDValue $4; (a:_) -> a },
+        Ast.stmtImportName  = case $10 of { [] -> tokIDValue $5; ((name, alias):_) -> name  },
+        Ast.stmtImportAlias = case $10 of { [] -> tokIDValue $5; ((name, alias):_) -> alias },
         Ast.stmtImportLocation = $17
     }
 }
@@ -971,7 +971,11 @@ alias:
     loc
 ')'
 {
-    case $7 of { Nothing -> tokIDValue $5; Just n -> n }
+    case $7 of
+    {
+        Nothing -> (unquote (tokIDValue $5), unquote (tokIDValue $5));
+        Just n -> (unquote (tokIDValue $5), n)
+    }
 }
 
 -- **********
@@ -979,7 +983,7 @@ alias:
 -- * asname *
 -- *        *
 -- **********
-asname: 'asname' '=' ID ',' { tokIDValue $3 }
+asname: 'asname' '=' ID ',' { unquote (tokIDValue $3) }
 
 -- ************
 -- *          *
