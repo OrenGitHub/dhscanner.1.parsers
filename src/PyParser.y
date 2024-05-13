@@ -857,7 +857,7 @@ stmt_function:
         },
         Ast.stmtFuncName = Token.FuncName $ Token.Named
         {
-            Token.content = tokIDValue $5,
+            Token.content = unquote (tokIDValue $5),
             Token.location = $25
         },
         Ast.stmtFuncParams = $9,
