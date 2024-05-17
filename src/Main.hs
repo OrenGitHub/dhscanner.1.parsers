@@ -15,6 +15,8 @@ import Data.Aeson.Text (encodeToLazyText)
 
 -- project imports
 import qualified JsParser
+import qualified PyParser
+import qualified RbParser
 import qualified PhpParser
 
 data SourceFile
@@ -39,6 +41,8 @@ data App = App
 
 mkYesod "App" [parseRoutes|
 /from/php/to/dhscanner/ast FromPhpR POST
+/from/py/to/dhscanner/ast FromPyR POST
+/from/rb/to/dhscanner/ast FromRbR POST
 /from/js/to/dhscanner/ast FromJsR POST
 /healthcheck HealthcheckR GET
 |]
@@ -52,6 +56,20 @@ postFromPhpR :: Handler Value
 postFromPhpR = do
     src <- requireCheckJsonBody :: Handler SourceFile
     case PhpParser.parseProgram (filename src) (content src) of
+        Left errorMsg -> returnJson (Error "FAILED" errorMsg)
+        Right ast -> returnJson ast
+
+postFromPyR :: Handler Value
+postFromPyR = do
+    src <- requireCheckJsonBody :: Handler SourceFile
+    case PyParser.parseProgram (filename src) (content src) of
+        Left errorMsg -> returnJson (Error "FAILED" errorMsg)
+        Right ast -> returnJson ast
+
+postFromRbR :: Handler Value
+postFromRbR = do
+    src <- requireCheckJsonBody :: Handler SourceFile
+    case RbParser.parseProgram (filename src) (content src) of
         Left errorMsg -> returnJson (Error "FAILED" errorMsg)
         Right ast -> returnJson ast
 
