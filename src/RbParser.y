@@ -88,7 +88,10 @@ import Data.Map ( fromList )
 'end'                   { AlexTokenTag AlexRawToken_END             _ }
 'raw'                   { AlexTokenTag AlexRawToken_RAW             _ }
 'superclass'            { AlexTokenTag AlexRawToken_SUPER           _ }
+'string_literal'        { AlexTokenTag AlexRawToken_STRING1         _ }
+'tstring_content'       { AlexTokenTag AlexRawToken_STRING2         _ }
 'class'                 { AlexTokenTag AlexRawToken_CLASS           _ }
+'assign'                { AlexTokenTag AlexRawToken_ASSIGN          _ }
 'location'              { AlexTokenTag AlexRawToken_LOC             _ }
 'comment'               { AlexTokenTag AlexRawToken_COMMENT         _ }
 'constant'              { AlexTokenTag AlexRawToken_CONSTANT        _ }
@@ -174,7 +177,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 
 'CallExpression'   { AlexTokenTag AlexRawToken_EXPR_CALL   _ }
 'MemberExpression' { AlexTokenTag AlexRawToken_EXPR_MEMBER _ }
-'BinaryExpression' { AlexTokenTag AlexRawToken_EXPR_BINOP  _ }
+'binary'           { AlexTokenTag AlexRawToken_EXPR_BINOP  _ }
 'UpdateExpression' { AlexTokenTag AlexRawToken_EXPR_UPDATE _ }
 'AssignExpression' { AlexTokenTag AlexRawToken_EXPR_ASSIGN _ }
 
@@ -199,6 +202,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 '<'  { AlexTokenTag AlexRawToken_OP_LT       _ }
 '==' { AlexTokenTag AlexRawToken_OP_EQ       _ }
 '='  { AlexTokenTag AlexRawToken_OP_ASSIGN   _ }
+'+'  { AlexTokenTag AlexRawToken_OP_PLUS     _ }
 '-'  { AlexTokenTag AlexRawToken_OP_MINUS    _ }
 '*'  { AlexTokenTag AlexRawToken_OP_TIMES    _ }
 '..' { AlexTokenTag AlexRawToken_OP_DOTDOT   _ }
@@ -282,9 +286,9 @@ ID      { Nothing } |
 -- **************
 identifier:
 '{'
-    'type' ':' 'Identifier' ','
+    'type' ':' 'const' ','
     'location' ':' location ','
-    'value' ':' tokenID ','
+    'value' ':' ID ','
     'comments' ':' '[' ']' 
 '}'
 {
@@ -334,7 +338,6 @@ exp_var_simple:
 exp_var:
 exp_var_simple { $1 }
 
-
 -- *************
 -- *           *
 -- * exp_binop *
@@ -342,7 +345,7 @@ exp_var_simple { $1 }
 -- *************
 exp_binop:
 '{'
-    'type' ':' 'BinaryExpression' ','
+    'type' ':' 'binary' ','
     'location' ':' location ','
     'left' ':' exp ','
     'operator' ':' actual_op ','
@@ -353,28 +356,11 @@ exp_binop:
     Nothing
 }
 
--- ******************
--- *                *
--- * field variable *
--- *                *
--- ******************
-var_field:
-'{'
-    'type' ':' 'MemberExpression' ','
-    'computed' ':' bool ','
-    'object' ':' exp_var ','
-    'property' ':' identifier ','
-    'location' ':' location
-'}'
-{
-    Nothing
-}
-
--- *******************
--- *                 *
--- * simple variable *
--- *                 *
--- *******************
+-- **************
+-- *            *
+-- * var_simple *
+-- *            *
+-- **************
 var_simple:
 '{'
     'type' ':' 'var_field' ','
@@ -392,82 +378,34 @@ var_simple:
 -- *          *
 -- ************
 var:
-var_simple { $1 } |
-var_field  { $1 }
+var_simple { $1 }
 
--- **************
--- *            *
--- * exp_assign *
--- *            *
--- **************
-exp_assign:
+-- ***************
+-- *             *
+-- * string_part *
+-- *             *
+-- ***************
+string_part:
 '{'
-    'type' ':' 'AssignExpression' ','
-    'operator' ':' operator ','
-    'left' ':' var ','
-    'right' ':' exp ','
-    'location' ':' location
-'}'
-{
-    Nothing
-}
-
--- **************
--- *            *
--- * exp_assign *
--- *            *
--- **************
-exp_assign_tag:
-'{'
-    'type' ':' 'ExpressionStatement' ','
-    'expression' ':' exp_assign ','
-    'location' ':' location
-'}'
-{
-    Nothing
-}
-
--- ***********
--- *         *
--- * exp_int *
--- *         *
--- ***********
-exp_int:
-'{'
-    'type' ':' ID ','
+    'type' ':' 'tstring_content' ','
     'location' ':' location ','
-    'value' ':' QUOTED_INT ','
+    'value' ':' ID ','
     'comments' ':' '[' ']'
 '}'
 {
     Nothing
 }
 
--- ************
--- *          *
--- * exp_bool *
--- *          *
--- ************
-exp_bool:
+-- ***********
+-- *         *
+-- * exp_str *
+-- *         *
+-- ***********
+exp_str:
 '{'
-    'type' ':' 'Literal' ','
-    'value' ':' bool ','
-    'raw' ':' QUOTED_BOOL ','
-    'location' ':' location
-'}'
-{
-    Nothing
-} |
-'{'
-    'type' ':' 'var_ref' ','
+    'type' ':' 'string_literal' ','
     'location' ':' location ','
-    'value' ':'
-    '{'
-        'type' ':' 'kw' ','
-        'location' ':' location ','
-        'value' ':' QUOTED_BOOL ','
-        'comments' ':' '[' ']'
-    '}' ','
+    'parts' ':' '[' commalistof(string_part) ']' ','
     'comments' ':' '[' ']'
 '}'
 {
@@ -503,12 +441,9 @@ exp_call:
 -- *     *
 -- *******
 exp:
-exp_int    { $1 } |
+exp_str    { $1 } |
 exp_var    { $1 } |
-exp_bool   { $1 } |
-exp_call   { $1 } |
-exp_binop  { $1 } |
-exp_assign { $1 }
+exp_binop  { $1 }
 
 -- **************
 -- *            *
@@ -554,6 +489,7 @@ stmt_for:
 actual_op:
 '..' { Nothing } |
 '==' { Nothing } |
+'+'  { Nothing } |
 '*'  { Nothing } |
 '-'  { Nothing } |
 '<'  { Nothing } |
@@ -638,9 +574,16 @@ stmt_update:
 -- *             *
 -- ***************
 stmt_assign:
-stmt_update    { $1 } |
-exp_assign     { $1 } |
-exp_assign_tag { $1 }
+'{'
+    'type' ':' 'assign' ','
+    'location' ':' location ','
+    'target' ':' var ','
+    'value' ':' exp ','
+    'comments' ':' '[' ']' 
+'}'
+{
+    Nothing
+}
 
 -- ***********
 -- *         *

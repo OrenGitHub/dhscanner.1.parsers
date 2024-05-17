@@ -72,8 +72,11 @@ import Location
 @KW_OP              = \"op\"
 @KW_END             = \"end\"
 @KW_RAW             = \"raw\"
+@KW_STRING1         = \"string_literal\"
+@KW_STRING2         = \"tstring_content\"
 @KW_SUPER           = \"superclass\"
 @KW_CLASS           = \"class\"
+@KW_ASSIGN          = \"assign\"
 @KW_LOC             = \"location\"
 @KW_COMMENT         = \"comment\"
 @KW_CONSTANT        = \"constant\"
@@ -178,6 +181,7 @@ import Location
 @KW_OP_LT       = \"\<\"
 @KW_OP_EQ       = \"==\"
 @KW_OP_ASSIGN   = \"=\"
+@KW_OP_PLUS     = \"\+\"
 @KW_OP_MINUS    = \"\-\"
 @KW_OP_TIMES    = \"\*\"
 @KW_OP_DOTDOT   = \"\.\.\"
@@ -253,8 +257,11 @@ tokens :-
 @KW_END             { lex' AlexRawToken_END             }
 @KW_RAW             { lex' AlexRawToken_RAW             }
 @KW_LOC             { lex' AlexRawToken_LOC             }
+@KW_STRING1         { lex' AlexRawToken_STRING1         }
+@KW_STRING2         { lex' AlexRawToken_STRING2         }
 @KW_SUPER           { lex' AlexRawToken_SUPER           }
 @KW_CLASS           { lex' AlexRawToken_CLASS           }
+@KW_ASSIGN          { lex' AlexRawToken_ASSIGN          }
 @KW_COMMENT         { lex' AlexRawToken_COMMENT         }
 @KW_CONSTANT        { lex' AlexRawToken_CONSTANT        }
 @KW_CONSTANT2       { lex' AlexRawToken_CONSTANT2       }
@@ -369,6 +376,7 @@ tokens :-
 @KW_OP_LT       { lex' AlexRawToken_OP_LT       }
 @KW_OP_EQ       { lex' AlexRawToken_OP_EQ       }
 @KW_OP_ASSIGN   { lex' AlexRawToken_OP_ASSIGN   }
+@KW_OP_PLUS     { lex' AlexRawToken_OP_PLUS     }
 @KW_OP_MINUS    { lex' AlexRawToken_OP_MINUS    }
 @KW_OP_TIMES    { lex' AlexRawToken_OP_TIMES    }
 @KW_OP_DOTDOT   { lex' AlexRawToken_OP_DOTDOT   }
@@ -469,7 +477,10 @@ data AlexRawToken
      | AlexRawToken_RAW             -- ^ Reserved Keyword
      | AlexRawToken_LOC             -- ^ Reserved Keyword
      | AlexRawToken_CLASS           -- ^ Reserved Keyword
+     | AlexRawToken_ASSIGN          -- ^ Reserved Keyword
      | AlexRawToken_SUPER           -- ^ Reserved Keyword
+     | AlexRawToken_STRING1         -- ^ Reserved Keyword
+     | AlexRawToken_STRING2         -- ^ Reserved Keyword
      | AlexRawToken_COMMENT         -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT        -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT2       -- ^ Reserved Keyword
@@ -558,6 +569,7 @@ data AlexRawToken
      | AlexRawToken_OP_LT           -- ^ Reserved Keyword
      | AlexRawToken_OP_EQ           -- ^ Reserved Keyword
      | AlexRawToken_OP_ASSIGN       -- ^ Reserved Keyword
+     | AlexRawToken_OP_PLUS         -- ^ Reserved Keyword
      | AlexRawToken_OP_MINUS        -- ^ Reserved Keyword
      | AlexRawToken_OP_TIMES        -- ^ Reserved Keyword
      | AlexRawToken_OP_DOTDOT       -- ^ Reserved Keyword
