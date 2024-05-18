@@ -283,7 +283,7 @@ location: '[' INT ',' INT ',' INT ',' INT ']'
 -- ************
 tokenID:
 ID      { Nothing } |
-'end'   { Nothing } |
+'name'  { Nothing } |
 'start' { Nothing }
 
 -- **************
@@ -311,7 +311,7 @@ identifier_tag:
 '{'
     'type' ':' 'ident' ','
     'location' ':' location ','
-    'value' ':' ID ','
+    'value' ':' tokenID ','
     'comments' ':' '[' ']' 
 '}'
 {
