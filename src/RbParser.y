@@ -89,10 +89,13 @@ import Data.Map ( fromList )
 'raw'                   { AlexTokenTag AlexRawToken_RAW             _ }
 'superclass'            { AlexTokenTag AlexRawToken_SUPER           _ }
 'string_literal'        { AlexTokenTag AlexRawToken_STRING1         _ }
+'symbol_literal'        { AlexTokenTag AlexRawToken_STRING3         _ }
 'tstring_content'       { AlexTokenTag AlexRawToken_STRING2         _ }
 'class'                 { AlexTokenTag AlexRawToken_CLASS           _ }
 'assign'                { AlexTokenTag AlexRawToken_ASSIGN          _ }
 'location'              { AlexTokenTag AlexRawToken_LOC             _ }
+'command'               { AlexTokenTag AlexRawToken_COMMAND         _ }
+'message'               { AlexTokenTag AlexRawToken_MESSAGE         _ }
 'comment'               { AlexTokenTag AlexRawToken_COMMENT         _ }
 'constant'              { AlexTokenTag AlexRawToken_CONSTANT        _ }
 'const_ref'             { AlexTokenTag AlexRawToken_CONSTANT2       _ }
@@ -155,7 +158,7 @@ import Data.Map ( fromList )
 'var_ref'               { AlexTokenTag AlexRawToken_EXPR_VAR        _ }
 'Stmt_Expr'             { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'Scalar_Int'            { AlexTokenTag AlexRawToken_SCALAR_INT      _ }
-'Identifier'            { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
+'ident'                 { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
 'returnType'            { AlexTokenTag AlexRawToken_RETURN_TYPE     _ }
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'FunctionDeclaration'   { AlexTokenTag AlexRawToken_FUNCTION_DEC    _ }
@@ -295,6 +298,22 @@ identifier:
     Nothing
 }
 
+-- ******************
+-- *                *
+-- * identifier_tag *
+-- *                *
+-- ******************
+identifier_tag:
+'{'
+    'type' ':' 'ident' ','
+    'location' ':' location ','
+    'value' ':' ID ','
+    'comments' ':' '[' ']' 
+'}'
+{
+    Nothing
+}
+
 -- *********
 -- *       *
 -- * param *
@@ -302,7 +321,7 @@ identifier:
 -- *********
 param:
 '{'
-    'type' ':' 'Identifier' ','
+    'type' ':' 'ident' ','
     'name' ':' ID ','
     'location' ':' location
 '}'
@@ -396,12 +415,12 @@ string_part:
     Nothing
 }
 
--- ***********
--- *         *
--- * exp_str *
--- *         *
--- ***********
-exp_str:
+-- *************
+-- *           *
+-- * exp_str_1 *
+-- *           *
+-- *************
+exp_str_1:
 '{'
     'type' ':' 'string_literal' ','
     'location' ':' location ','
@@ -411,6 +430,31 @@ exp_str:
 {
     Nothing
 }
+
+-- *************
+-- *           *
+-- * exp_str_2 *
+-- *           *
+-- *************
+exp_str_2:
+'{'
+    'type' ':' 'symbol_literal' ','
+    'location' ':' location ','
+    'value' ':' identifier_tag ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+-- ***********
+-- *         *
+-- * exp_str *
+-- *         *
+-- ***********
+exp_str:
+exp_str_1 { $1 } |
+exp_str_2 { $1 }
 
 -- ************
 -- *          *
@@ -531,38 +575,6 @@ arguments:
     'location' ':' location ','
     'parts' ':' '[' commalistof(exp) ']' ','
     'comments' ':' '[' ']' 
-'}'
-{
-}
-
--- ***************
--- *             *
--- * stmt_return *
--- *             *
--- ***************
-stmt_return:
-'{'
-    'type' ':' 'ReturnStatement' ','
-    'location' ':' location ','
-    'arguments' ':' arguments ','
-    'comments' ':' '[' ']'
-'}'
-{
-    Nothing
-}
-
--- ***************
--- *             *
--- * stmt_update *
--- *             *
--- ***************
-stmt_update:
-'{'
-    'type' ':' 'UpdateExpression' ','
-    'operator' ':' operator ','
-    'argument' ':' identifier ','
-    'prefix' ':' bool ','
-    'location' ':' location
 '}'
 {
     Nothing
@@ -706,6 +718,23 @@ stmt_class:
     Nothing
 }
 
+-- ****************
+-- *              *
+-- * stmt_command *
+-- *              *
+-- ****************
+stmt_command:
+'{'
+    'type' ':' 'command' ','
+    'location' ':' location ','
+    'message' ':' identifier_tag ','
+    'arguments' ':' arguments ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -717,7 +746,7 @@ stmt_for     { $1 } |
 stmt_call    { $1 } |
 stmt_assign  { $1 } |
 stmt_class   { $1 } |
-stmt_return  { $1 } |
+stmt_command { $1 } |
 stmt_comment { $1 }
 
 -- *********

@@ -40,6 +40,10 @@ executable parser
         Location,
         JsLexer,
         JsParser,
+        PyLexer,
+        PyParser,
+        RbLexer,
+        RbParser,
         PhpLexer,
         PhpParser
 

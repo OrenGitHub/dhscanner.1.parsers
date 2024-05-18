@@ -74,10 +74,13 @@ import Location
 @KW_RAW             = \"raw\"
 @KW_STRING1         = \"string_literal\"
 @KW_STRING2         = \"tstring_content\"
+@KW_STRING3         = \"symbol_literal\"
 @KW_SUPER           = \"superclass\"
 @KW_CLASS           = \"class\"
 @KW_ASSIGN          = \"assign\"
 @KW_LOC             = \"location\"
+@KW_COMMAND         = \"command\"
+@KW_MESSAGE         = \"message\"
 @KW_COMMENT         = \"comment\"
 @KW_CONSTANT        = \"constant\"
 @KW_CONSTANT2       = \"const_ref\"
@@ -259,9 +262,12 @@ tokens :-
 @KW_LOC             { lex' AlexRawToken_LOC             }
 @KW_STRING1         { lex' AlexRawToken_STRING1         }
 @KW_STRING2         { lex' AlexRawToken_STRING2         }
+@KW_STRING3         { lex' AlexRawToken_STRING3         }
 @KW_SUPER           { lex' AlexRawToken_SUPER           }
 @KW_CLASS           { lex' AlexRawToken_CLASS           }
 @KW_ASSIGN          { lex' AlexRawToken_ASSIGN          }
+@KW_COMMAND         { lex' AlexRawToken_COMMAND         }
+@KW_MESSAGE         { lex' AlexRawToken_MESSAGE         }
 @KW_COMMENT         { lex' AlexRawToken_COMMENT         }
 @KW_CONSTANT        { lex' AlexRawToken_CONSTANT        }
 @KW_CONSTANT2       { lex' AlexRawToken_CONSTANT2       }
@@ -481,7 +487,10 @@ data AlexRawToken
      | AlexRawToken_SUPER           -- ^ Reserved Keyword
      | AlexRawToken_STRING1         -- ^ Reserved Keyword
      | AlexRawToken_STRING2         -- ^ Reserved Keyword
+     | AlexRawToken_STRING3         -- ^ Reserved Keyword
+     | AlexRawToken_COMMAND         -- ^ Reserved Keyword
      | AlexRawToken_COMMENT         -- ^ Reserved Keyword
+     | AlexRawToken_MESSAGE         -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT        -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT2       -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT3       -- ^ Reserved Keyword
