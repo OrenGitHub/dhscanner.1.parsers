@@ -72,6 +72,10 @@ import Location
 @KW_OP              = \"op\"
 @KW_END             = \"end\"
 @KW_RAW             = \"raw\"
+@KW_DICT            = \"bare_assoc_hash\"
+@KW_LABEL           = \"label\"
+@KW_ASSOC           = \"assoc\"
+@KW_ASSOCS          = \"assocs\"
 @KW_STRING1         = \"string_literal\"
 @KW_STRING2         = \"tstring_content\"
 @KW_STRING3         = \"symbol_literal\"
@@ -85,12 +89,13 @@ import Location
 @KW_CONSTANT        = \"constant\"
 @KW_CONSTANT2       = \"const_ref\"
 @KW_CONSTANT3       = \"const\"
+@KW_KEY             = \"key\"
 @KW_ARG             = "Arg"
 @KW_VAR             = \"var_field\"
 @KW_NULL            = null
 @KW_TEST            = \"test\"
 @KW_LINE            = \"line\"
-@KW_TRUE            = true
+@KW_TRUE            = \"true\"
 @KW_ARGS            = \"args\"
 @KW_NAME            = \"name\"
 @KW_EXPR            =  expr
@@ -260,6 +265,10 @@ tokens :-
 @KW_END             { lex' AlexRawToken_END             }
 @KW_RAW             { lex' AlexRawToken_RAW             }
 @KW_LOC             { lex' AlexRawToken_LOC             }
+@KW_DICT            { lex' AlexRawToken_DICT            }
+@KW_LABEL           { lex' AlexRawToken_LABEL           }
+@KW_ASSOC           { lex' AlexRawToken_ASSOC           }
+@KW_ASSOCS          { lex' AlexRawToken_ASSOCS          }
 @KW_STRING1         { lex' AlexRawToken_STRING1         }
 @KW_STRING2         { lex' AlexRawToken_STRING2         }
 @KW_STRING3         { lex' AlexRawToken_STRING3         }
@@ -273,6 +282,7 @@ tokens :-
 @KW_CONSTANT2       { lex' AlexRawToken_CONSTANT2       }
 @KW_CONSTANT3       { lex' AlexRawToken_CONSTANT3       }
 @KW_ARG             { lex' AlexRawToken_ARG             }
+@KW_KEY             { lex' AlexRawToken_KEY             }
 @KW_VAR             { lex' AlexRawToken_VAR             }
 @KW_NULL            { lex' AlexRawToken_NULL            }
 @KW_TEST            { lex' AlexRawToken_TEST            }
@@ -485,6 +495,10 @@ data AlexRawToken
      | AlexRawToken_CLASS           -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN          -- ^ Reserved Keyword
      | AlexRawToken_SUPER           -- ^ Reserved Keyword
+     | AlexRawToken_DICT            -- ^ Reserved Keyword
+     | AlexRawToken_LABEL           -- ^ Reserved Keyword
+     | AlexRawToken_ASSOC           -- ^ Reserved Keyword
+     | AlexRawToken_ASSOCS          -- ^ Reserved Keyword
      | AlexRawToken_STRING1         -- ^ Reserved Keyword
      | AlexRawToken_STRING2         -- ^ Reserved Keyword
      | AlexRawToken_STRING3         -- ^ Reserved Keyword
@@ -495,6 +509,7 @@ data AlexRawToken
      | AlexRawToken_CONSTANT2       -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT3       -- ^ Reserved Keyword
      | AlexRawToken_ARG             -- ^ Reserved Keyword
+     | AlexRawToken_KEY             -- ^ Reserved Keyword
      | AlexRawToken_VAR             -- ^ Reserved Keyword
      | AlexRawToken_TEST            -- ^ Reserved Keyword
      | AlexRawToken_NULL            -- ^ Reserved Keyword

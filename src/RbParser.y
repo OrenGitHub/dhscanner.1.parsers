@@ -88,6 +88,10 @@ import Data.Map ( fromList )
 'end'                   { AlexTokenTag AlexRawToken_END             _ }
 'raw'                   { AlexTokenTag AlexRawToken_RAW             _ }
 'superclass'            { AlexTokenTag AlexRawToken_SUPER           _ }
+'bare_assoc_hash'       { AlexTokenTag AlexRawToken_DICT            _ }
+'assoc'                 { AlexTokenTag AlexRawToken_ASSOC           _ }
+'label'                 { AlexTokenTag AlexRawToken_LABEL           _ }
+'assocs'                { AlexTokenTag AlexRawToken_ASSOCS          _ }
 'string_literal'        { AlexTokenTag AlexRawToken_STRING1         _ }
 'symbol_literal'        { AlexTokenTag AlexRawToken_STRING3         _ }
 'tstring_content'       { AlexTokenTag AlexRawToken_STRING2         _ }
@@ -100,7 +104,7 @@ import Data.Map ( fromList )
 'constant'              { AlexTokenTag AlexRawToken_CONSTANT        _ }
 'const_ref'             { AlexTokenTag AlexRawToken_CONSTANT2       _ }
 'const'                 { AlexTokenTag AlexRawToken_CONSTANT3       _ }
-'Arg'                   { AlexTokenTag AlexRawToken_ARG             _ }
+'key'                   { AlexTokenTag AlexRawToken_KEY             _ }
 'var_field'             { AlexTokenTag AlexRawToken_VAR             _ }
 'null'                  { AlexTokenTag AlexRawToken_NULL            _ }
 'test'                  { AlexTokenTag AlexRawToken_TEST            _ }
@@ -333,12 +337,12 @@ param:
     } 
 }
 
--- ******************
--- *                *
--- * exp_var_simple *
--- *                *
--- ******************
-exp_var_simple:
+-- ********************
+-- *                  *
+-- * exp_var_simple_1 *
+-- *                  *
+-- ********************
+exp_var_simple_1:
 '{'
     'type' ':' 'var_ref' ','
     'location' ':' location ','
@@ -348,6 +352,31 @@ exp_var_simple:
 {
     Nothing
 }
+
+-- ********************
+-- *                  *
+-- * exp_var_simple_2 *
+-- *                  *
+-- ********************
+exp_var_simple_2:
+'{'
+    'type' ':' 'var_ref' ','
+    'location' ':' location ','
+    'value' ':' exp_bool ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+-- ******************
+-- *                *
+-- * exp_var_simple *
+-- *                *
+-- ******************
+exp_var_simple:
+exp_var_simple_1 { $1 } |
+exp_var_simple_2 { $1 }
 
 -- ***********
 -- *         *
@@ -481,12 +510,87 @@ exp_call:
 
 -- *******
 -- *     *
+-- * key *
+-- *     *
+-- *******
+key:
+'{'
+    'type' ':' 'label' ','
+    'location' ':' location ','
+    'value' ':' ID ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+-- *********
+-- *       *
+-- * assoc *
+-- *       *
+-- *********
+assoc:
+'{'
+    'type' ':' 'assoc' ','
+    'location' ':' location ','
+    'key' ':' key ','
+    'value' ':' exp ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+-- ************
+-- *          *
+-- * exp_dict *
+-- *          *
+-- ************
+exp_dict:
+'{'
+    'type' ':' 'bare_assoc_hash' ','
+    'location' ':' location ','
+    'assocs' ':' '[' commalistof(assoc) ']' ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+-- ************
+-- *          *
+-- * exp_true *
+-- *          *
+-- ************
+exp_true:
+'{'
+    'type' ':' 'kw' ','
+    'location' ':' location ','
+    'value' ':' 'true' ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+-- ************
+-- *          *
+-- * exp_bool *
+-- *          *
+-- ************
+exp_bool:
+exp_true  { $1 }
+
+-- *******
+-- *     *
 -- * exp *
 -- *     *
 -- *******
 exp:
 exp_str    { $1 } |
 exp_var    { $1 } |
+exp_bool   { $1 } |
+exp_dict   { $1 } |
 exp_binop  { $1 }
 
 -- **************
@@ -554,15 +658,6 @@ operator:
 {
     Nothing
 }
-
--- ********
--- *      *
--- * bool *
--- *      *
--- ********
-bool:
-'true'  { True  } |
-'false' { False }
 
 -- *************
 -- *           *
