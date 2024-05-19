@@ -87,10 +87,13 @@ import Data.Map ( fromList )
 'op'                    { AlexTokenTag AlexRawToken_OP              _ }
 'end'                   { AlexTokenTag AlexRawToken_END             _ }
 'raw'                   { AlexTokenTag AlexRawToken_RAW             _ }
+'self'                  { AlexTokenTag AlexRawToken_SELF            _ }
 'superclass'            { AlexTokenTag AlexRawToken_SUPER           _ }
+'hash'                  { AlexTokenTag AlexRawToken_DICT2           _ }
 'bare_assoc_hash'       { AlexTokenTag AlexRawToken_DICT            _ }
 'assoc'                 { AlexTokenTag AlexRawToken_ASSOC           _ }
 'label'                 { AlexTokenTag AlexRawToken_LABEL           _ }
+'period'                { AlexTokenTag AlexRawToken_PERIOD          _ }
 'assocs'                { AlexTokenTag AlexRawToken_ASSOCS          _ }
 'string_literal'        { AlexTokenTag AlexRawToken_STRING1         _ }
 'symbol_literal'        { AlexTokenTag AlexRawToken_STRING3         _ }
@@ -165,7 +168,7 @@ import Data.Map ( fromList )
 'ident'                 { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
 'returnType'            { AlexTokenTag AlexRawToken_RETURN_TYPE     _ }
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
-'FunctionDeclaration'   { AlexTokenTag AlexRawToken_FUNCTION_DEC    _ }
+'def'                   { AlexTokenTag AlexRawToken_FUNCTION_DEC    _ }
 
 -- *********
 -- *       *
@@ -209,6 +212,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 '<'  { AlexTokenTag AlexRawToken_OP_LT       _ }
 '==' { AlexTokenTag AlexRawToken_OP_EQ       _ }
 '='  { AlexTokenTag AlexRawToken_OP_ASSIGN   _ }
+'.'  { AlexTokenTag AlexRawToken_OP_DOT      _ }
 '+'  { AlexTokenTag AlexRawToken_OP_PLUS     _ }
 '-'  { AlexTokenTag AlexRawToken_OP_MINUS    _ }
 '*'  { AlexTokenTag AlexRawToken_OP_TIMES    _ }
@@ -286,6 +290,15 @@ ID      { Nothing } |
 'name'  { Nothing } |
 'start' { Nothing }
 
+-- *******************
+-- *                 *
+-- * identifier_type *
+-- *                 *
+-- *******************
+identifier_type:
+'const' { Nothing } |
+'ident' { Nothing }
+
 -- **************
 -- *            *
 -- * identifier *
@@ -293,9 +306,9 @@ ID      { Nothing } |
 -- **************
 identifier:
 '{'
-    'type' ':' 'const' ','
+    'type' ':' identifier_type ','
     'location' ':' location ','
-    'value' ':' ID ','
+    'value' ':' tokenID ','
     'comments' ':' '[' ']' 
 '}'
 {
@@ -369,6 +382,22 @@ exp_var_simple_2:
     Nothing
 }
 
+-- ********************
+-- *                  *
+-- * exp_var_simple_3 *
+-- *                  *
+-- ********************
+exp_var_simple_3:
+'{'
+    'type' ':' 'var_ref' ','
+    'location' ':' location ','
+    'value' ':' exp_self ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
 -- ******************
 -- *                *
 -- * exp_var_simple *
@@ -376,7 +405,8 @@ exp_var_simple_2:
 -- ******************
 exp_var_simple:
 exp_var_simple_1 { $1 } |
-exp_var_simple_2 { $1 }
+exp_var_simple_2 { $1 } |
+exp_var_simple_3 { $1 }
 
 -- ***********
 -- *         *
@@ -469,7 +499,7 @@ exp_str_2:
 '{'
     'type' ':' 'symbol_literal' ','
     'location' ':' location ','
-    'value' ':' identifier_tag ','
+    'value' ':' identifier ','
     'comments' ':' '[' ']'
 '}'
 {
@@ -546,7 +576,7 @@ assoc:
 -- * exp_dict *
 -- *          *
 -- ************
-exp_dict:
+exp_dict_1:
 '{'
     'type' ':' 'bare_assoc_hash' ','
     'location' ':' location ','
@@ -559,6 +589,31 @@ exp_dict:
 
 -- ************
 -- *          *
+-- * exp_dict *
+-- *          *
+-- ************
+exp_dict_2:
+'{'
+    'type' ':' 'hash' ','
+    'location' ':' location ','
+    'assocs' ':' '[' commalistof(assoc) ']' ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+-- ************
+-- *          *
+-- * exp_dict *
+-- *          *
+-- ************
+exp_dict:
+exp_dict_1 { $1 } |
+exp_dict_2 { $1 }
+
+-- ************
+-- *          *
 -- * exp_true *
 -- *          *
 -- ************
@@ -567,6 +622,22 @@ exp_true:
     'type' ':' 'kw' ','
     'location' ':' location ','
     'value' ':' 'true' ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+-- ************
+-- *          *
+-- * exp_self *
+-- *          *
+-- ************
+exp_self:
+'{'
+    'type' ':' 'kw' ','
+    'location' ':' location ','
+    'value' ':' 'self' ','
     'comments' ':' '[' ']'
 '}'
 {
@@ -590,6 +661,7 @@ exp:
 exp_str    { $1 } |
 exp_var    { $1 } |
 exp_bool   { $1 } |
+exp_self   { $1 } |
 exp_dict   { $1 } |
 exp_binop  { $1 }
 
@@ -641,7 +713,17 @@ actual_op:
 '*'  { Nothing } |
 '-'  { Nothing } |
 '<'  { Nothing } |
-'='  { Nothing }
+'='  { Nothing } |
+'.'  { Nothing }
+
+-- ************
+-- *          *
+-- * operator *
+-- *          *
+-- ************
+operator_name:
+'op'     { Nothing } |
+'period' { Nothing }
 
 -- ************
 -- *          *
@@ -650,7 +732,7 @@ actual_op:
 -- ************
 operator:
 '{'
-    'type' ':' 'op' ','
+    'type' ':' operator_name ','
     'location' ':' location ','
     'value' ':' actual_op ','
     'comments' ':' '[' ']'
@@ -822,8 +904,28 @@ stmt_command:
 '{'
     'type' ':' 'command' ','
     'location' ':' location ','
-    'message' ':' identifier_tag ','
+    'message' ':' identifier ','
     'arguments' ':' arguments ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+-- ***************
+-- *             *
+-- * stmt_method *
+-- *             *
+-- ***************
+stmt_method:
+'{'
+    'type' ':' 'def' ','
+    'location' ':' location ','
+    'target' ':' exp_var ','
+    'operator' ':' operator ','
+    'name' ':' identifier ','
+    'params' ':' params ','
+    'bodystmt' ':' bodystmt ','
     'comments' ':' '[' ']'
 '}'
 {
@@ -842,6 +944,7 @@ stmt_call    { $1 } |
 stmt_assign  { $1 } |
 stmt_class   { $1 } |
 stmt_command { $1 } |
+stmt_method  { $1 } |
 stmt_comment { $1 }
 
 -- *********
@@ -914,7 +1017,7 @@ bodystmt:
 -- *              *
 -- ****************
 dec_function: '{'
-    'type' ':' 'FunctionDeclaration' ','
+    'type' ':' 'def' ','
     'location' ':' location ','
     'target' ':' 'null' ','
     'operator' ':' 'null' ','
