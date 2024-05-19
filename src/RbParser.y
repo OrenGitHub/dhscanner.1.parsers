@@ -271,7 +271,7 @@ program:
     Ast.Root
     {
         Ast.filename = getFilename $1,
-        Ast.stmts = [],
+        Ast.stmts = rights (catMaybes $12),
         Ast.decs = lefts (catMaybes $12)
     }
 }
@@ -416,7 +416,14 @@ exp_var_simple_3 { $1 }
 -- *         *
 -- ***********
 exp_var:
-exp_var_simple { $1 }
+exp_var_simple
+{
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $Ast.VarSimpleContent $ Token.VarName $ Token.Named
+    {
+        Token.content = "PPP",
+        Token.location = Location "" 9 9 9 9
+    } 
+}
 
 -- *************
 -- *           *
@@ -433,7 +440,13 @@ exp_binop:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+       Ast.expBinopLeft = $12,
+       Ast.expBinopRight = $20,
+       Ast.expBinopOperator = Ast.PLUS,
+       Ast.expBinopLocation = $8
+    }
 }
 
 -- **************
@@ -489,7 +502,11 @@ exp_str_1:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
+    {
+        Token.constStrValue = "MMM",
+        Token.constStrLocation = $8
+    }
 }
 
 -- *************
@@ -505,7 +522,11 @@ exp_str_2:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
+    {
+        Token.constStrValue = (Token.content $12),
+        Token.constStrLocation = $8
+    }
 }
 
 -- ***********
@@ -516,13 +537,6 @@ exp_str_2:
 exp_str:
 exp_str_1 { $1 } |
 exp_str_2 { $1 }
-
--- ************
--- *          *
--- * exp_null *
--- *          *
--- ************
-exp_null: 'null' { Nothing }
 
 -- *******
 -- *     *
@@ -570,7 +584,11 @@ exp_dict_1:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 9999,
+        Token.constIntLocation = $8
+    }
 }
 
 -- ************
@@ -586,7 +604,11 @@ exp_dict_2:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 9999,
+        Token.constIntLocation = $8
+    }
 }
 
 -- ************
@@ -654,8 +676,6 @@ exp_true  { $1 }
 exp:
 exp_str    { $1 } |
 exp_var    { $1 } |
-exp_bool   { $1 } |
-exp_self   { $1 } |
 exp_call   { $1 } |
 exp_dict   { $1 } |
 exp_binop  { $1 }
@@ -767,7 +787,7 @@ arguments_wrapper:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    $12
 }
 
 -- ***************
@@ -804,13 +824,12 @@ stmt_if:
     Nothing
 }
 
--- *********************
--- *                   *
--- * arguments_wrapper *
--- *                   *
--- *********************
-existing_arguments:
-'arguments' ':' arguments_wrapper ',' { Nothing }
+-- **********************
+-- *                    *
+-- * optional_arguments *
+-- *                    *
+-- **********************
+optional_arguments: { [] } | 'arguments' ':' arguments_wrapper ',' { $3 }
 
 -- ************
 -- *          *
@@ -824,11 +843,16 @@ exp_call:
     'receiver' ':' exp ','
     'operator' ':' operator ','
     'message' ':' identifier ','
-    optional(existing_arguments)
+    optional_arguments
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = $12,
+        Ast.args = $22,
+        Ast.expCallLocation = $8
+    }
 }
 
 -- ****************
@@ -927,7 +951,7 @@ stmt_class:
         Ast.decClassName = Token.ClassName $12,
         Ast.decClassSupers = [ $16 ],
         Ast.decClassDataMembers = Ast.DataMembers Data.Map.empty,
-        Ast.decClassMethods = Ast.Methods Data.Map.empty
+        Ast.decClassMethods = Ast.Methods $ Data.Map.fromList (catMaybes (Data.List.map methodify (catMaybes $20)))
     }
 }
 
@@ -970,7 +994,7 @@ stmt_method:
         Ast.decMethodReturnType = Token.NominalTy (Token.Named "any" $8),
         Ast.decMethodName = Token.MethdName $20,
         Ast.decMethodParams = $24,
-        Ast.decMethodBody = []
+        Ast.decMethodBody = rights (catMaybes $28)
     }
 }
 
@@ -982,7 +1006,13 @@ stmt_method:
 stmt_exp:
 exp
 {
-    Nothing
+    Just $ Right $ Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = $1,
+        Ast.stmtIfBody = [],
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = Location "8" 6 5 6 5
+    }
 }
 
 -- ********
@@ -1084,6 +1114,10 @@ paramify token = let
     paramName = Token.ParamName token
     nominalType = Token.NominalTy (Token.Named "any" (Token.location token))
     in Ast.Param paramName nominalType 156
+
+methodify :: Either Ast.Dec Ast.Stmt -> Maybe (Token.MethdName,Ast.DecMethodContent)
+methodify (Left (Ast.DecMethod d)) = Just ((Ast.decMethodName d),d)
+methodify _ = Nothing
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
