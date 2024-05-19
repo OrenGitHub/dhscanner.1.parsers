@@ -272,7 +272,7 @@ program:
     {
         Ast.filename = getFilename $1,
         Ast.stmts = [],
-        Ast.decs = catMaybes $12
+        Ast.decs = lefts (catMaybes $12)
     }
 }
 
@@ -922,7 +922,7 @@ stmt_class:
     'comments' ':' '[' ']'
 '}'
 {
-    Just $ Ast.DecClass $ Ast.DecClassContent
+    Just $ Left $ Ast.DecClass $ Ast.DecClassContent
     {
         Ast.decClassName = Token.ClassName $12,
         Ast.decClassSupers = [ $16 ],
@@ -965,7 +965,7 @@ stmt_method:
     'comments' ':' '[' ']'
 '}'
 {
-    Just $ Ast.DecMethod $ DecMethodContent
+    Just $ Left $ Ast.DecMethod $ DecMethodContent
     {
         Ast.decMethodReturnType = Token.NominalTy (Token.Named "any" $8),
         Ast.decMethodName = Token.MethdName $20,
@@ -1061,7 +1061,7 @@ bodystmt:
     'comments' ':' '[' ']'
 '}'
 {
-    []
+    $12
 }
 
 
