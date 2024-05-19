@@ -326,23 +326,11 @@ identifier:
     'comments' ':' '[' ']' 
 '}'
 {
-    Nothing
-}
-
--- ******************
--- *                *
--- * identifier_tag *
--- *                *
--- ******************
-identifier_tag:
-'{'
-    'type' ':' 'ident' ','
-    'location' ':' location ','
-    'value' ':' tokenID ','
-    'comments' ':' '[' ']' 
-'}'
-{
-    Nothing
+    Token.Named
+    {
+        Token.content = $12,
+        Token.location = $8
+    }
 }
 
 -- *********
@@ -353,13 +341,13 @@ identifier_tag:
 param:
 '{'
     'type' ':' 'ident' ','
-    'name' ':' ID ','
+    'name' ':' tokenID ','
     'location' ':' location
 '}'
 {
     Token.Named
     {
-        Token.content = tokIDValue $8,
+        Token.content = $8,
         Token.location = $12
     } 
 }
@@ -377,7 +365,7 @@ exp_var_simple_1:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Just $12 
 }
 
 -- ********************
@@ -393,7 +381,7 @@ exp_var_simple_2:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    $12
 }
 
 -- ********************
@@ -409,7 +397,7 @@ exp_var_simple_3:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    $12
 }
 
 -- ******************
@@ -623,7 +611,11 @@ exp_true:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Just $ Token.Named
+    {
+        Token.content = "true",
+        Token.location = $8
+    }
 }
 
 -- ************
@@ -639,7 +631,11 @@ exp_self:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Just $ Token.Named
+    {
+        Token.content = "self",
+        Token.location = $8
+    }
 }
 
 -- ************
@@ -969,7 +965,13 @@ stmt_method:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Just $ Ast.DecMethod $ DecMethodContent
+    {
+        Ast.decMethodReturnType = Token.NominalTy (Token.Named "any" $8),
+        Ast.decMethodName = Token.MethdName $20,
+        Ast.decMethodParams = $24,
+        Ast.decMethodBody = []
+    }
 }
 
 -- ************
@@ -977,7 +979,11 @@ stmt_method:
 -- * stmt_exp *
 -- *          *
 -- ************
-stmt_exp: exp { Nothing }
+stmt_exp:
+exp
+{
+    Nothing
+}
 
 -- ********
 -- *      *
@@ -1023,7 +1029,7 @@ contents:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Data.List.map paramify $13
 }
 
 -- **********
@@ -1039,7 +1045,7 @@ params:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    $12
 }
 
 -- ************
@@ -1055,27 +1061,9 @@ bodystmt:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    []
 }
 
--- ****************
--- *              *
--- * dec_function *
--- *              *
--- ****************
-dec_function: '{'
-    'type' ':' 'def' ','
-    'location' ':' location ','
-    'target' ':' 'null' ','
-    'operator' ':' 'null' ','
-    'name' ':' identifier ','
-    'params' ':' params ','
-    'bodystmt' ':' bodystmt ','
-    'comments' ':' '[' ']'
-'}'
-{
-    Left "MMM"
-}
 
 {
 
@@ -1091,29 +1079,14 @@ extractParamNominalType' ts = case ts of { [t] -> Just t; _ -> Nothing }
 extractParamNominalType :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.NominalTy
 extractParamNominalType = extractParamNominalType' . rights 
 
-paramify :: [ Either Token.ParamName Token.NominalTy ] -> Location -> Maybe Ast.Param
-paramify attrs l = let
-    name = extractParamSingleName attrs
-    nominalType = extractParamNominalType attrs
-    in case (name, nominalType) of { (Just n, Just t) -> Just $ Ast.Param n t 0; _ -> Nothing }
-
-getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
-getFuncNameAttr = undefined
-
-getFuncReturnType :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.NominalTy
-getFuncReturnType = undefined
-
-getFuncBody :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe [ Ast.Stmt ]
-getFuncBody = undefined
-
-getFuncParams :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe [ Ast.Param ]
-getFuncParams = undefined
+paramify :: Token.Named -> Ast.Param
+paramify token = let
+    paramName = Token.ParamName token
+    nominalType = Token.NominalTy (Token.Named "any" (Token.location token))
+    in Ast.Param paramName nominalType 156
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
-
--- getFilename :: (Either Location Ast.Dec) -> FilePath
--- getFilename x = case x of { Left l -> Location.filename l; Right dec -> Location.filename $ Ast.locationDec dec }
 
 -- add the /real/ serial index of the param
 -- the parser just puts an arbitrary value
