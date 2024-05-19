@@ -88,12 +88,14 @@ import Data.Map ( fromList )
 'end'                   { AlexTokenTag AlexRawToken_END             _ }
 'raw'                   { AlexTokenTag AlexRawToken_RAW             _ }
 'self'                  { AlexTokenTag AlexRawToken_SELF            _ }
+'call'                  { AlexTokenTag AlexRawToken_CALL            _ }
 'superclass'            { AlexTokenTag AlexRawToken_SUPER           _ }
 'hash'                  { AlexTokenTag AlexRawToken_DICT2           _ }
 'bare_assoc_hash'       { AlexTokenTag AlexRawToken_DICT            _ }
 'assoc'                 { AlexTokenTag AlexRawToken_ASSOC           _ }
 'label'                 { AlexTokenTag AlexRawToken_LABEL           _ }
 'period'                { AlexTokenTag AlexRawToken_PERIOD          _ }
+'receiver'              { AlexTokenTag AlexRawToken_RECEIVER        _ }
 'assocs'                { AlexTokenTag AlexRawToken_ASSOCS          _ }
 'string_literal'        { AlexTokenTag AlexRawToken_STRING1         _ }
 'symbol_literal'        { AlexTokenTag AlexRawToken_STRING3         _ }
@@ -155,6 +157,7 @@ import Data.Map ( fromList )
 'argument'              { AlexTokenTag AlexRawToken_ARGUMENT        _ }
 'bodystmt'              { AlexTokenTag AlexRawToken_BODYSTMT        _ }
 'arguments'             { AlexTokenTag AlexRawToken_ARGUMENTS       _ }
+'arg_paren'             { AlexTokenTag AlexRawToken_ARGUMENTS2      _ }
 'collection'            { AlexTokenTag AlexRawToken_COLLECTION      _ }
 'generator'             { AlexTokenTag AlexRawToken_GENERATOR       _ }
 'expression'            { AlexTokenTag AlexRawToken_EXPRESSION      _ }
@@ -217,7 +220,9 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 '-'  { AlexTokenTag AlexRawToken_OP_MINUS    _ }
 '*'  { AlexTokenTag AlexRawToken_OP_TIMES    _ }
 '..' { AlexTokenTag AlexRawToken_OP_DOTDOT   _ }
+'%'  { AlexTokenTag AlexRawToken_OP_PERCENT  _ }
 '++' { AlexTokenTag AlexRawToken_OP_PLUSPLUS _ }
+'||' { AlexTokenTag AlexRawToken_OP_OR       _ }
 
 -- ****************************
 -- *                          *
@@ -243,6 +248,13 @@ ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
 listof(a):      a { [$1] } | a          listof(a) { $1:$2 }
 commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
 
+-- ******************
+-- *                *
+-- * optional rules *
+-- *                *
+-- ******************
+optional(a): { Nothing } | a { Just $1 }
+
 -- *********************
 -- *                   *
 -- * Ast root: program *
@@ -253,6 +265,7 @@ program:
     'type' ':' 'program' ','
     'location' ':' location ','
     'stmts' ':' stmts ','
+    'comments' ':' '[' ']'
 '}'
 {
     Ast.Root
@@ -287,6 +300,7 @@ location: '[' INT ',' INT ',' INT ',' INT ']'
 -- ************
 tokenID:
 ID      { Nothing } |
+'id'    { Nothing } |
 'name'  { Nothing } |
 'start' { Nothing }
 
@@ -522,22 +536,6 @@ exp_str_2 { $1 }
 -- ************
 exp_null: 'null' { Nothing }
 
--- ************
--- *          *
--- * exp_call *
--- *          *
--- ************
-exp_call:
-'{'
-    'type' ':' 'CallExpression' ','
-    'callee' ':' exp ','
-    'arguments' ':' '[' commalistof(exp) ']' ','
-    'location' ':' location
-'}'
-{
-    Nothing
-}
-
 -- *******
 -- *     *
 -- * key *
@@ -662,6 +660,7 @@ exp_str    { $1 } |
 exp_var    { $1 } |
 exp_bool   { $1 } |
 exp_self   { $1 } |
+exp_call   { $1 } |
 exp_dict   { $1 } |
 exp_binop  { $1 }
 
@@ -709,8 +708,10 @@ stmt_for:
 actual_op:
 '..' { Nothing } |
 '==' { Nothing } |
+'||' { Nothing } |
 '+'  { Nothing } |
 '*'  { Nothing } |
+'%'  { Nothing } |
 '-'  { Nothing } |
 '<'  { Nothing } |
 '='  { Nothing } |
@@ -757,6 +758,22 @@ arguments:
     Nothing
 }
 
+-- *********************
+-- *                   *
+-- * arguments_wrapper *
+-- *                   *
+-- *********************
+arguments_wrapper:
+'{'
+    'type' ':' 'arg_paren' ','
+    'location' ':' location ','
+    'arguments' ':' arguments ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
 -- ***************
 -- *             *
 -- * stmt_assign *
@@ -791,26 +808,38 @@ stmt_if:
     Nothing
 }
 
--- *************
--- *           *
--- * stmt_call *
--- *           *
--- *************
-stmt_call:
+-- *********************
+-- *                   *
+-- * arguments_wrapper *
+-- *                   *
+-- *********************
+existing_arguments:
+'arguments' ':' arguments_wrapper ',' { Nothing }
+
+-- ************
+-- *          *
+-- * exp_call *
+-- *          *
+-- ************
+exp_call:
 '{'
-    'type' ':' 'ExpressionStatement' ','
-    'expression' ':' exp_call ','
-    'location' ':' location
+    'type' ':' 'call' ','
+    'location' ':' location ','
+    'receiver' ':' exp ','
+    'operator' ':' operator ','
+    'message' ':' identifier ','
+    optional(existing_arguments)
+    'comments' ':' '[' ']'
 '}'
 {
     Nothing
 }
 
--- *************
--- *           *
--- * stmt_call *
--- *           *
--- *************
+-- ****************
+-- *              *
+-- * stmt_comment *
+-- *              *
+-- ****************
 stmt_comment:
 '{'
     'type' ':' 'comment' ','
@@ -889,7 +918,8 @@ stmt_class:
     'location' ':' location ','
     'constant' ':' constant ','
     'superclass' ':' superclass ','
-    'bodystmt' ':' bodystmt
+    'bodystmt' ':' bodystmt ','
+    'comments' ':' '[' ']'
 '}'
 {
     Nothing
@@ -932,6 +962,13 @@ stmt_method:
     Nothing
 }
 
+-- ************
+-- *          *
+-- * stmt_exp *
+-- *          *
+-- ************
+stmt_exp: exp { Nothing }
+
 -- ********
 -- *      *
 -- * stmt *
@@ -940,7 +977,7 @@ stmt_method:
 stmt:
 stmt_if      { $1 } |
 stmt_for     { $1 } |
-stmt_call    { $1 } |
+stmt_exp     { $1 } |
 stmt_assign  { $1 } |
 stmt_class   { $1 } |
 stmt_command { $1 } |
