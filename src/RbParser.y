@@ -21,7 +21,7 @@ import qualified Token
 import Data.Maybe
 import Data.Either
 import Data.List ( map )
-import Data.Map ( fromList )
+import Data.Map ( fromList, empty )
 
 }
 
@@ -270,9 +270,9 @@ program:
 {
     Ast.Root
     {
-        Ast.filename = "DDD",
+        Ast.filename = getFilename $1,
         Ast.stmts = [],
-        Ast.decs = []
+        Ast.decs = catMaybes $12
     }
 }
 
@@ -285,7 +285,7 @@ location: '[' INT ',' INT ',' INT ',' INT ']'
 {
     Location
     {
-        Location.filename = "DDD",
+        Location.filename = getFilename $1,
         lineStart = tokIntValue $2,
         colStart = tokIntValue $4,
         lineEnd = tokIntValue $6,
@@ -299,10 +299,10 @@ location: '[' INT ',' INT ',' INT ',' INT ']'
 -- *          *
 -- ************
 tokenID:
-ID      { Nothing } |
-'id'    { Nothing } |
-'name'  { Nothing } |
-'start' { Nothing }
+ID      { unquote (tokIDValue $1) } |
+'id'    { "id"                    } |
+'name'  { "name"                  } |
+'start' { "start"                 }
 
 -- *******************
 -- *                 *
@@ -755,7 +755,7 @@ arguments:
     'comments' ':' '[' ']' 
 '}'
 {
-    Nothing
+    $13
 }
 
 -- *********************
@@ -863,7 +863,7 @@ superclass:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Token.SuperName $12
 }
 
 -- ************
@@ -879,7 +879,7 @@ constant_type_1:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    $12
 }
 
 -- ************
@@ -891,11 +891,15 @@ constant_type_2:
 '{'
     'type' ':' 'const' ','
     'location' ':' location ','
-    'value' ':' ID ','
+    'value' ':' tokenID ','
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Token.Named
+    {
+        Token.content = $12,
+        Token.location = $8
+    }
 }
 
 -- ************
@@ -922,7 +926,13 @@ stmt_class:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Just $ Ast.DecClass $ Ast.DecClassContent
+    {
+        Ast.decClassName = Token.ClassName $12,
+        Ast.decClassSupers = [ $16 ],
+        Ast.decClassDataMembers = Ast.DataMembers Data.Map.empty,
+        Ast.decClassMethods = Ast.Methods Data.Map.empty
+    }
 }
 
 -- ****************
@@ -997,7 +1007,7 @@ stmts:
     'comments' ':' '[' ']'
 '}'
 {
-    []
+    $13
 }
 
 -- ************
@@ -1098,6 +1108,9 @@ getFuncBody = undefined
 
 getFuncParams :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe [ Ast.Param ]
 getFuncParams = undefined
+
+unquote :: String -> String
+unquote s = let n = length s in take (n-2) (drop 1 s)
 
 -- getFilename :: (Either Location Ast.Dec) -> FilePath
 -- getFilename x = case x of { Left l -> Location.filename l; Right dec -> Location.filename $ Ast.locationDec dec }
