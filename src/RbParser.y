@@ -444,7 +444,7 @@ exp_binop:
     {
        Ast.expBinopLeft = $12,
        Ast.expBinopRight = $20,
-       Ast.expBinopOperator = Ast.PLUS,
+       Ast.expBinopOperator = $16,
        Ast.expBinopLocation = $8
     }
 }
@@ -722,16 +722,16 @@ stmt_for:
 -- *          *
 -- ************
 actual_op:
-'..' { Nothing } |
-'==' { Nothing } |
-'||' { Nothing } |
-'+'  { Nothing } |
-'*'  { Nothing } |
-'%'  { Nothing } |
-'-'  { Nothing } |
-'<'  { Nothing } |
-'='  { Nothing } |
-'.'  { Nothing }
+'..' { Ast.PLUS    } |
+'==' { Ast.PLUS    } |
+'||' { Ast.PLUS    } |
+'+'  { Ast.PLUS    } |
+'*'  { Ast.TIMES   } |
+'%'  { Ast.PERCENT } |
+'-'  { Ast.MINUS   } |
+'<'  { Ast.PLUS    } |
+'='  { Ast.PLUS    } |
+'.'  { Ast.PLUS    }
 
 -- ************
 -- *          *
