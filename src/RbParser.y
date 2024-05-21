@@ -301,6 +301,8 @@ location: '[' INT ',' INT ',' INT ',' INT ']'
 tokenID:
 ID      { unquote (tokIDValue $1) } |
 'id'    { "id"                    } |
+'self'  { "self"                  } |
+'true'  { "true"                  } |
 'name'  { "name"                  } |
 'start' { "start"                 }
 
@@ -311,7 +313,8 @@ ID      { unquote (tokIDValue $1) } |
 -- *******************
 identifier_type:
 'const' { Nothing } |
-'ident' { Nothing }
+'ident' { Nothing } |
+'kw'    { Nothing }
 
 -- **************
 -- *            *
@@ -352,12 +355,12 @@ param:
     } 
 }
 
--- ********************
--- *                  *
--- * exp_var_simple_1 *
--- *                  *
--- ********************
-exp_var_simple_1:
+-- ******************
+-- *                *
+-- * exp_var_simple *
+-- *                *
+-- ******************
+exp_var_simple:
 '{'
     'type' ':' 'var_ref' ','
     'location' ':' location ','
@@ -365,50 +368,8 @@ exp_var_simple_1:
     'comments' ':' '[' ']'
 '}'
 {
-    Just $12 
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12
 }
-
--- ********************
--- *                  *
--- * exp_var_simple_2 *
--- *                  *
--- ********************
-exp_var_simple_2:
-'{'
-    'type' ':' 'var_ref' ','
-    'location' ':' location ','
-    'value' ':' exp_bool ','
-    'comments' ':' '[' ']'
-'}'
-{
-    $12
-}
-
--- ********************
--- *                  *
--- * exp_var_simple_3 *
--- *                  *
--- ********************
-exp_var_simple_3:
-'{'
-    'type' ':' 'var_ref' ','
-    'location' ':' location ','
-    'value' ':' exp_self ','
-    'comments' ':' '[' ']'
-'}'
-{
-    $12
-}
-
--- ******************
--- *                *
--- * exp_var_simple *
--- *                *
--- ******************
-exp_var_simple:
-exp_var_simple_1 { $1 } |
-exp_var_simple_2 { $1 } |
-exp_var_simple_3 { $1 }
 
 -- ***********
 -- *         *
@@ -416,14 +377,7 @@ exp_var_simple_3 { $1 }
 -- *         *
 -- ***********
 exp_var:
-exp_var_simple
-{
-    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $Ast.VarSimpleContent $ Token.VarName $ Token.Named
-    {
-        Token.content = "PPP",
-        Token.location = Location "" 9 9 9 9
-    } 
-}
+exp_var_simple { $1 }
 
 -- *************
 -- *           *
@@ -619,54 +573,6 @@ exp_dict_2:
 exp_dict:
 exp_dict_1 { $1 } |
 exp_dict_2 { $1 }
-
--- ************
--- *          *
--- * exp_true *
--- *          *
--- ************
-exp_true:
-'{'
-    'type' ':' 'kw' ','
-    'location' ':' location ','
-    'value' ':' 'true' ','
-    'comments' ':' '[' ']'
-'}'
-{
-    Just $ Token.Named
-    {
-        Token.content = "true",
-        Token.location = $8
-    }
-}
-
--- ************
--- *          *
--- * exp_self *
--- *          *
--- ************
-exp_self:
-'{'
-    'type' ':' 'kw' ','
-    'location' ':' location ','
-    'value' ':' 'self' ','
-    'comments' ':' '[' ']'
-'}'
-{
-    Just $ Token.Named
-    {
-        Token.content = "self",
-        Token.location = $8
-    }
-}
-
--- ************
--- *          *
--- * exp_bool *
--- *          *
--- ************
-exp_bool:
-exp_true  { $1 }
 
 -- *******
 -- *     *
