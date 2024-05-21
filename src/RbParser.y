@@ -368,7 +368,7 @@ exp_var_simple:
     'comments' ':' '[' ']'
 '}'
 {
-    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12
+    Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12
 }
 
 -- ***********
@@ -581,7 +581,7 @@ exp_dict_2 { $1 }
 -- *******
 exp:
 exp_str    { $1 } |
-exp_var    { $1 } |
+exp_var    { Ast.ExpVar $1 } |
 exp_call   { $1 } |
 exp_dict   { $1 } |
 exp_binop  { $1 }
@@ -755,7 +755,12 @@ exp_call:
 {
     Ast.ExpCall $ Ast.ExpCallContent
     {
-        Ast.callee = $12,
+        Ast.callee = Ast.ExpField $ Ast.ExpFieldContent
+        {
+            Ast.expFieldLhs = $12,
+            Ast.expFieldName = Token.FieldName $20,
+            Ast.expFieldLocation = $8
+        },
         Ast.args = $22,
         Ast.expCallLocation = $8
     }
