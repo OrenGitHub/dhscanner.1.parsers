@@ -730,26 +730,42 @@ stmt_if:
     Nothing
 }
 
--- **********************
--- *                    *
--- * optional_arguments *
--- *                    *
--- **********************
-optional_arguments: { [] } | 'arguments' ':' arguments_wrapper ',' { $3 }
-
 -- ************
 -- *          *
 -- * exp_call *
 -- *          *
 -- ************
-exp_call:
+exp_call_without_args:
 '{'
     'type' ':' 'call' ','
     'location' ':' location ','
     'receiver' ':' exp ','
     'operator' ':' operator ','
     'message' ':' identifier ','
-    optional_arguments
+    'comments' ':' '[' ']'
+'}'
+{
+    Ast.ExpField $ Ast.ExpFieldContent
+    {
+        Ast.expFieldLhs = $12,
+        Ast.expFieldName = Token.FieldName $20,
+        Ast.expFieldLocation = $8
+    }
+}
+
+-- ************
+-- *          *
+-- * exp_call *
+-- *          *
+-- ************
+exp_call_with_args:
+'{'
+    'type' ':' 'call' ','
+    'location' ':' location ','
+    'receiver' ':' exp ','
+    'operator' ':' operator ','
+    'message' ':' identifier ','
+    'arguments' ':' arguments_wrapper ','
     'comments' ':' '[' ']'
 '}'
 {
@@ -761,10 +777,19 @@ exp_call:
             Ast.expFieldName = Token.FieldName $20,
             Ast.expFieldLocation = $8
         },
-        Ast.args = $22,
+        Ast.args = $24,
         Ast.expCallLocation = $8
     }
 }
+
+-- ************
+-- *          *
+-- * exp_call *
+-- *          *
+-- ************
+exp_call:
+exp_call_with_args    { $1 } |
+exp_call_without_args { $1 }
 
 -- ****************
 -- *              *
@@ -905,7 +930,8 @@ stmt_method:
         Ast.decMethodReturnType = Token.NominalTy (Token.Named "any" $8),
         Ast.decMethodName = Token.MethdName $20,
         Ast.decMethodParams = $24,
-        Ast.decMethodBody = rights (catMaybes $28)
+        Ast.decMethodBody = rights (catMaybes $28),
+        Ast.decMethodLocation = $8
     }
 }
 
