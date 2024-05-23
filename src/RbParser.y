@@ -95,6 +95,7 @@ import Data.Map ( fromList, empty )
 'assoc'                 { AlexTokenTag AlexRawToken_ASSOC           _ }
 'label'                 { AlexTokenTag AlexRawToken_LABEL           _ }
 'period'                { AlexTokenTag AlexRawToken_PERIOD          _ }
+'parent'                { AlexTokenTag AlexRawToken_PARENT          _ }
 'receiver'              { AlexTokenTag AlexRawToken_RECEIVER        _ }
 'assocs'                { AlexTokenTag AlexRawToken_ASSOCS          _ }
 'string_literal'        { AlexTokenTag AlexRawToken_STRING1         _ }
@@ -108,9 +109,11 @@ import Data.Map ( fromList, empty )
 'comment'               { AlexTokenTag AlexRawToken_COMMENT         _ }
 'constant'              { AlexTokenTag AlexRawToken_CONSTANT        _ }
 'const_ref'             { AlexTokenTag AlexRawToken_CONSTANT2       _ }
+'const_path_ref'        { AlexTokenTag AlexRawToken_CONSTANT4       _ }
 'const'                 { AlexTokenTag AlexRawToken_CONSTANT3       _ }
 'key'                   { AlexTokenTag AlexRawToken_KEY             _ }
 'var_field'             { AlexTokenTag AlexRawToken_VAR             _ }
+'field'                 { AlexTokenTag AlexRawToken_FIELD           _ }
 'null'                  { AlexTokenTag AlexRawToken_NULL            _ }
 'test'                  { AlexTokenTag AlexRawToken_TEST            _ }
 'line'                  { AlexTokenTag AlexRawToken_LINE            _ }
@@ -368,7 +371,7 @@ exp_var_simple:
     'comments' ':' '[' ']'
 '}'
 {
-    Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12
+    Token.VarName $12
 }
 
 -- ***********
@@ -377,7 +380,7 @@ exp_var_simple:
 -- *         *
 -- ***********
 exp_var:
-exp_var_simple { $1 }
+exp_var_simple { Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $1 }
 
 -- *************
 -- *           *
@@ -419,13 +422,32 @@ var_simple:
     Nothing
 }
 
+-- *************
+-- *           *
+-- * var_field *
+-- *           *
+-- *************
+var_field:
+'{'
+    'type' ':' 'field' ','
+    'location' ':' location ','
+    'parent' ':' exp_var_simple ','
+    'operator' ':' operator ','
+    'name' ':' identifier ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
 -- ************
 -- *          *
 -- * variable *
 -- *          *
 -- ************
 var:
-var_simple { $1 }
+var_simple { $1 } |
+var_field  { $1 }
 
 -- ***************
 -- *             *
@@ -811,7 +833,28 @@ stmt_comment:
 -- * superclass *
 -- *            *
 -- **************
-superclass:
+superclass_type_2:
+'{'
+    'type' ':' 'const_path_ref' ','
+    'location' ':' location ','
+    'parent' ':' exp_var_simple ','
+    'constant' ':' constant ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Token.SuperName $ Token.Named
+    {
+        Token.content = "POPO",
+        Token.location = $8
+    }
+}
+
+-- **************
+-- *            *
+-- * superclass *
+-- *            *
+-- **************
+superclass_type_1:
 '{'
     'type' ':' 'var_ref' ','
     'location' ':' location ','
@@ -821,6 +864,15 @@ superclass:
 {
     Token.SuperName $12
 }
+
+-- **************
+-- *            *
+-- * superclass *
+-- *            *
+-- **************
+superclass:
+superclass_type_1 { $1 } |
+superclass_type_2 { $1 }
 
 -- ************
 -- *          *

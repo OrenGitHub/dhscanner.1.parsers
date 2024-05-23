@@ -80,6 +80,7 @@ import Location
 @KW_ASSOC           = \"assoc\"
 @KW_ASSOCS          = \"assocs\"
 @KW_PERIOD          = \"period\"
+@KW_PARENT          = \"parent\"
 @KW_RECEIVER        = \"receiver\"
 @KW_STRING1         = \"string_literal\"
 @KW_STRING2         = \"tstring_content\"
@@ -93,10 +94,12 @@ import Location
 @KW_COMMENT         = \"comment\"
 @KW_CONSTANT        = \"constant\"
 @KW_CONSTANT2       = \"const_ref\"
+@KW_CONSTANT4       = \"const_path_ref\"
 @KW_CONSTANT3       = \"const\"
 @KW_KEY             = \"key\"
 @KW_ARG             = "Arg"
 @KW_VAR             = \"var_field\"
+@KW_FIELD           = \"field\"
 @KW_NULL            = null
 @KW_TEST            = \"test\"
 @KW_LINE            = \"line\"
@@ -282,6 +285,7 @@ tokens :-
 @KW_ASSOC           { lex' AlexRawToken_ASSOC           }
 @KW_ASSOCS          { lex' AlexRawToken_ASSOCS          }
 @KW_PERIOD          { lex' AlexRawToken_PERIOD          }
+@KW_PARENT          { lex' AlexRawToken_PARENT          }
 @KW_RECEIVER        { lex' AlexRawToken_RECEIVER        }
 @KW_STRING1         { lex' AlexRawToken_STRING1         }
 @KW_STRING2         { lex' AlexRawToken_STRING2         }
@@ -295,9 +299,11 @@ tokens :-
 @KW_CONSTANT        { lex' AlexRawToken_CONSTANT        }
 @KW_CONSTANT2       { lex' AlexRawToken_CONSTANT2       }
 @KW_CONSTANT3       { lex' AlexRawToken_CONSTANT3       }
+@KW_CONSTANT4       { lex' AlexRawToken_CONSTANT4       }
 @KW_ARG             { lex' AlexRawToken_ARG             }
 @KW_KEY             { lex' AlexRawToken_KEY             }
 @KW_VAR             { lex' AlexRawToken_VAR             }
+@KW_FIELD           { lex' AlexRawToken_FIELD           }
 @KW_NULL            { lex' AlexRawToken_NULL            }
 @KW_TEST            { lex' AlexRawToken_TEST            }
 @KW_LINE            { lex' AlexRawToken_LINE            }
@@ -521,6 +527,7 @@ data AlexRawToken
      | AlexRawToken_ASSOC           -- ^ Reserved Keyword
      | AlexRawToken_ASSOCS          -- ^ Reserved Keyword
      | AlexRawToken_PERIOD          -- ^ Reserved Keyword
+     | AlexRawToken_PARENT          -- ^ Reserved Keyword
      | AlexRawToken_RECEIVER        -- ^ Reserved Keyword
      | AlexRawToken_STRING1         -- ^ Reserved Keyword
      | AlexRawToken_STRING2         -- ^ Reserved Keyword
@@ -531,9 +538,11 @@ data AlexRawToken
      | AlexRawToken_CONSTANT        -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT2       -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT3       -- ^ Reserved Keyword
+     | AlexRawToken_CONSTANT4       -- ^ Reserved Keyword
      | AlexRawToken_ARG             -- ^ Reserved Keyword
      | AlexRawToken_KEY             -- ^ Reserved Keyword
      | AlexRawToken_VAR             -- ^ Reserved Keyword
+     | AlexRawToken_FIELD           -- ^ Reserved Keyword
      | AlexRawToken_TEST            -- ^ Reserved Keyword
      | AlexRawToken_NULL            -- ^ Reserved Keyword
      | AlexRawToken_LINE            -- ^ Reserved Keyword
@@ -730,6 +739,14 @@ alexError' location = alexError $ "ERROR[" ++ show location ++ "]\n"
 -- ************
 location :: AlexTokenTag -> Location
 location = tokenLoc
+
+-- ***************
+-- *             *
+-- * getFilename *
+-- *             *
+-- ***************
+getFilename :: AlexTokenTag -> String
+getFilename = Location.filename . location
 
 -- ***************
 -- *             *
