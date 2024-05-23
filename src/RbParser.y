@@ -359,29 +359,13 @@ param:
     } 
 }
 
--- ******************
--- *                *
--- * exp_var_simple *
--- *                *
--- ******************
-exp_var_simple:
-'{'
-    'type' ':' 'var_ref' ','
-    'location' ':' location ','
-    'value' ':' identifier ','
-    'comments' ':' '[' ']'
-'}'
-{
-    Token.VarName $12
-}
-
 -- ***********
 -- *         *
 -- * exp_var *
 -- *         *
 -- ***********
 exp_var:
-exp_var_simple { Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $1 }
+identifier_wrapper { Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $1 }
 
 -- *************
 -- *           *
@@ -432,7 +416,7 @@ var_field:
 '{'
     'type' ':' 'field' ','
     'location' ':' location ','
-    'parent' ':' exp_var_simple ','
+    'parent' ':' identifier_wrapper ','
     'operator' ':' operator ','
     'name' ':' identifier ','
     'comments' ':' '[' ']'
@@ -917,96 +901,48 @@ stmt_comment:
     Nothing
 }
 
--- **************
--- *            *
--- * superclass *
--- *            *
--- **************
-superclass_type_2:
-'{'
-    'type' ':' 'const_path_ref' ','
-    'location' ':' location ','
-    'parent' ':' exp_var_simple ','
-    'constant' ':' constant ','
-    'comments' ':' '[' ']'
-'}'
-{
-    Token.SuperName $ Token.Named
-    {
-        Token.content = "POPO",
-        Token.location = $8
-    }
-}
-
--- **************
--- *            *
--- * superclass *
--- *            *
--- **************
-superclass_type_1:
-'{'
-    'type' ':' 'var_ref' ','
-    'location' ':' location ','
-    'value' ':' constant ','
-    'comments' ':' '[' ']'
-'}'
-{
-    Token.SuperName $12
-}
-
--- **************
--- *            *
--- * superclass *
--- *            *
--- **************
-superclass:
-superclass_type_1 { $1 } |
-superclass_type_2 { $1 }
-
 -- ************
 -- *          *
 -- * constant *
 -- *          *
 -- ************
-constant_type_1:
+constant_or_value:
+'constant'  { Nothing } |
+'value'     { Nothing }
+
+-- ***************************
+-- *                         *
+-- * identifier_wrapper_kind *
+-- *                         *
+-- ***************************
+identifier_wrapper_kind:
+'const_ref'      { Nothing } |
+'const_path_ref' { Nothing } |
+'var_ref'        { Nothing }
+
+-- **********
+-- *        *
+-- * parent *
+-- *        *
+-- **********
+parent: 'parent' ':' identifier_wrapper ',' { $3 }
+
+-- **********************
+-- *                    *
+-- * identifier_wrapper *
+-- *                    *
+-- **********************
+identifier_wrapper:
 '{'
-    'type' ':' 'const_ref' ','
+    'type' ':' identifier_wrapper_kind ','
     'location' ':' location ','
-    'constant' ':' constant ','
+    optional(parent)
+    constant_or_value ':' identifier ','
     'comments' ':' '[' ']'
 '}'
 {
-    $12
+    $13
 }
-
--- ************
--- *          *
--- * constant *
--- *          *
--- ************
-constant_type_2:
-'{'
-    'type' ':' 'const' ','
-    'location' ':' location ','
-    'value' ':' tokenID ','
-    'comments' ':' '[' ']'
-'}'
-{
-    Token.Named
-    {
-        Token.content = $12,
-        Token.location = $8
-    }
-}
-
--- ************
--- *          *
--- * constant *
--- *          *
--- ************
-constant:
-constant_type_1 { $1 } |
-constant_type_2 { $1 }
 
 -- **************
 -- *            *
@@ -1017,8 +953,8 @@ stmt_class:
 '{'
     'type' ':' 'class' ','
     'location' ':' location ','
-    'constant' ':' constant ','
-    'superclass' ':' superclass ','
+    'constant' ':' identifier_wrapper ','
+    'superclass' ':' identifier_wrapper ','
     'bodystmt' ':' bodystmt ','
     'comments' ':' '[' ']'
 '}'
@@ -1026,7 +962,7 @@ stmt_class:
     Just $ Left $ Ast.DecClass $ Ast.DecClassContent
     {
         Ast.decClassName = Token.ClassName $12,
-        Ast.decClassSupers = [ $16 ],
+        Ast.decClassSupers = [ Token.SuperName $16 ],
         Ast.decClassDataMembers = Ast.DataMembers Data.Map.empty,
         Ast.decClassMethods = Ast.Methods $ Data.Map.fromList (catMaybes (Data.List.map methodify (catMaybes $20)))
     }
@@ -1138,7 +1074,7 @@ stmt_sclass:
 '{'
     'type' ':' 'sclass' ','
     'location' ':' location ','
-    'target' ':' exp_var_simple ','
+    'target' ':' identifier_wrapper ','
     'bodystmt' ':' bodystmt ','
     'comments' ':' '[' ']'
 '}'
