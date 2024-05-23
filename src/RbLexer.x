@@ -74,6 +74,7 @@ import Location
 @KW_RAW             = \"raw\"
 @KW_SELF            = \"self\"
 @KW_CALL            = \"call\"
+@KW_VCALL           = \"vcall\"
 @KW_DICT            = \"bare_assoc_hash\"
 @KW_DICT2           = \"hash\"
 @KW_LABEL           = \"label\"
@@ -106,6 +107,7 @@ import Location
 @KW_LINE            = \"line\"
 @KW_TRUE            = \"true\"
 @KW_ARGS            = \"args\"
+@KW_ARG_STAR        = \"arg_star\"
 @KW_NAME            = \"name\"
 @KW_EXPR            =  expr
 @KW_MAME            =  Name
@@ -144,6 +146,7 @@ import Location
 @KW_ARGUMENTS       = \"arguments\"
 @KW_ARGUMENTS2      = \"arg_paren\"
 @KW_BODYSTMT        = \"bodystmt\"
+@KW_STATEMENT       = \"statement\"
 @KW_CALLEE          = \"callee\"
 @KW_ASYNC           = \"async\"
 @KW_COLLECTION      = \"collection\"
@@ -162,9 +165,6 @@ import Location
 @KW_RETURN_TYPE     = "returnType"
 @KW_STMT_FUNCTION   = "Stmt_Function"
 @KW_FUNCTION_DEC    = \"def\"
-@KW_EXPR_CONST_GET  = "Expr_ConstFetch"
-@KW_EXPR_BINOP_LT   = "Expr_BinaryOp_Smaller"
-@KW_EXPR_BINOP_PLUS = "Expr_BinaryOp_Plus"
 
 -- **************
 -- *            *
@@ -185,6 +185,7 @@ import Location
 -- ***************
 
 @KW_EXPR_CALL   = \"CallExpression\"
+@KW_EXPR_UNOP   = \"unary\"
 @KW_EXPR_BINOP  = \"binary\"
 @KW_EXPR_MEMBER = \"MemberExpression\"
 @KW_EXPR_UPDATE = \"UpdateExpression\"
@@ -198,6 +199,7 @@ import Location
 
 @KW_OP_LT       = \"\<\"
 @KW_OP_EQ       = \"==\"
+@KW_OP_BANG     = \"!\"
 @KW_OP_OR       = \"\|\|\"
 @KW_OP_ASSIGN   = \"=\"
 @KW_OP_DOT      = \"\.\"
@@ -279,6 +281,7 @@ tokens :-
 @KW_RAW             { lex' AlexRawToken_RAW             }
 @KW_SELF            { lex' AlexRawToken_SELF            }
 @KW_CALL            { lex' AlexRawToken_CALL            }
+@KW_VCALL           { lex' AlexRawToken_VCALL           }
 @KW_LOC             { lex' AlexRawToken_LOC             }
 @KW_DICT            { lex' AlexRawToken_DICT            }
 @KW_DICT2           { lex' AlexRawToken_DICT2           }
@@ -311,6 +314,7 @@ tokens :-
 @KW_LINE            { lex' AlexRawToken_LINE            }
 @KW_TRUE            { lex' AlexRawToken_TRUE            }
 @KW_ARGS            { lex' AlexRawToken_ARGS            }
+@KW_ARG_STAR        { lex' AlexRawToken_ARG_STAR        }
 @KW_NAME            { lex' AlexRawToken_NAME            }
 @KW_EXPR            { lex' AlexRawToken_EXPR            }
 @KW_MAME            { lex' AlexRawToken_MAME            }
@@ -351,6 +355,7 @@ tokens :-
 @KW_CONSEQUENT      { lex' AlexRawToken_CONSEQUENT      }
 @KW_ARGUMENT        { lex' AlexRawToken_ARGUMENT        }
 @KW_BODYSTMT        { lex' AlexRawToken_BODYSTMT        }
+@KW_STATEMENT       { lex' AlexRawToken_STATEMENT       }
 @KW_ARGUMENTS       { lex' AlexRawToken_ARGUMENTS       }
 @KW_ARGUMENTS2      { lex' AlexRawToken_ARGUMENTS2      }
 @KW_CALLEE          { lex' AlexRawToken_CALLEE          }
@@ -368,9 +373,6 @@ tokens :-
 @KW_IDENTIFIER      { lex' AlexRawToken_IDENTIFIER      }
 @KW_RETURN_TYPE     { lex' AlexRawToken_RETURN_TYPE     }
 @KW_FUNCTION_DEC    { lex' AlexRawToken_FUNCTION_DEC    }
-@KW_EXPR_CONST_GET  { lex' AlexRawToken_EXPR_CONST_GET  }
-@KW_EXPR_BINOP_LT   { lex' AlexRawToken_EXPR_BINOP_LT   }
-@KW_EXPR_BINOP_PLUS { lex' AlexRawToken_EXPR_BINOP_PLUS }
 
 -- *********
 -- *       *
@@ -389,6 +391,7 @@ tokens :-
 
 @KW_EXPR_CALL   { lex' AlexRawToken_EXPR_CALL   }
 @KW_EXPR_MEMBER { lex' AlexRawToken_EXPR_MEMBER }
+@KW_EXPR_UNOP   { lex' AlexRawToken_EXPR_UNOP   }
 @KW_EXPR_BINOP  { lex' AlexRawToken_EXPR_BINOP  }
 @KW_EXPR_UPDATE { lex' AlexRawToken_EXPR_UPDATE }
 @KW_EXPR_ASSIGN { lex' AlexRawToken_EXPR_ASSIGN }
@@ -414,6 +417,7 @@ tokens :-
 
 @KW_OP_LT       { lex' AlexRawToken_OP_LT       }
 @KW_OP_EQ       { lex' AlexRawToken_OP_EQ       }
+@KW_OP_BANG     { lex' AlexRawToken_OP_BANG     }
 @KW_OP_OR       { lex' AlexRawToken_OP_OR       }
 @KW_OP_ASSIGN   { lex' AlexRawToken_OP_ASSIGN   }
 @KW_OP_DOT      { lex' AlexRawToken_OP_DOT      }
@@ -519,6 +523,7 @@ data AlexRawToken
      | AlexRawToken_RAW             -- ^ Reserved Keyword
      | AlexRawToken_SELF            -- ^ Reserved Keyword
      | AlexRawToken_CALL            -- ^ Reserved Keyword
+     | AlexRawToken_VCALL           -- ^ Reserved Keyword
      | AlexRawToken_LOC             -- ^ Reserved Keyword
      | AlexRawToken_CLASS           -- ^ Reserved Keyword
      | AlexRawToken_SCLASS          -- ^ Reserved Keyword
@@ -551,6 +556,7 @@ data AlexRawToken
      | AlexRawToken_LINE            -- ^ Reserved Keyword
      | AlexRawToken_TRUE            -- ^ Reserved Keyword
      | AlexRawToken_ARGS            -- ^ Reserved Keyword
+     | AlexRawToken_ARG_STAR        -- ^ Reserved Keyword
      | AlexRawToken_NAME            -- ^ Reserved Keyword
      | AlexRawToken_EXPR            -- ^ Reserved Keyword
      | AlexRawToken_MAME            -- ^ Reserved Keyword
@@ -591,6 +597,7 @@ data AlexRawToken
      | AlexRawToken_CONSEQUENT      -- ^ Reserved Keyword
      | AlexRawToken_ARGUMENT        -- ^ Reserved Keyword
      | AlexRawToken_BODYSTMT        -- ^ Reserved Keyword
+     | AlexRawToken_STATEMENT       -- ^ Reserved Keyword
      | AlexRawToken_ARGUMENTS       -- ^ Reserved Keyword
      | AlexRawToken_ARGUMENTS2      -- ^ Reserved Keyword
      | AlexRawToken_CALLEE          -- ^ Reserved Keyword
@@ -628,6 +635,7 @@ data AlexRawToken
 
      | AlexRawToken_OP_LT           -- ^ Reserved Keyword
      | AlexRawToken_OP_EQ           -- ^ Reserved Keyword
+     | AlexRawToken_OP_BANG         -- ^ Reserved Keyword
      | AlexRawToken_OP_OR           -- ^ Reserved Keyword
      | AlexRawToken_OP_ASSIGN       -- ^ Reserved Keyword
      | AlexRawToken_OP_DOT          -- ^ Reserved Keyword
@@ -646,6 +654,7 @@ data AlexRawToken
 
      | AlexRawToken_EXPR_CALL       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP      -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_UNOP       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_MEMBER     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_UPDATE     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword

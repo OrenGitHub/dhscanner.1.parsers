@@ -89,6 +89,7 @@ import Data.Map ( fromList, empty )
 'raw'                   { AlexTokenTag AlexRawToken_RAW             _ }
 'self'                  { AlexTokenTag AlexRawToken_SELF            _ }
 'call'                  { AlexTokenTag AlexRawToken_CALL            _ }
+'vcall'                 { AlexTokenTag AlexRawToken_VCALL           _ }
 'superclass'            { AlexTokenTag AlexRawToken_SUPER           _ }
 'hash'                  { AlexTokenTag AlexRawToken_DICT2           _ }
 'bare_assoc_hash'       { AlexTokenTag AlexRawToken_DICT            _ }
@@ -120,6 +121,7 @@ import Data.Map ( fromList, empty )
 'line'                  { AlexTokenTag AlexRawToken_LINE            _ }
 'true'                  { AlexTokenTag AlexRawToken_TRUE            _ }
 'args'                  { AlexTokenTag AlexRawToken_ARGS            _ }
+'arg_star'              { AlexTokenTag AlexRawToken_ARG_STAR        _ }
 'name'                  { AlexTokenTag AlexRawToken_NAME            _ }
 'expr'                  { AlexTokenTag AlexRawToken_EXPR            _ }
 'Name'                  { AlexTokenTag AlexRawToken_MAME            _ }
@@ -160,6 +162,7 @@ import Data.Map ( fromList, empty )
 'consequent'            { AlexTokenTag AlexRawToken_CONSEQUENT      _ }
 'argument'              { AlexTokenTag AlexRawToken_ARGUMENT        _ }
 'bodystmt'              { AlexTokenTag AlexRawToken_BODYSTMT        _ }
+'statement'             { AlexTokenTag AlexRawToken_STATEMENT       _ }
 'arguments'             { AlexTokenTag AlexRawToken_ARGUMENTS       _ }
 'arg_paren'             { AlexTokenTag AlexRawToken_ARGUMENTS2      _ }
 'collection'            { AlexTokenTag AlexRawToken_COLLECTION      _ }
@@ -195,6 +198,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 'CallExpression'   { AlexTokenTag AlexRawToken_EXPR_CALL   _ }
 'MemberExpression' { AlexTokenTag AlexRawToken_EXPR_MEMBER _ }
 'binary'           { AlexTokenTag AlexRawToken_EXPR_BINOP  _ }
+'unary'            { AlexTokenTag AlexRawToken_EXPR_UNOP   _ }
 'UpdateExpression' { AlexTokenTag AlexRawToken_EXPR_UPDATE _ }
 'AssignExpression' { AlexTokenTag AlexRawToken_EXPR_ASSIGN _ }
 
@@ -218,6 +222,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 
 '<'  { AlexTokenTag AlexRawToken_OP_LT       _ }
 '==' { AlexTokenTag AlexRawToken_OP_EQ       _ }
+'!'  { AlexTokenTag AlexRawToken_OP_BANG     _ }
 '='  { AlexTokenTag AlexRawToken_OP_ASSIGN   _ }
 '.'  { AlexTokenTag AlexRawToken_OP_DOT      _ }
 '+'  { AlexTokenTag AlexRawToken_OP_PLUS     _ }
@@ -308,7 +313,8 @@ ID      { unquote (tokIDValue $1) } |
 'self'  { "self"                  } |
 'true'  { "true"                  } |
 'name'  { "name"                  } |
-'start' { "start"                 }
+'start' { "start"                 } |
+'class' { "class"                 }
 
 -- *******************
 -- *                 *
@@ -390,6 +396,30 @@ exp_binop:
        Ast.expBinopLocation = $8
     }
 }
+
+-- ************
+-- *          *
+-- * exp_unop *
+-- *          *
+-- ************
+exp_unop:
+'{'
+    'type' ':' 'unary' ','
+    'location' ':' location ','
+    'operator' ':' actual_op ','
+    'statement' ':' exp ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+       Ast.expBinopLeft = $16,
+       Ast.expBinopRight = $16,
+       Ast.expBinopOperator = $12,
+       Ast.expBinopLocation = $8
+    }
+}
+
 
 -- **************
 -- *            *
@@ -628,13 +658,49 @@ exp_array:
 -- * exp *
 -- *     *
 -- *******
+arg_star:
+'{'
+    'type' ':' 'arg_star' ','
+    'location' ':' location ','
+    'value' ':' exp ','
+    'comments' ':' '[' ']'
+'}'
+{
+    $12
+}
+
+-- *******
+-- *     *
+-- * exp *
+-- *     *
+-- *******
+exp_vcall:
+'{'
+    'type' ':' 'vcall' ','
+    'location' ':' location ','
+    'value' ':' identifier ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12
+}
+
+
+-- *******
+-- *     *
+-- * exp *
+-- *     *
+-- *******
 exp:
 exp_str    { $1 } |
 exp_var    { Ast.ExpVar $1 } |
 exp_call   { $1 } |
+exp_vcall  { $1 } |
 exp_dict   { $1 } |
 exp_array  { $1 } |
-exp_binop  { $1 }
+exp_unop   { $1 } |
+exp_binop  { $1 } |
+arg_star   { $1 }
 
 -- **************
 -- *            *
@@ -687,7 +753,8 @@ actual_op:
 '-'  { Ast.MINUS   } |
 '<'  { Ast.PLUS    } |
 '='  { Ast.PLUS    } |
-'.'  { Ast.PLUS    }
+'.'  { Ast.PLUS    } |
+'!'  { Ast.PLUS    }
 
 -- ************
 -- *          *
@@ -925,7 +992,7 @@ identifier_wrapper_kind:
 -- * parent *
 -- *        *
 -- **********
-parent: 'parent' ':' identifier_wrapper ',' { $3 }
+parent: 'parent' ':' exp ',' { $3 }
 
 -- **********************
 -- *                    *
