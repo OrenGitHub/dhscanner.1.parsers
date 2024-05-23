@@ -122,7 +122,7 @@ import Location
 @KW_PARTS           = \"parts\"
 @KW_RANGE           = \"range\"
 @KW_PAREN           = \"paren\"
-@KW_FALSE           = false
+@KW_FALSE           = \"false\"
 @KW_START           = \"start\"
 @KW_EXPRS           = "exprs"
 @KW_VALUE           = \"value\"
@@ -162,6 +162,8 @@ import Location
 @KW_STMT_EXPR       = "Stmt_Expression"
 @KW_SCALAR_INT      = "Scalar_Int"
 @KW_IDENTIFIER      = \"ident\"
+@KW_YIELD           = \"yield\"
+@KW_IVAR            = \"ivar\"
 @KW_RETURN_TYPE     = "returnType"
 @KW_STMT_FUNCTION   = "Stmt_Function"
 @KW_FUNCTION_DEC    = \"def\"
@@ -371,6 +373,8 @@ tokens :-
 @KW_STMT_EXPR       { lex' AlexRawToken_STMT_EXPR       }
 @KW_SCALAR_INT      { lex' AlexRawToken_SCALAR_INT      }
 @KW_IDENTIFIER      { lex' AlexRawToken_IDENTIFIER      }
+@KW_YIELD           { lex' AlexRawToken_YIELD           }
+@KW_IVAR            { lex' AlexRawToken_IVAR            }
 @KW_RETURN_TYPE     { lex' AlexRawToken_RETURN_TYPE     }
 @KW_FUNCTION_DEC    { lex' AlexRawToken_FUNCTION_DEC    }
 
@@ -611,6 +615,8 @@ data AlexRawToken
      | AlexRawToken_STMT_EXPR       -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_INT      -- ^ Reserved Keyword
      | AlexRawToken_IDENTIFIER      -- ^ Reserved Keyword
+     | AlexRawToken_YIELD           -- ^ Reserved Keyword
+     | AlexRawToken_IVAR            -- ^ Reserved Keyword
      | AlexRawToken_RETURN_TYPE     -- ^ Reserved Keyword
      | AlexRawToken_STMT_FUNCTION   -- ^ Reserved Keyword
      | AlexRawToken_FUNCTION_DEC    -- ^ Reserved Keyword

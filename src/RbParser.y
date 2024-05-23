@@ -176,6 +176,8 @@ import Data.Map ( fromList, empty )
 'Stmt_Expr'             { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'Scalar_Int'            { AlexTokenTag AlexRawToken_SCALAR_INT      _ }
 'ident'                 { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
+'yield'                 { AlexTokenTag AlexRawToken_YIELD           _ }
+'ivar'                  { AlexTokenTag AlexRawToken_IVAR            _ }
 'returnType'            { AlexTokenTag AlexRawToken_RETURN_TYPE     _ }
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'def'                   { AlexTokenTag AlexRawToken_FUNCTION_DEC    _ }
@@ -312,6 +314,7 @@ ID      { unquote (tokIDValue $1) } |
 'id'    { "id"                    } |
 'self'  { "self"                  } |
 'true'  { "true"                  } |
+'false' { "false"                 } |
 'name'  { "name"                  } |
 'start' { "start"                 } |
 'class' { "class"                 }
@@ -324,6 +327,7 @@ ID      { unquote (tokIDValue $1) } |
 identifier_type:
 'const' { Nothing } |
 'ident' { Nothing } |
+'ivar'  { Nothing } |
 'kw'    { Nothing }
 
 -- **************
@@ -685,6 +689,25 @@ exp_vcall:
     Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12
 }
 
+-- *********
+-- *       *
+-- * yield *
+-- *       *
+-- *********
+exp_yield:
+'{'
+    'type' ':' 'yield' ','
+    'location' ':' location ','
+    'arguments' ':' 'null' ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 555,
+        Token.constIntLocation = $8
+    }
+}
 
 -- *******
 -- *     *
@@ -700,6 +723,7 @@ exp_dict   { $1 } |
 exp_array  { $1 } |
 exp_unop   { $1 } |
 exp_binop  { $1 } |
+exp_yield  { $1 } |
 arg_star   { $1 }
 
 -- **************
