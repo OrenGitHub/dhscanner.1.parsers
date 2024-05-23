@@ -87,6 +87,7 @@ import Location
 @KW_STRING3         = \"symbol_literal\"
 @KW_SUPER           = \"superclass\"
 @KW_CLASS           = \"class\"
+@KW_SCLASS          = \"sclass\"
 @KW_ASSIGN          = \"assign\"
 @KW_LOC             = \"location\"
 @KW_COMMAND         = \"command\"
@@ -125,7 +126,7 @@ import Location
 @KW_VALUE           = \"value\"
 @KW_RIGHT           = \"right\"
 @KW_STMTS           = \"statements\"
-@KW_ARRAY           = array
+@KW_ARRAY           = \"array\"
 @KW_PARAM           = Param
 @KW_PARAMS          = \"params\"
 @KW_OBJECT          = \"object\"
@@ -292,6 +293,7 @@ tokens :-
 @KW_STRING3         { lex' AlexRawToken_STRING3         }
 @KW_SUPER           { lex' AlexRawToken_SUPER           }
 @KW_CLASS           { lex' AlexRawToken_CLASS           }
+@KW_SCLASS          { lex' AlexRawToken_SCLASS          }
 @KW_ASSIGN          { lex' AlexRawToken_ASSIGN          }
 @KW_COMMAND         { lex' AlexRawToken_COMMAND         }
 @KW_MESSAGE         { lex' AlexRawToken_MESSAGE         }
@@ -519,6 +521,7 @@ data AlexRawToken
      | AlexRawToken_CALL            -- ^ Reserved Keyword
      | AlexRawToken_LOC             -- ^ Reserved Keyword
      | AlexRawToken_CLASS           -- ^ Reserved Keyword
+     | AlexRawToken_SCLASS          -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN          -- ^ Reserved Keyword
      | AlexRawToken_SUPER           -- ^ Reserved Keyword
      | AlexRawToken_DICT            -- ^ Reserved Keyword

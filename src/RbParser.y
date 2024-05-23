@@ -102,6 +102,7 @@ import Data.Map ( fromList, empty )
 'symbol_literal'        { AlexTokenTag AlexRawToken_STRING3         _ }
 'tstring_content'       { AlexTokenTag AlexRawToken_STRING2         _ }
 'class'                 { AlexTokenTag AlexRawToken_CLASS           _ }
+'sclass'                { AlexTokenTag AlexRawToken_SCLASS          _ }
 'assign'                { AlexTokenTag AlexRawToken_ASSIGN          _ }
 'location'              { AlexTokenTag AlexRawToken_LOC             _ }
 'command'               { AlexTokenTag AlexRawToken_COMMAND         _ }
@@ -596,6 +597,48 @@ exp_dict:
 exp_dict_1 { $1 } |
 exp_dict_2 { $1 }
 
+-- ********
+-- *      *
+-- * args *
+-- *      *
+-- ********
+args:
+'{'
+    'type' ':' 'args' ','
+    'location' ':' location ','
+    'parts' ':' '[' commalistof(exp) ']' ','
+    'comments' ':' '[' ']'
+'}'
+{
+    $13
+}
+
+
+-- *************
+-- *           *
+-- * exp_array *
+-- *           *
+-- *************
+exp_array:
+'{'
+    'type' ':' 'array' ','
+    'location' ':' location ','
+    'contents' ':' args ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "listify",
+            Token.location = $8
+        },
+        Ast.args = $12,
+        Ast.expCallLocation = $8
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -606,6 +649,7 @@ exp_str    { $1 } |
 exp_var    { Ast.ExpVar $1 } |
 exp_call   { $1 } |
 exp_dict   { $1 } |
+exp_array  { $1 } |
 exp_binop  { $1 }
 
 -- **************
@@ -691,7 +735,7 @@ operator:
 -- * arguments *
 -- *           *
 -- *************
-arguments:
+arguments_type_1:
 '{'
     'type' ':' 'args' ','
     'location' ':' location ','
@@ -701,6 +745,31 @@ arguments:
 {
     $13
 }
+
+-- *************
+-- *           *
+-- * arguments *
+-- *           *
+-- *************
+arguments_type_2:
+'{'
+    'type' ':' 'args' ','
+    'location' ':' location ','
+    'parts' ':' '[' ']' ','
+    'comments' ':' '[' ']' 
+'}'
+{
+    []
+}
+
+-- *************
+-- *           *
+-- * arguments *
+-- *           *
+-- *************
+arguments:
+arguments_type_1 { $1 } |
+arguments_type_2 { $1 }
 
 -- *********************
 -- *                   *
@@ -809,8 +878,28 @@ exp_call_with_args:
 -- * exp_call *
 -- *          *
 -- ************
+exp_call_without_rcvr:
+'{'
+    'type' ':' 'call' ','
+    'location' ':' location ','
+    'receiver' ':' 'null' ','
+    'operator' ':' 'null' ','
+    'message' ':' identifier ','
+    'arguments' ':' arguments ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $20
+}
+
+-- ************
+-- *          *
+-- * exp_call *
+-- *          *
+-- ************
 exp_call:
 exp_call_with_args    { $1 } |
+exp_call_without_rcvr { $1 } |
 exp_call_without_args { $1 }
 
 -- ****************
@@ -965,7 +1054,7 @@ stmt_command:
 -- * stmt_method *
 -- *             *
 -- ***************
-stmt_method:
+stmt_method_type_1:
 '{'
     'type' ':' 'def' ','
     'location' ':' location ','
@@ -987,6 +1076,42 @@ stmt_method:
     }
 }
 
+-- ***************
+-- *             *
+-- * stmt_method *
+-- *             *
+-- ***************
+stmt_method_type_2:
+'{'
+    'type' ':' 'def' ','
+    'location' ':' location ','
+    'target' ':' 'null' ','
+    'operator' ':' 'null' ','
+    'name' ':' identifier ','
+    'params' ':' params ','
+    'bodystmt' ':' bodystmt ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Just $ Left $ Ast.DecMethod $ DecMethodContent
+    {
+        Ast.decMethodReturnType = Token.NominalTy (Token.Named "any" $8),
+        Ast.decMethodName = Token.MethdName $20,
+        Ast.decMethodParams = $24,
+        Ast.decMethodBody = rights (catMaybes $28),
+        Ast.decMethodLocation = $8
+    }
+}
+
+-- ***************
+-- *             *
+-- * stmt_method *
+-- *             *
+-- ***************
+stmt_method:
+stmt_method_type_1 { $1 } |
+stmt_method_type_2 { $1 }
+
 -- ************
 -- *          *
 -- * stmt_exp *
@@ -1004,6 +1129,23 @@ exp
     }
 }
 
+-- ***************
+-- *             *
+-- * stmt_sclass *
+-- *             *
+-- ***************
+stmt_sclass:
+'{'
+    'type' ':' 'sclass' ','
+    'location' ':' location ','
+    'target' ':' exp_var_simple ','
+    'bodystmt' ':' bodystmt ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -1016,6 +1158,7 @@ stmt_exp     { $1 } |
 stmt_assign  { $1 } |
 stmt_class   { $1 } |
 stmt_command { $1 } |
+stmt_sclass  { $1 } |
 stmt_method  { $1 } |
 stmt_comment { $1 }
 
@@ -1056,7 +1199,7 @@ contents:
 -- * params *
 -- *        *
 -- **********
-params:
+params_type_1:
 '{'
     'type' ':' 'paren' ','
     'location' ':' location ','
@@ -1066,6 +1209,30 @@ params:
 {
     $12
 }
+
+-- **********
+-- *        *
+-- * params *
+-- *        *
+-- **********
+params_type_2:
+'{'
+    'type' ':' 'params' ','
+    'location' ':' location ','
+    'comments' ':' '[' ']'
+'}'
+{
+    []
+}
+
+-- **********
+-- *        *
+-- * params *
+-- *        *
+-- **********
+params:
+params_type_1 { $1 } |
+params_type_2 { $1 }
 
 -- ************
 -- *          *
