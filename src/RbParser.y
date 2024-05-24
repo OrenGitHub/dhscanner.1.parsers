@@ -137,6 +137,8 @@ import Data.Map ( fromList, empty )
 'index'                 { AlexTokenTag AlexRawToken_INDEX           _ }
 'paren'                 { AlexTokenTag AlexRawToken_PAREN           _ }
 'false'                 { AlexTokenTag AlexRawToken_FALSE           _ }
+'falsy'                 { AlexTokenTag AlexRawToken_FALSY           _ }
+'truthy'                { AlexTokenTag AlexRawToken_TRUTHY          _ }
 'start'                 { AlexTokenTag AlexRawToken_START           _ }
 'exprs'                 { AlexTokenTag AlexRawToken_EXPRS           _ }
 'value'                 { AlexTokenTag AlexRawToken_VALUE           _ }
@@ -210,10 +212,12 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 -- *            *
 -- **************
 
-'IfStatement'         { AlexTokenTag AlexRawToken_STMT_IF     _ }
+'if'                  { AlexTokenTag AlexRawToken_STMT_IF     _ }
+'if_op'               { AlexTokenTag AlexRawToken_STMT_IF2    _ }
 'ForStatement'        { AlexTokenTag AlexRawToken_STMT_FOR    _ }
 'BlockStatement'      { AlexTokenTag AlexRawToken_STMT_BLOCK  _ }
-'ReturnStatement'     { AlexTokenTag AlexRawToken_STMT_RETURN _ }
+'return'              { AlexTokenTag AlexRawToken_STMT_RETURN _ }
+'unless'              { AlexTokenTag AlexRawToken_STMT_UNLESS _ }
 'ExpressionStatement' { AlexTokenTag AlexRawToken_STMT_EXP    _ }
 
 -- *************
@@ -709,6 +713,26 @@ exp_yield:
     }
 }
 
+-- *********
+-- *       *
+-- * paren *
+-- *       *
+-- *********
+exp_paren:
+'{'
+    'type' ':' 'paren' ','
+    'location' ':' location ','
+    'contents' ':' stmts ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 555,
+        Token.constIntLocation = $8
+    }  
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -723,6 +747,7 @@ exp_dict   { $1 } |
 exp_array  { $1 } |
 exp_unop   { $1 } |
 exp_binop  { $1 } |
+exp_paren  { $1 } |
 exp_yield  { $1 } |
 arg_star   { $1 }
 
@@ -884,17 +909,56 @@ stmt_assign:
 -- * stmt_if *
 -- *         *
 -- ***********
-stmt_if:
+stmt_if_type_2:
 '{'
-    'type' ':' 'IfStatement' ','
+    'type' ':' 'if_op' ','
+    'location' ':' location ','
+    'predicate' ':' exp ','
+    'truthy' ':' exp ','
+    'falsy' ':' exp ','
+    'comments' ':' comments
+'}'
+{
+    Just $ Right $ Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = $12,
+        Ast.stmtIfBody = [],
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $8
+    }
+}
+
+-- ***********
+-- *         *
+-- * stmt_if *
+-- *         *
+-- ***********
+stmt_if_type_1:
+'{'
+    'type' ':' 'if' ','
     'location' ':' location ','
     'predicate' ':' exp ','
     'stmts' ':' stmts ','
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Just $ Right $ Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = $12,
+        Ast.stmtIfBody = [],
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $8
+    }
 }
+
+-- ***********
+-- *         *
+-- * stmt_if *
+-- *         *
+-- ***********
+stmt_if:
+stmt_if_type_1 { $1 } |
+stmt_if_type_2 { $1 }
 
 -- ************
 -- *          *
@@ -1173,6 +1237,39 @@ stmt_sclass:
     Nothing
 }
 
+-- ***************
+-- *             *
+-- * stmt_return *
+-- *             *
+-- ***************
+stmt_return:
+'{'
+    'type' ':' 'return' ','
+    'location' ':' location ','
+    'arguments' ':' arguments ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+-- ***************
+-- *             *
+-- * stmt_unless *
+-- *             *
+-- ***************
+stmt_unless:
+'{'
+    'type' ':' 'unless' ','
+    'location' ':' location ','
+    'predicate' ':' exp ','
+    'stmts' ':' stmts ',' 
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -1187,6 +1284,8 @@ stmt_class   { $1 } |
 stmt_command { $1 } |
 stmt_sclass  { $1 } |
 stmt_method  { $1 } |
+stmt_return  { $1 } |
+stmt_unless  { $1 } |
 stmt_comment { $1 }
 
 -- *********
@@ -1237,6 +1336,28 @@ params_type_1:
     $12
 }
 
+-- ***********
+-- *         *
+-- * comment *
+-- *         *
+-- ***********
+comment:
+'{'
+    'type' ':' 'comment' ','
+    'location' ':' location ','
+    'value' ':' ID
+'}'
+{
+    Nothing
+}
+
+-- ************
+-- *          *
+-- * comments *
+-- *          *
+-- ************
+comments: '[' ']' { Nothing } | '[' commalistof(comment) ']' { Nothing }
+
 -- **********
 -- *        *
 -- * params *
@@ -1246,7 +1367,7 @@ params_type_2:
 '{'
     'type' ':' 'params' ','
     'location' ':' location ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     []

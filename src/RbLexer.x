@@ -123,6 +123,8 @@ import Location
 @KW_RANGE           = \"range\"
 @KW_PAREN           = \"paren\"
 @KW_FALSE           = \"false\"
+@KW_FALSY           = \"falsy\"
+@KW_TRUTHY          = \"truthy\"
 @KW_START           = \"start\"
 @KW_EXPRS           = "exprs"
 @KW_VALUE           = \"value\"
@@ -175,9 +177,11 @@ import Location
 -- **************
 
 @KW_STMT_IF     = \"if\"
+@KW_STMT_IF2    = \"if_op\"
 @KW_STMT_FOR    = \"for\"
 @KW_STMT_BLOCK  = \"BlockStatement\"
 @KW_STMT_RETURN = \"return\"
+@KW_STMT_UNLESS = \"unless\"
 @KW_STMT_EXP    = \"ExpressionStatement\"
 
 -- ***************
@@ -332,6 +336,8 @@ tokens :-
 @KW_INDEX           { lex' AlexRawToken_INDEX           }
 @KW_PAREN           { lex' AlexRawToken_PAREN           }
 @KW_FALSE           { lex' AlexRawToken_FALSE           }
+@KW_FALSY           { lex' AlexRawToken_FALSY           }
+@KW_TRUTHY          { lex' AlexRawToken_TRUTHY          }
 @KW_START           { lex' AlexRawToken_START           }
 @KW_EXPRS           { lex' AlexRawToken_EXPRS           }
 @KW_VALUE           { lex' AlexRawToken_VALUE           }
@@ -367,6 +373,7 @@ tokens :-
 @KW_COLLECTION      { lex' AlexRawToken_COLLECTION      }
 @KW_GENERATOR       { lex' AlexRawToken_GENERATOR       }
 @KW_STMT_IF         { lex' AlexRawToken_STMT_IF         }
+@KW_STMT_IF2        { lex' AlexRawToken_STMT_IF2        }
 @KW_STMT_ECHO       { lex' AlexRawToken_STMT_ECHO       }
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
 @KW_EXPR_CALL       { lex' AlexRawToken_EXPR_CALL       }
@@ -406,10 +413,10 @@ tokens :-
 -- *            *
 -- **************
 
-@KW_STMT_IF       { lex' AlexRawToken_STMT_IF       }
 @KW_STMT_FOR      { lex' AlexRawToken_STMT_FOR      }
 @KW_STMT_BLOCK    { lex' AlexRawToken_STMT_BLOCK    }
 @KW_STMT_RETURN   { lex' AlexRawToken_STMT_RETURN   }
+@KW_STMT_UNLESS   { lex' AlexRawToken_STMT_UNLESS   }
 @KW_STMT_EXP      { lex' AlexRawToken_STMT_EXP      }
 @KW_STMT_FUNCTION { lex' AlexRawToken_STMT_FUNCTION }
 
@@ -577,6 +584,8 @@ data AlexRawToken
      | AlexRawToken_INDEX           -- ^ Reserved Keyword
      | AlexRawToken_PAREN           -- ^ Reserved Keyword
      | AlexRawToken_FALSE           -- ^ Reserved Keyword
+     | AlexRawToken_FALSY           -- ^ Reserved Keyword
+     | AlexRawToken_TRUTHY          -- ^ Reserved Keyword
      | AlexRawToken_EXPRS           -- ^ Reserved Keyword
      | AlexRawToken_VALUE           -- ^ Reserved Keyword
      | AlexRawToken_RIGHT           -- ^ Reserved Keyword
@@ -672,9 +681,11 @@ data AlexRawToken
      -- **************
 
      | AlexRawToken_STMT_IF         -- ^ Reserved Keyword
+     | AlexRawToken_STMT_IF2        -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
      | AlexRawToken_STMT_BLOCK      -- ^ Reserved Keyword
      | AlexRawToken_STMT_RETURN     -- ^ Reserved Keyword
+     | AlexRawToken_STMT_UNLESS     -- ^ Reserved Keyword
      | AlexRawToken_STMT_EXP        -- ^ Reserved Keyword
 
      -- ***************
