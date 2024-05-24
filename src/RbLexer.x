@@ -78,6 +78,8 @@ import Location
 @KW_DICT            = \"bare_assoc_hash\"
 @KW_DICT2           = \"hash\"
 @KW_LABEL           = \"label\"
+@KW_BLOCK           = \"block\"
+@KW_BLOCK2          = \"method_add_block\"
 @KW_ASSOC           = \"assoc\"
 @KW_ASSOCS          = \"assocs\"
 @KW_PERIOD          = \"period\"
@@ -86,10 +88,12 @@ import Location
 @KW_STRING1         = \"string_literal\"
 @KW_STRING2         = \"tstring_content\"
 @KW_STRING3         = \"symbol_literal\"
+@KW_STRING4         = \"string_embexpr\"
 @KW_SUPER           = \"superclass\"
 @KW_CLASS           = \"class\"
 @KW_SCLASS          = \"sclass\"
 @KW_ASSIGN          = \"assign\"
+@KW_ASSIGN2         = \"opassign\"
 @KW_LOC             = \"location\"
 @KW_COMMAND         = \"command\"
 @KW_MESSAGE         = \"message\"
@@ -156,6 +160,7 @@ import Location
 @KW_SRC_TYPE        = \"sourceType\"
 @KW_EXPRESSION      = \"expression\"
 @KW_REQUIREDS       = \"requireds\"
+@KW_OPTIONALS       = \"optionals\"
 @KW_PREDICATE       = \"predicate\"
 @KW_ALTERNATE       = \"alternate\"
 @KW_CONSEQUENT      = \"consequent\"
@@ -177,6 +182,7 @@ import Location
 -- **************
 
 @KW_STMT_IF     = \"if\"
+@KW_STMT_ELSE   = \"else\"
 @KW_STMT_IF2    = \"if_op\"
 @KW_STMT_FOR    = \"for\"
 @KW_STMT_BLOCK  = \"BlockStatement\"
@@ -207,6 +213,8 @@ import Location
 @KW_OP_EQ       = \"==\"
 @KW_OP_BANG     = \"!\"
 @KW_OP_OR       = \"\|\|\"
+@KW_OP_AND      = \"&&\"
+@KW_OP_OR2      = \"\|\|=\"
 @KW_OP_ASSIGN   = \"=\"
 @KW_OP_DOT      = \"\.\"
 @KW_OP_PLUS     = \"\+\"
@@ -292,6 +300,8 @@ tokens :-
 @KW_DICT            { lex' AlexRawToken_DICT            }
 @KW_DICT2           { lex' AlexRawToken_DICT2           }
 @KW_LABEL           { lex' AlexRawToken_LABEL           }
+@KW_BLOCK           { lex' AlexRawToken_BLOCK           }
+@KW_BLOCK2          { lex' AlexRawToken_BLOCK2          }
 @KW_ASSOC           { lex' AlexRawToken_ASSOC           }
 @KW_ASSOCS          { lex' AlexRawToken_ASSOCS          }
 @KW_PERIOD          { lex' AlexRawToken_PERIOD          }
@@ -300,10 +310,12 @@ tokens :-
 @KW_STRING1         { lex' AlexRawToken_STRING1         }
 @KW_STRING2         { lex' AlexRawToken_STRING2         }
 @KW_STRING3         { lex' AlexRawToken_STRING3         }
+@KW_STRING4         { lex' AlexRawToken_STRING4         }
 @KW_SUPER           { lex' AlexRawToken_SUPER           }
 @KW_CLASS           { lex' AlexRawToken_CLASS           }
 @KW_SCLASS          { lex' AlexRawToken_SCLASS          }
 @KW_ASSIGN          { lex' AlexRawToken_ASSIGN          }
+@KW_ASSIGN2         { lex' AlexRawToken_ASSIGN2         }
 @KW_COMMAND         { lex' AlexRawToken_COMMAND         }
 @KW_MESSAGE         { lex' AlexRawToken_MESSAGE         }
 @KW_COMMENT         { lex' AlexRawToken_COMMENT         }
@@ -359,6 +371,7 @@ tokens :-
 @KW_COMMENTS        { lex' AlexRawToken_COMMENTS        }
 @KW_PREDICATE       { lex' AlexRawToken_PREDICATE       }
 @KW_REQUIREDS       { lex' AlexRawToken_REQUIREDS       }
+@KW_OPTIONALS       { lex' AlexRawToken_OPTIONALS       }
 @KW_ALTERNATE       { lex' AlexRawToken_ALTERNATE       }
 @KW_CONSEQUENT      { lex' AlexRawToken_CONSEQUENT      }
 @KW_ARGUMENT        { lex' AlexRawToken_ARGUMENT        }
@@ -373,6 +386,7 @@ tokens :-
 @KW_COLLECTION      { lex' AlexRawToken_COLLECTION      }
 @KW_GENERATOR       { lex' AlexRawToken_GENERATOR       }
 @KW_STMT_IF         { lex' AlexRawToken_STMT_IF         }
+@KW_STMT_ELSE       { lex' AlexRawToken_STMT_ELSE       }
 @KW_STMT_IF2        { lex' AlexRawToken_STMT_IF2        }
 @KW_STMT_ECHO       { lex' AlexRawToken_STMT_ECHO       }
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
@@ -430,6 +444,8 @@ tokens :-
 @KW_OP_EQ       { lex' AlexRawToken_OP_EQ       }
 @KW_OP_BANG     { lex' AlexRawToken_OP_BANG     }
 @KW_OP_OR       { lex' AlexRawToken_OP_OR       }
+@KW_OP_AND      { lex' AlexRawToken_OP_AND      }
+@KW_OP_OR2      { lex' AlexRawToken_OP_OR2      }
 @KW_OP_ASSIGN   { lex' AlexRawToken_OP_ASSIGN   }
 @KW_OP_DOT      { lex' AlexRawToken_OP_DOT      }
 @KW_OP_PLUS     { lex' AlexRawToken_OP_PLUS     }
@@ -539,10 +555,13 @@ data AlexRawToken
      | AlexRawToken_CLASS           -- ^ Reserved Keyword
      | AlexRawToken_SCLASS          -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN          -- ^ Reserved Keyword
+     | AlexRawToken_ASSIGN2         -- ^ Reserved Keyword
      | AlexRawToken_SUPER           -- ^ Reserved Keyword
      | AlexRawToken_DICT            -- ^ Reserved Keyword
      | AlexRawToken_DICT2           -- ^ Reserved Keyword
      | AlexRawToken_LABEL           -- ^ Reserved Keyword
+     | AlexRawToken_BLOCK           -- ^ Reserved Keyword
+     | AlexRawToken_BLOCK2          -- ^ Reserved Keyword
      | AlexRawToken_ASSOC           -- ^ Reserved Keyword
      | AlexRawToken_ASSOCS          -- ^ Reserved Keyword
      | AlexRawToken_PERIOD          -- ^ Reserved Keyword
@@ -551,6 +570,7 @@ data AlexRawToken
      | AlexRawToken_STRING1         -- ^ Reserved Keyword
      | AlexRawToken_STRING2         -- ^ Reserved Keyword
      | AlexRawToken_STRING3         -- ^ Reserved Keyword
+     | AlexRawToken_STRING4         -- ^ Reserved Keyword
      | AlexRawToken_COMMAND         -- ^ Reserved Keyword
      | AlexRawToken_COMMENT         -- ^ Reserved Keyword
      | AlexRawToken_MESSAGE         -- ^ Reserved Keyword
@@ -607,6 +627,7 @@ data AlexRawToken
      | AlexRawToken_ALTERNATE       -- ^ Reserved Keyword
      | AlexRawToken_PREDICATE       -- ^ Reserved Keyword
      | AlexRawToken_REQUIREDS       -- ^ Reserved Keyword
+     | AlexRawToken_OPTIONALS       -- ^ Reserved Keyword
      | AlexRawToken_CONSEQUENT      -- ^ Reserved Keyword
      | AlexRawToken_ARGUMENT        -- ^ Reserved Keyword
      | AlexRawToken_BODYSTMT        -- ^ Reserved Keyword
@@ -652,6 +673,8 @@ data AlexRawToken
      | AlexRawToken_OP_EQ           -- ^ Reserved Keyword
      | AlexRawToken_OP_BANG         -- ^ Reserved Keyword
      | AlexRawToken_OP_OR           -- ^ Reserved Keyword
+     | AlexRawToken_OP_AND          -- ^ Reserved Keyword
+     | AlexRawToken_OP_OR2          -- ^ Reserved Keyword
      | AlexRawToken_OP_ASSIGN       -- ^ Reserved Keyword
      | AlexRawToken_OP_DOT          -- ^ Reserved Keyword
      | AlexRawToken_OP_PLUS         -- ^ Reserved Keyword
@@ -681,6 +704,7 @@ data AlexRawToken
      -- **************
 
      | AlexRawToken_STMT_IF         -- ^ Reserved Keyword
+     | AlexRawToken_STMT_ELSE       -- ^ Reserved Keyword
      | AlexRawToken_STMT_IF2        -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
      | AlexRawToken_STMT_BLOCK      -- ^ Reserved Keyword

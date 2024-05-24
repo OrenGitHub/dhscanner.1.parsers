@@ -95,16 +95,20 @@ import Data.Map ( fromList, empty )
 'bare_assoc_hash'       { AlexTokenTag AlexRawToken_DICT            _ }
 'assoc'                 { AlexTokenTag AlexRawToken_ASSOC           _ }
 'label'                 { AlexTokenTag AlexRawToken_LABEL           _ }
+'block'                 { AlexTokenTag AlexRawToken_BLOCK           _ }
+'method_add_block'      { AlexTokenTag AlexRawToken_BLOCK2          _ }
 'period'                { AlexTokenTag AlexRawToken_PERIOD          _ }
 'parent'                { AlexTokenTag AlexRawToken_PARENT          _ }
 'receiver'              { AlexTokenTag AlexRawToken_RECEIVER        _ }
 'assocs'                { AlexTokenTag AlexRawToken_ASSOCS          _ }
 'string_literal'        { AlexTokenTag AlexRawToken_STRING1         _ }
 'symbol_literal'        { AlexTokenTag AlexRawToken_STRING3         _ }
+'string_embexpr'        { AlexTokenTag AlexRawToken_STRING4         _ }
 'tstring_content'       { AlexTokenTag AlexRawToken_STRING2         _ }
 'class'                 { AlexTokenTag AlexRawToken_CLASS           _ }
 'sclass'                { AlexTokenTag AlexRawToken_SCLASS          _ }
 'assign'                { AlexTokenTag AlexRawToken_ASSIGN          _ }
+'opassign'              { AlexTokenTag AlexRawToken_ASSIGN2         _ }
 'location'              { AlexTokenTag AlexRawToken_LOC             _ }
 'command'               { AlexTokenTag AlexRawToken_COMMAND         _ }
 'message'               { AlexTokenTag AlexRawToken_MESSAGE         _ }
@@ -160,6 +164,7 @@ import Data.Map ( fromList, empty )
 'comments'              { AlexTokenTag AlexRawToken_COMMENTS        _ }
 'predicate'             { AlexTokenTag AlexRawToken_PREDICATE       _ }
 'requireds'             { AlexTokenTag AlexRawToken_REQUIREDS       _ }
+'optionals'             { AlexTokenTag AlexRawToken_OPTIONALS       _ }
 'alternate'             { AlexTokenTag AlexRawToken_ALTERNATE       _ }
 'consequent'            { AlexTokenTag AlexRawToken_CONSEQUENT      _ }
 'argument'              { AlexTokenTag AlexRawToken_ARGUMENT        _ }
@@ -213,6 +218,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 -- **************
 
 'if'                  { AlexTokenTag AlexRawToken_STMT_IF     _ }
+'else'                { AlexTokenTag AlexRawToken_STMT_ELSE   _ }
 'if_op'               { AlexTokenTag AlexRawToken_STMT_IF2    _ }
 'ForStatement'        { AlexTokenTag AlexRawToken_STMT_FOR    _ }
 'BlockStatement'      { AlexTokenTag AlexRawToken_STMT_BLOCK  _ }
@@ -226,18 +232,20 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 -- *           *
 -- *************
 
-'<'  { AlexTokenTag AlexRawToken_OP_LT       _ }
-'==' { AlexTokenTag AlexRawToken_OP_EQ       _ }
-'!'  { AlexTokenTag AlexRawToken_OP_BANG     _ }
-'='  { AlexTokenTag AlexRawToken_OP_ASSIGN   _ }
-'.'  { AlexTokenTag AlexRawToken_OP_DOT      _ }
-'+'  { AlexTokenTag AlexRawToken_OP_PLUS     _ }
-'-'  { AlexTokenTag AlexRawToken_OP_MINUS    _ }
-'*'  { AlexTokenTag AlexRawToken_OP_TIMES    _ }
-'..' { AlexTokenTag AlexRawToken_OP_DOTDOT   _ }
-'%'  { AlexTokenTag AlexRawToken_OP_PERCENT  _ }
-'++' { AlexTokenTag AlexRawToken_OP_PLUSPLUS _ }
-'||' { AlexTokenTag AlexRawToken_OP_OR       _ }
+'<'   { AlexTokenTag AlexRawToken_OP_LT       _ }
+'=='  { AlexTokenTag AlexRawToken_OP_EQ       _ }
+'!'   { AlexTokenTag AlexRawToken_OP_BANG     _ }
+'='   { AlexTokenTag AlexRawToken_OP_ASSIGN   _ }
+'.'   { AlexTokenTag AlexRawToken_OP_DOT      _ }
+'+'   { AlexTokenTag AlexRawToken_OP_PLUS     _ }
+'-'   { AlexTokenTag AlexRawToken_OP_MINUS    _ }
+'*'   { AlexTokenTag AlexRawToken_OP_TIMES    _ }
+'..'  { AlexTokenTag AlexRawToken_OP_DOTDOT   _ }
+'%'   { AlexTokenTag AlexRawToken_OP_PERCENT  _ }
+'++'  { AlexTokenTag AlexRawToken_OP_PLUSPLUS _ }
+'||'  { AlexTokenTag AlexRawToken_OP_OR       _ }
+'&&'  { AlexTokenTag AlexRawToken_OP_AND      _ }
+'||=' { AlexTokenTag AlexRawToken_OP_OR2      _ }
 
 -- ****************************
 -- *                          *
@@ -320,7 +328,9 @@ ID      { unquote (tokIDValue $1) } |
 'true'  { "true"                  } |
 'false' { "false"                 } |
 'name'  { "name"                  } |
+'.'     { "."                     } |
 'start' { "start"                 } |
+'label' { "label"                 } |
 'class' { "class"                 }
 
 -- *******************
@@ -477,23 +487,56 @@ var_field  { $1 }
 -- * string_part *
 -- *             *
 -- ***************
-string_part:
+string_part_type_1:
 '{'
     'type' ':' 'tstring_content' ','
     'location' ':' location ','
-    'value' ':' ID ','
+    'value' ':' tokenID ','
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
+    {
+        Token.constStrValue = $12,
+        Token.constStrLocation = $8
+    }
 }
+
+-- *******
+-- *     *
+-- * exp *
+-- *     *
+-- *******
+string_part_type_2:
+'{'
+    'type' ':' 'string_embexpr' ','
+    'location' ':' location ','
+    'stmts' ':' stmts ','
+    'comments' ':' comments
+'}'
+{
+    case $12 of
+        [] -> Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 888 $8
+        (stmt:_) -> case stmt of
+            (Just (Right (Ast.StmtExp e))) -> e
+            _ -> Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 888 $8
+}
+
+-- *******
+-- *     *
+-- * exp *
+-- *     *
+-- *******
+string_part:
+string_part_type_1 { $1 } |
+string_part_type_2 { $1 }
 
 -- *************
 -- *           *
 -- * exp_str_1 *
 -- *           *
 -- *************
-exp_str_1:
+fstring:
 '{'
     'type' ':' 'string_literal' ','
     'location' ':' location ','
@@ -501,10 +544,15 @@ exp_str_1:
     'comments' ':' '[' ']'
 '}'
 {
-    Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
+    Ast.ExpCall $ Ast.ExpCallContent
     {
-        Token.constStrValue = "MMM",
-        Token.constStrLocation = $8
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "fstring",
+            Token.location = $8
+        },
+        Ast.args = $13,
+        Ast.expCallLocation = $8
     }
 }
 
@@ -513,7 +561,7 @@ exp_str_1:
 -- * exp_str_2 *
 -- *           *
 -- *************
-exp_str_2:
+exp_str:
 '{'
     'type' ':' 'symbol_literal' ','
     'location' ':' location ','
@@ -527,15 +575,6 @@ exp_str_2:
         Token.constStrLocation = $8
     }
 }
-
--- ***********
--- *         *
--- * exp_str *
--- *         *
--- ***********
-exp_str:
-exp_str_1 { $1 } |
-exp_str_2 { $1 }
 
 -- *******
 -- *     *
@@ -745,6 +784,7 @@ exp_call   { $1 } |
 exp_vcall  { $1 } |
 exp_dict   { $1 } |
 exp_array  { $1 } |
+fstring    { $1 } |
 exp_unop   { $1 } |
 exp_binop  { $1 } |
 exp_paren  { $1 } |
@@ -793,17 +833,19 @@ stmt_for:
 -- *          *
 -- ************
 actual_op:
-'..' { Ast.PLUS    } |
-'==' { Ast.PLUS    } |
-'||' { Ast.PLUS    } |
-'+'  { Ast.PLUS    } |
-'*'  { Ast.TIMES   } |
-'%'  { Ast.PERCENT } |
-'-'  { Ast.MINUS   } |
-'<'  { Ast.PLUS    } |
-'='  { Ast.PLUS    } |
-'.'  { Ast.PLUS    } |
-'!'  { Ast.PLUS    }
+'..'  { Ast.PLUS    } |
+'=='  { Ast.PLUS    } |
+'&&'  { Ast.PLUS    } |
+'||'  { Ast.PLUS    } |
+'||=' { Ast.PLUS    } |
+'+'   { Ast.PLUS    } |
+'*'   { Ast.TIMES   } |
+'%'   { Ast.PERCENT } |
+'-'   { Ast.MINUS   } |
+'<'   { Ast.PLUS    } |
+'='   { Ast.PLUS    } |
+'.'   { Ast.PLUS    } |
+'!'   { Ast.PLUS    }
 
 -- ************
 -- *          *
@@ -867,9 +909,26 @@ arguments_type_2:
 -- * arguments *
 -- *           *
 -- *************
+arguments_type_3:
+'{'
+    'type' ':' 'arg_paren' ','
+    'location' ':' location ','
+    'arguments' ':' arguments ','
+    'comments' ':' '[' ']' 
+'}'
+{
+    []
+}
+
+-- *************
+-- *           *
+-- * arguments *
+-- *           *
+-- *************
 arguments:
 arguments_type_1 { $1 } |
-arguments_type_2 { $1 }
+arguments_type_2 { $1 } |
+arguments_type_3 { $1 }
 
 -- *********************
 -- *                   *
@@ -892,7 +951,25 @@ arguments_wrapper:
 -- * stmt_assign *
 -- *             *
 -- ***************
-stmt_assign:
+stmt_assign_type_2:
+'{'
+    'type' ':' 'opassign' ','
+    'location' ':' location ','
+    'target' ':' var ','
+    'operator' ':' operator ','
+    'value' ':' exp ','
+    'comments' ':' '[' ']' 
+'}'
+{
+    Nothing
+}
+
+-- ***************
+-- *             *
+-- * stmt_assign *
+-- *             *
+-- ***************
+stmt_assign_type_1:
 '{'
     'type' ':' 'assign' ','
     'location' ':' location ','
@@ -903,6 +980,15 @@ stmt_assign:
 {
     Nothing
 }
+
+-- ***************
+-- *             *
+-- * stmt_assign *
+-- *             *
+-- ***************
+stmt_assign:
+stmt_assign_type_1 { $1 } |
+stmt_assign_type_2 { $1 }
 
 -- ***********
 -- *         *
@@ -928,6 +1014,29 @@ stmt_if_type_2:
     }
 }
 
+-- *************
+-- *           *
+-- * stmt_else *
+-- *           *
+-- *************
+stmt_else:
+'{'
+    'type' ':' 'else' ','
+    'location' ':' location ','
+    'stmts' ':' stmts ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+-- ***********
+-- *         *
+-- * stmt_if *
+-- *         *
+-- ***********
+else_part: 'consequent' ':' stmt_else ',' { Nothing }
+
 -- ***********
 -- *         *
 -- * stmt_if *
@@ -939,6 +1048,7 @@ stmt_if_type_1:
     'location' ':' location ','
     'predicate' ':' exp ','
     'stmts' ':' stmts ','
+    optional(else_part)
     'comments' ':' '[' ']'
 '}'
 {
@@ -1208,17 +1318,7 @@ stmt_method_type_2 { $1 }
 -- * stmt_exp *
 -- *          *
 -- ************
-stmt_exp:
-exp
-{
-    Just $ Right $ Ast.StmtIf $ Ast.StmtIfContent
-    {
-        Ast.stmtIfCond = $1,
-        Ast.stmtIfBody = [],
-        Ast.stmtElseBody = [],
-        Ast.stmtIfLocation = Location "8" 6 5 6 5
-    }
-}
+stmt_exp: exp { Just $ Right (Ast.StmtExp $1) }
 
 -- ***************
 -- *             *
@@ -1270,6 +1370,40 @@ stmt_unless:
     Nothing
 }
 
+-- *********
+-- *       *
+-- * block *
+-- *       *
+-- *********
+block:
+'{'
+    'type' ':' 'block' ','
+    'location' ':' location ','
+    'bodystmt' ':' bodystmt ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+-- **************
+-- *            *
+-- * stmt_block *
+-- *            *
+-- **************
+stmt_block:
+'{'
+    'type' ':' 'method_add_block' ','
+    'location' ':' location ','
+    'call' ':' exp ',' 
+    'block' ':' block ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+
 -- ********
 -- *      *
 -- * stmt *
@@ -1284,6 +1418,7 @@ stmt_class   { $1 } |
 stmt_command { $1 } |
 stmt_sclass  { $1 } |
 stmt_method  { $1 } |
+stmt_block   { $1 } |
 stmt_return  { $1 } |
 stmt_unless  { $1 } |
 stmt_comment { $1 }
@@ -1309,15 +1444,31 @@ stmts:
 -- * contents *
 -- *          *
 -- ************
+optional_pair: '[' identifier ',' exp ']' { Nothing }
+
+-- ************
+-- *          *
+-- * contents *
+-- *          *
+-- ************
+contents_internal:
+'requireds' ':' '[' commalistof(identifier)    ']' { $4      } |
+'optionals' ':' '[' commalistof(optional_pair) ']' { []      } 
+
+-- ************
+-- *          *
+-- * contents *
+-- *          *
+-- ************
 contents:
 '{'
     'type' ':' 'params' ','
     'location' ':' location ','
-    'requireds' ':' '[' commalistof(identifier) ']' ','
+    contents_internal ','
     'comments' ':' '[' ']'
 '}'
 {
-    Data.List.map paramify $13
+    Data.List.map paramify $10
 }
 
 -- **********
