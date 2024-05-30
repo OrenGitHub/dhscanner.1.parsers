@@ -79,6 +79,7 @@ import Location
 @KW_DICT2           = \"hash\"
 @KW_LABEL           = \"label\"
 @KW_BLOCK           = \"block\"
+@KW_MODULE          = \"module\"
 @KW_BLOCK2          = \"method_add_block\"
 @KW_ASSOC           = \"assoc\"
 @KW_ASSOCS          = \"assocs\"
@@ -100,6 +101,7 @@ import Location
 @KW_COMMENT         = \"comment\"
 @KW_CONSTANT        = \"constant\"
 @KW_CONSTANT2       = \"const_ref\"
+@KW_AREF_FIELD      = \"aref_field\"
 @KW_CONSTANT4       = \"const_path_ref\"
 @KW_CONSTANT3       = \"const\"
 @KW_KEY             = \"key\"
@@ -164,8 +166,9 @@ import Location
 @KW_PREDICATE       = \"predicate\"
 @KW_ALTERNATE       = \"alternate\"
 @KW_CONSEQUENT      = \"consequent\"
-@KW_STMT_ECHO       = "Stmt_Echo"
+@KW_STMT_VOID       = \"void_stmt\"
 @KW_EXPR_VAR        = \"var_ref\"
+@KW_EXPR_SUBSCRIPT  = \"aref\"
 @KW_STMT_EXPR       = "Stmt_Expression"
 @KW_SCALAR_INT      = "Scalar_Int"
 @KW_IDENTIFIER      = \"ident\"
@@ -301,6 +304,7 @@ tokens :-
 @KW_DICT2           { lex' AlexRawToken_DICT2           }
 @KW_LABEL           { lex' AlexRawToken_LABEL           }
 @KW_BLOCK           { lex' AlexRawToken_BLOCK           }
+@KW_MODULE          { lex' AlexRawToken_MODULE          }
 @KW_BLOCK2          { lex' AlexRawToken_BLOCK2          }
 @KW_ASSOC           { lex' AlexRawToken_ASSOC           }
 @KW_ASSOCS          { lex' AlexRawToken_ASSOCS          }
@@ -322,6 +326,7 @@ tokens :-
 @KW_CONSTANT        { lex' AlexRawToken_CONSTANT        }
 @KW_CONSTANT2       { lex' AlexRawToken_CONSTANT2       }
 @KW_CONSTANT3       { lex' AlexRawToken_CONSTANT3       }
+@KW_AREF_FIELD      { lex' AlexRawToken_AREF_FIELD      }
 @KW_CONSTANT4       { lex' AlexRawToken_CONSTANT4       }
 @KW_ARG             { lex' AlexRawToken_ARG             }
 @KW_KEY             { lex' AlexRawToken_KEY             }
@@ -388,8 +393,9 @@ tokens :-
 @KW_STMT_IF         { lex' AlexRawToken_STMT_IF         }
 @KW_STMT_ELSE       { lex' AlexRawToken_STMT_ELSE       }
 @KW_STMT_IF2        { lex' AlexRawToken_STMT_IF2        }
-@KW_STMT_ECHO       { lex' AlexRawToken_STMT_ECHO       }
+@KW_STMT_VOID       { lex' AlexRawToken_STMT_VOID       }
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
+@KW_EXPR_SUBSCRIPT  { lex' AlexRawToken_EXPR_SUBSCRIPT  }
 @KW_EXPR_CALL       { lex' AlexRawToken_EXPR_CALL       }
 @KW_STMT_EXPR       { lex' AlexRawToken_STMT_EXPR       }
 @KW_SCALAR_INT      { lex' AlexRawToken_SCALAR_INT      }
@@ -561,6 +567,7 @@ data AlexRawToken
      | AlexRawToken_DICT2           -- ^ Reserved Keyword
      | AlexRawToken_LABEL           -- ^ Reserved Keyword
      | AlexRawToken_BLOCK           -- ^ Reserved Keyword
+     | AlexRawToken_MODULE          -- ^ Reserved Keyword
      | AlexRawToken_BLOCK2          -- ^ Reserved Keyword
      | AlexRawToken_ASSOC           -- ^ Reserved Keyword
      | AlexRawToken_ASSOCS          -- ^ Reserved Keyword
@@ -578,6 +585,7 @@ data AlexRawToken
      | AlexRawToken_CONSTANT2       -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT3       -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT4       -- ^ Reserved Keyword
+     | AlexRawToken_AREF_FIELD      -- ^ Reserved Keyword
      | AlexRawToken_ARG             -- ^ Reserved Keyword
      | AlexRawToken_KEY             -- ^ Reserved Keyword
      | AlexRawToken_VAR             -- ^ Reserved Keyword
@@ -640,8 +648,9 @@ data AlexRawToken
      | AlexRawToken_SRC_TYPE        -- ^ Reserved Keyword
      | AlexRawToken_COLLECTION      -- ^ Reserved Keyword
      | AlexRawToken_GENERATOR       -- ^ Reserved Keyword
-     | AlexRawToken_STMT_ECHO       -- ^ Reserved Keyword
+     | AlexRawToken_STMT_VOID       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_VAR        -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_SUBSCRIPT  -- ^ Reserved Keyword
      | AlexRawToken_STMT_EXPR       -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_INT      -- ^ Reserved Keyword
      | AlexRawToken_IDENTIFIER      -- ^ Reserved Keyword

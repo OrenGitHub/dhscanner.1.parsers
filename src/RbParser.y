@@ -94,8 +94,10 @@ import Data.Map ( fromList, empty )
 'hash'                  { AlexTokenTag AlexRawToken_DICT2           _ }
 'bare_assoc_hash'       { AlexTokenTag AlexRawToken_DICT            _ }
 'assoc'                 { AlexTokenTag AlexRawToken_ASSOC           _ }
+'void_stmt'             { AlexTokenTag AlexRawToken_STMT_VOID       _ }
 'label'                 { AlexTokenTag AlexRawToken_LABEL           _ }
 'block'                 { AlexTokenTag AlexRawToken_BLOCK           _ }
+'module'                { AlexTokenTag AlexRawToken_MODULE          _ }
 'method_add_block'      { AlexTokenTag AlexRawToken_BLOCK2          _ }
 'period'                { AlexTokenTag AlexRawToken_PERIOD          _ }
 'parent'                { AlexTokenTag AlexRawToken_PARENT          _ }
@@ -115,6 +117,7 @@ import Data.Map ( fromList, empty )
 'comment'               { AlexTokenTag AlexRawToken_COMMENT         _ }
 'constant'              { AlexTokenTag AlexRawToken_CONSTANT        _ }
 'const_ref'             { AlexTokenTag AlexRawToken_CONSTANT2       _ }
+'aref_field'            { AlexTokenTag AlexRawToken_AREF_FIELD      _ }
 'const_path_ref'        { AlexTokenTag AlexRawToken_CONSTANT4       _ }
 'const'                 { AlexTokenTag AlexRawToken_CONSTANT3       _ }
 'key'                   { AlexTokenTag AlexRawToken_KEY             _ }
@@ -178,8 +181,8 @@ import Data.Map ( fromList, empty )
 'async'                 { AlexTokenTag AlexRawToken_ASYNC           _ }
 'callee'                { AlexTokenTag AlexRawToken_CALLEE          _ }
 'sourceType'            { AlexTokenTag AlexRawToken_SRC_TYPE        _ }
-'Stmt_Echo'             { AlexTokenTag AlexRawToken_STMT_ECHO       _ }
 'var_ref'               { AlexTokenTag AlexRawToken_EXPR_VAR        _ }
+'aref'                  { AlexTokenTag AlexRawToken_EXPR_SUBSCRIPT  _ }
 'Stmt_Expr'             { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'Scalar_Int'            { AlexTokenTag AlexRawToken_SCALAR_INT      _ }
 'ident'                 { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
@@ -322,16 +325,19 @@ location: '[' INT ',' INT ',' INT ',' INT ']'
 -- *          *
 -- ************
 tokenID:
-ID      { unquote (tokIDValue $1) } |
-'id'    { "id"                    } |
-'self'  { "self"                  } |
-'true'  { "true"                  } |
-'false' { "false"                 } |
-'name'  { "name"                  } |
-'.'     { "."                     } |
-'start' { "start"                 } |
-'label' { "label"                 } |
-'class' { "class"                 }
+ID       { unquote (tokIDValue $1) } |
+'id'     { "id"                    } |
+'self'   { "self"                  } |
+'true'   { "true"                  } |
+'false'  { "false"                 } |
+'name'   { "name"                  } |
+'.'      { "."                     } |
+'start'  { "start"                 } |
+'index'  { "index"                 } |
+'update' { "update"                } |
+'params' { "params"                } |
+'label'  { "label"                 } |
+'class'  { "class"                 }
 
 -- *******************
 -- *                 *
@@ -452,7 +458,7 @@ var_simple:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12
 }
 
 -- *************
@@ -470,7 +476,34 @@ var_field:
     'comments' ':' '[' ']'
 '}'
 {
-    Nothing
+    Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12,
+        Ast.varFieldName = Token.FieldName $20,
+        Ast.varFieldLocation = $8
+    }
+}
+
+-- *****************
+-- *               *
+-- * var_subscript *
+-- *               *
+-- *****************
+var_subscript:
+'{'
+    'type' ':' 'aref_field' ','
+    'location' ':' location ','
+    'collection' ':' exp_var ','
+    'index' ':' exp ','
+    'comments' ':' comments
+'}'
+{
+    Ast.VarSubscript $ Ast.VarSubscriptContent
+    {
+        Ast.varSubscriptLhs = $12,
+        Ast.varSubscriptIdx = $16,
+        Ast.varSubscriptLocation = $8
+    }
 }
 
 -- ************
@@ -479,8 +512,9 @@ var_field:
 -- *          *
 -- ************
 var:
-var_simple { $1 } |
-var_field  { $1 }
+var_simple    { $1 } |
+var_field     { $1 } |
+var_subscript { $1 }
 
 -- ***************
 -- *             *
@@ -772,6 +806,53 @@ exp_paren:
     }  
 }
 
+-- *************
+-- *           *
+-- * subscript *
+-- *           *
+-- *************
+subscript:
+'{'
+    'type' ':' 'aref' ','
+    'location' ':' location ','
+    'collection' ':' exp ','
+    'index' ':' exp ','
+    'comments' ':' comments
+'}'
+{
+    Ast.ExpSubscript $ ExpSubscriptContent
+    {
+        Ast.expSubscriptLhs = $12,
+        Ast.expSubscriptIdx = $16,
+        Ast.expSubscriptLocation = $8
+    }
+}
+
+-- ************
+-- *          *
+-- * exp_args *
+-- *          *
+-- ************
+exp_args:
+'{'
+    'type' ':' 'args' ','
+    'location' ':' location ','
+    'parts' ':' '[' commalistof(exp) ']' ','
+    'comments' ':' comments
+'}'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "expify",
+            Token.location = $8
+        },
+        Ast.args = $13,
+        Ast.expCallLocation = $8
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -784,8 +865,10 @@ exp_call   { $1 } |
 exp_vcall  { $1 } |
 exp_dict   { $1 } |
 exp_array  { $1 } |
+subscript  { $1 } |
 fstring    { $1 } |
 exp_unop   { $1 } |
+exp_args   { $1 } |
 exp_binop  { $1 } |
 exp_paren  { $1 } |
 exp_yield  { $1 } |
@@ -1229,7 +1312,7 @@ stmt_class:
         Ast.decClassName = Token.ClassName $12,
         Ast.decClassSupers = [ Token.SuperName $16 ],
         Ast.decClassDataMembers = Ast.DataMembers Data.Map.empty,
-        Ast.decClassMethods = Ast.Methods $ Data.Map.fromList (catMaybes (Data.List.map methodify (catMaybes $20)))
+        Ast.decClassMethods = Ast.Methods $ Data.Map.fromList (catMaybes (Data.List.map (methodify (Token.ClassName $12)) (catMaybes $20)))
     }
 }
 
@@ -1273,7 +1356,8 @@ stmt_method_type_1:
         Ast.decMethodName = Token.MethdName $20,
         Ast.decMethodParams = $24,
         Ast.decMethodBody = rights (catMaybes $28),
-        Ast.decMethodLocation = $8
+        Ast.decMethodLocation = $8,
+        Ast.hostingClassName = Token.ClassName (Token.Named "<class>" $8)
     }
 }
 
@@ -1300,7 +1384,8 @@ stmt_method_type_2:
         Ast.decMethodName = Token.MethdName $20,
         Ast.decMethodParams = $24,
         Ast.decMethodBody = rights (catMaybes $28),
-        Ast.decMethodLocation = $8
+        Ast.decMethodLocation = $8,
+        Ast.hostingClassName = Token.ClassName (Token.Named "<class>" $8)
     }
 }
 
@@ -1403,6 +1488,37 @@ stmt_block:
     Nothing
 }
 
+-- ***************
+-- *             *
+-- * stmt_module *
+-- *             *
+-- ***************
+stmt_module:
+'{'
+    'type' ':' 'module' ','
+    'location' ':' location ','
+    'constant' ':' identifier_wrapper ','
+    'bodystmt' ':' bodystmt ','
+    'comments' ':' comments
+'}'
+{
+    case lefts (catMaybes $16) of { [] -> Nothing; (dec:_) -> Just (Left dec) }
+}
+
+-- *************
+-- *           *
+-- * stmt_void *
+-- *           *
+-- *************
+stmt_void:
+'{'
+    'type' ':' 'void_stmt' ','
+    'location' ':' location ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
 
 -- ********
 -- *      *
@@ -1414,10 +1530,12 @@ stmt_if      { $1 } |
 stmt_for     { $1 } |
 stmt_exp     { $1 } |
 stmt_assign  { $1 } |
+stmt_void    { $1 } |
 stmt_class   { $1 } |
 stmt_command { $1 } |
 stmt_sclass  { $1 } |
 stmt_method  { $1 } |
+stmt_module  { $1 } |
 stmt_block   { $1 } |
 stmt_return  { $1 } |
 stmt_unless  { $1 } |
@@ -1570,9 +1688,9 @@ paramify token = let
     nominalType = Token.NominalTy (Token.Named "any" (Token.location token))
     in Ast.Param paramName nominalType 156
 
-methodify :: Either Ast.Dec Ast.Stmt -> Maybe (Token.MethdName,Ast.DecMethodContent)
-methodify (Left (Ast.DecMethod d)) = Just ((Ast.decMethodName d),d)
-methodify _ = Nothing
+methodify :: Token.ClassName -> Either Ast.Dec Ast.Stmt -> Maybe (Token.MethdName,Ast.DecMethodContent)
+methodify c (Left (Ast.DecMethod d)) = Just ((Ast.decMethodName d), d { Ast.hostingClassName = c } )
+methodify _ _ = Nothing
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
