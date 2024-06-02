@@ -1044,7 +1044,11 @@ stmt_assign_type_2:
     'comments' ':' '[' ']' 
 '}'
 {
-    Nothing
+    Just $ Right $ Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = $12,
+        Ast.stmtAssignRhs = $20
+    }
 }
 
 -- ***************
@@ -1061,7 +1065,11 @@ stmt_assign_type_1:
     'comments' ':' '[' ']' 
 '}'
 {
-    Nothing
+    Just $ Right $ Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = $12,
+        Ast.stmtAssignRhs = $16
+    }
 }
 
 -- ***************
