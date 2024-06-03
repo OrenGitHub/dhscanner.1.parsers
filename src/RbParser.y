@@ -1297,7 +1297,11 @@ identifier_wrapper:
     'comments' ':' '[' ']'
 '}'
 {
-    $13
+    case $10 of
+        Nothing -> $13
+        Just exp -> case exp of
+            (Ast.ExpVar (Ast.ExpVarContent (Ast.VarSimple (Ast.VarSimpleContent v)))) -> Token.getVarNameToken v
+            _ -> $13
 }
 
 -- **************
