@@ -1315,12 +1315,13 @@ stmt_class:
     'comments' ':' '[' ']'
 '}'
 {
-    Just $ Left $ Ast.DecClass $ Ast.DecClassContent
+    let methods = Data.Map.fromList (catMaybes (Data.List.map (methodify (Token.ClassName $12) (Token.SuperName $16)) (catMaybes $20)))
+    in Just $ Left $ Ast.DecClass $ Ast.DecClassContent
     {
         Ast.decClassName = Token.ClassName $12,
         Ast.decClassSupers = [ Token.SuperName $16 ],
         Ast.decClassDataMembers = Ast.DataMembers Data.Map.empty,
-        Ast.decClassMethods = Ast.Methods $ Data.Map.fromList (catMaybes (Data.List.map (methodify (Token.ClassName $12)) (catMaybes $20)))
+        Ast.decClassMethods = Ast.Methods methods
     }
 }
 
@@ -1365,7 +1366,8 @@ stmt_method_type_1:
         Ast.decMethodParams = $24,
         Ast.decMethodBody = rights (catMaybes $28),
         Ast.decMethodLocation = $8,
-        Ast.hostingClassName = Token.ClassName (Token.Named "<class>" $8)
+        Ast.hostingClassName = Token.ClassName (Token.Named "<class>" $8),
+        Ast.hostingClassSupers = []
     }
 }
 
@@ -1393,7 +1395,8 @@ stmt_method_type_2:
         Ast.decMethodParams = $24,
         Ast.decMethodBody = rights (catMaybes $28),
         Ast.decMethodLocation = $8,
-        Ast.hostingClassName = Token.ClassName (Token.Named "<class>" $8)
+        Ast.hostingClassName = Token.ClassName (Token.Named "<class>" $8),
+        Ast.hostingClassSupers = []
     }
 }
 
@@ -1696,9 +1699,9 @@ paramify token = let
     nominalType = Token.NominalTy (Token.Named "any" (Token.location token))
     in Ast.Param paramName nominalType 156
 
-methodify :: Token.ClassName -> Either Ast.Dec Ast.Stmt -> Maybe (Token.MethdName,Ast.DecMethodContent)
-methodify c (Left (Ast.DecMethod d)) = Just ((Ast.decMethodName d), d { Ast.hostingClassName = c } )
-methodify _ _ = Nothing
+methodify :: Token.ClassName -> Token.SuperName -> Either Ast.Dec Ast.Stmt -> Maybe (Token.MethdName,Ast.DecMethodContent)
+methodify c s (Left (Ast.DecMethod d)) = Just ((Ast.decMethodName d), d { Ast.hostingClassName = c, Ast.hostingClassSupers = [ s ] } )
+methodify _ _ _ = Nothing
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
