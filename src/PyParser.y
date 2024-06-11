@@ -113,6 +113,7 @@ import Data.Map ( fromList )
 'Constant'                  { AlexTokenTag AlexRawToken_EXPR_CONST      _ }
 'Not'                       { AlexTokenTag AlexRawToken_NOT             _ }
 'Add'                       { AlexTokenTag AlexRawToken_ADD             _ }
+'USub'                      { AlexTokenTag AlexRawToken_USUB            _ }
 'Eq'                        { AlexTokenTag AlexRawToken_EQ              _ }
 'Or'                        { AlexTokenTag AlexRawToken_OR              _ }
 'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ }
@@ -130,6 +131,10 @@ import Data.Map ( fromList )
 'Slice'                     { AlexTokenTag AlexRawToken_EXPR_SLICE      _ }
 'func'                      { AlexTokenTag AlexRawToken_FUNC            _ }
 'body'                      { AlexTokenTag AlexRawToken_BODY            _ }
+'handlers'                  { AlexTokenTag AlexRawToken_HANDLERS        _ }
+'type'                      { AlexTokenTag AlexRawToken_TYPE            _ }
+'finalbody'                 { AlexTokenTag AlexRawToken_BODY2           _ }
+'ExceptHandler'             { AlexTokenTag AlexRawToken_EXCEPT_HANDLER  _ }
 'test'                      { AlexTokenTag AlexRawToken_TEST            _ }
 'Name'                      { AlexTokenTag AlexRawToken_NAME2           _ }
 'Call'                      { AlexTokenTag AlexRawToken_CALL            _ }
@@ -225,7 +230,7 @@ ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
 -- * optional *
 -- *          *
 -- ************
-opt(a): { Nothing } | a { Just $1 }
+optional(a): { Nothing } | a { Just $1 }
 
 -- **********************
 -- *                    *
@@ -277,10 +282,11 @@ arg: exp { $1 }
 -- *    *
 -- ******
 op:
-'Not' '(' ')' { Nothing } |
-'Add' '(' ')' { Nothing } |
-'Eq'  '(' ')' { Nothing } |
-'Or'  '(' ')' { Nothing }
+'Not'  '(' ')' { Nothing } |
+'Add'  '(' ')' { Nothing } |
+'USub' '(' ')' { Nothing } |
+'Eq'   '(' ')' { Nothing } |
+'Or'   '(' ')' { Nothing }
 
 -- ************
 -- *          *
@@ -785,17 +791,24 @@ stmt_call:
     Ast.StmtCall $5
 }
 
+-- ****************
+-- *              *
+-- * return_value *
+-- *              *
+-- ****************
+return_value: 'value' '=' exp ',' { $3 }
+
 -- ***************
 -- *             *
 -- * stmt_return *
 -- *             *
 -- ***************
-stmt_return: 'Return' '(' loc ')'
+stmt_return: 'Return' '(' optional(return_value) loc ')'
 {
     Ast.StmtReturn $ Ast.StmtReturnContent
     {
-        Ast.stmtReturnValue = Nothing,
-        Ast.stmtReturnLocation = $3
+        Ast.stmtReturnValue = $3,
+        Ast.stmtReturnLocation = $4
     }
 }
 
@@ -913,6 +926,29 @@ stmt_ann_assign:
     }
 }
 
+-- *********************
+-- *                   *
+-- * exception_handler *
+-- *                   *
+-- *********************
+exception_handler:
+'ExceptHandler'
+'('
+    'type' '=' name ','
+    'body' '=' stmts ','
+    loc
+')'
+{
+    Nothing
+}
+
+-- **********************
+-- *                    *
+-- * exception_handlers *
+-- *                    *
+-- **********************
+exception_handlers: '[' commalistof(exception_handler) ']' { [] }
+
 -- ************
 -- *          *
 -- * stmt_try *
@@ -922,6 +958,9 @@ stmt_try:
 'Try'
 '('
     'body' '=' stmts ','
+    'handlers' '=' exception_handlers ','
+    'orelse' '=' stmts ','
+    'finalbody' '=' stmts ','
     loc
 ')'
 {
@@ -929,7 +968,7 @@ stmt_try:
     {
         Ast.stmtTryPart = $5,
         Ast.stmtCatchPart = [],
-        Ast.stmtTryLocation = $7
+        Ast.stmtTryLocation = $19
     }
 }
 
@@ -1139,7 +1178,7 @@ alias:
 'alias'
 '('
     'name' '=' ID ','
-    opt(asname)
+    optional(asname)
     loc
 ')'
 {

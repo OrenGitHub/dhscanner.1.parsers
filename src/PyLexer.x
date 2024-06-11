@@ -73,6 +73,7 @@ import Location
 @KW_OR              = Or
 @KW_NOT             = Not
 @KW_ADD             = Add
+@KW_USUB            = USub
 @KW_END             = \"end\"
 @KW_RAW             = \"raw\"
 @KW_LOC             = \"loc\"
@@ -107,12 +108,12 @@ import Location
 @KW_EXPR            = expr
 @KW_CALL            = Call
 @KW_NAME2           = Name
-@KW_TYPE            = \"type\"
-@KW_LEFT            = \"left\"
-@KW_LOOP            = "loop"
-@KW_INIT            = \"init\"
 @KW_COND            = "cond"
 @KW_BODY            = body
+@KW_HANDLERS        = handlers
+@KW_TYPE            = type
+@KW_EXCEPT_HANDLER  = ExceptHandler
+@KW_BODY2           = finalbody
 @KW_TEST            = test
 @KW_LEVEL           = level
 @KW_NAME            = name
@@ -287,6 +288,7 @@ tokens :-
 @KW_EQ              { lex' AlexRawToken_EQ              }
 @KW_NOT             { lex' AlexRawToken_NOT             }
 @KW_ADD             { lex' AlexRawToken_ADD             }
+@KW_USUB            { lex' AlexRawToken_USUB            }
 @KW_END             { lex' AlexRawToken_END             }
 @KW_RAW             { lex' AlexRawToken_RAW             }
 @KW_LOC             { lex' AlexRawToken_LOC             }
@@ -323,10 +325,11 @@ tokens :-
 @KW_NAME            { lex' AlexRawToken_NAME            }
 @KW_TYPE            { lex' AlexRawToken_TYPE            }
 @KW_LEFT            { lex' AlexRawToken_LEFT            }
-@KW_LOOP            { lex' AlexRawToken_LOOP            }
-@KW_INIT            { lex' AlexRawToken_INIT            }
 @KW_COND            { lex' AlexRawToken_COND            }
 @KW_BODY            { lex' AlexRawToken_BODY            }
+@KW_HANDLERS        { lex' AlexRawToken_HANDLERS        }
+@KW_EXCEPT_HANDLER  { lex' AlexRawToken_EXCEPT_HANDLER  }
+@KW_BODY2           { lex' AlexRawToken_BODY2           }
 @KW_LEVEL           { lex' AlexRawToken_LEVEL           }
 @KW_NAME            { lex' AlexRawToken_NAME            }
 @KW_CALL            { lex' AlexRawToken_CALL            }
@@ -521,6 +524,7 @@ data AlexRawToken
      | AlexRawToken_EQ              -- ^ Reserved Keyword
      | AlexRawToken_NOT             -- ^ Reserved Keyword
      | AlexRawToken_ADD             -- ^ Reserved Keyword
+     | AlexRawToken_USUB            -- ^ Reserved Keyword
      | AlexRawToken_END             -- ^ Reserved Keyword
      | AlexRawToken_RAW             -- ^ Reserved Keyword
      | AlexRawToken_LOC             -- ^ Reserved Keyword
@@ -561,6 +565,9 @@ data AlexRawToken
      | AlexRawToken_INIT            -- ^ Reserved Keyword
      | AlexRawToken_COND            -- ^ Reserved Keyword
      | AlexRawToken_BODY            -- ^ Reserved Keyword
+     | AlexRawToken_HANDLERS        -- ^ Reserved Keyword
+     | AlexRawToken_EXCEPT_HANDLER  -- ^ Reserved Keyword
+     | AlexRawToken_BODY2           -- ^ Reserved Keyword
      | AlexRawToken_LEVEL           -- ^ Reserved Keyword
      | AlexRawToken_NAME            -- ^ Reserved Keyword
      | AlexRawToken_NAME2           -- ^ Reserved Keyword
