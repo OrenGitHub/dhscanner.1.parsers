@@ -101,6 +101,7 @@ import Data.Map ( fromList )
 'Compare'                   { AlexTokenTag AlexRawToken_COMPARE         _ }
 'operand'                   { AlexTokenTag AlexRawToken_OPERAND         _ }
 'Return'                    { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
+'Try'                       { AlexTokenTag AlexRawToken_STMT_TRY        _ }
 'With'                      { AlexTokenTag AlexRawToken_WITH            _ }
 'withitem'                  { AlexTokenTag AlexRawToken_WITH2           _ }
 'context_expr'              { AlexTokenTag AlexRawToken_CTX_MANAGER     _ }
@@ -122,6 +123,11 @@ import Data.Map ( fromList )
 'args'                      { AlexTokenTag AlexRawToken_ARGS            _ }
 'attr'                      { AlexTokenTag AlexRawToken_ATTR            _ }
 'Attribute'                 { AlexTokenTag AlexRawToken_ATTR2           _ }
+'Subscript'                 { AlexTokenTag AlexRawToken_SUBSCRIPT       _ }
+'slice'                     { AlexTokenTag AlexRawToken_SLICE           _ }
+'lower'                     { AlexTokenTag AlexRawToken_LOWER           _ }
+'upper'                     { AlexTokenTag AlexRawToken_UPPER           _ }
+'Slice'                     { AlexTokenTag AlexRawToken_EXPR_SLICE      _ }
 'func'                      { AlexTokenTag AlexRawToken_FUNC            _ }
 'body'                      { AlexTokenTag AlexRawToken_BODY            _ }
 'test'                      { AlexTokenTag AlexRawToken_TEST            _ }
@@ -149,8 +155,11 @@ import Data.Map ( fromList )
 'FormattedValue'            { AlexTokenTag AlexRawToken_FORMATTED_VAL   _ }
 'Load'                      { AlexTokenTag AlexRawToken_LOAD            _ }
 'Store'                     { AlexTokenTag AlexRawToken_STORE           _ }
+'simple'                    { AlexTokenTag AlexRawToken_SIMPLE          _ }
 'Assign'                    { AlexTokenTag AlexRawToken_ASSIGN          _ }
 'AugAssign'                 { AlexTokenTag AlexRawToken_ASSIGN2         _ }
+'AnnAssign'                 { AlexTokenTag AlexRawToken_ASSIGN3         _ }
+'annotation'                { AlexTokenTag AlexRawToken_ANNOTATION      _ }
 'Module'                    { AlexTokenTag AlexRawToken_MODULE          _ }
 'module'                    { AlexTokenTag AlexRawToken_MODULE2         _ }
 
@@ -181,6 +190,8 @@ import Data.Map ( fromList )
 
 'If'                        { AlexTokenTag AlexRawToken_STMT_IF         _ }
 'FunctionDef'               { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
+'ClassDef'                  { AlexTokenTag AlexRawToken_STMT_CLASS      _ }
+'bases'                     { AlexTokenTag AlexRawToken_SUPERS          _ }
 
 -- *************
 -- *           *
@@ -327,14 +338,37 @@ var_field:
     }
 }
 
+-- *****************
+-- *               *
+-- * var_subscript *
+-- *               *
+-- *****************
+var_subscript:
+'Subscript'
+'('
+    'value' '=' exp_var ','
+    'slice' '=' exp ','
+    'ctx' '=' ctx ','
+    loc
+')'
+{
+    Ast.VarSubscript $ Ast.VarSubscriptContent
+    {
+        Ast.varSubscriptLhs = $5,
+        Ast.varSubscriptIdx = $9,
+        Ast.varSubscriptLocation = $15
+    }
+}
+
 -- *******
 -- *     *
 -- * var *
 -- *     *
 -- *******
 var:
-var_simple { $1 } |
-var_field  { $1 }
+var_simple    { $1 } |
+var_field     { $1 } |
+var_subscript { $1 }
 
 -- ***********
 -- *         *
@@ -361,6 +395,28 @@ exp_str:
         {
             Token.constStrValue = tokIDValue $5,
             Token.constStrLocation = $7
+        }
+    }
+}
+
+-- ***********
+-- *         *
+-- * exp_int *
+-- *         *
+-- ***********
+exp_int:
+'Constant'
+'('
+    'value' '=' INT ','
+    loc
+')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent
+    {
+        Ast.expIntValue = Token.ConstInt
+        {
+            Token.constIntValue = tokIntValue $5,
+            Token.constIntLocation = $7
         }
     }
 }
@@ -577,20 +633,65 @@ exp_list:
     }
 }
 
+-- *************
+-- *           *
+-- * exp_field *
+-- *           *
+-- *************
+exp_field:
+'Attribute'
+'('
+    'value' '=' exp_str ','
+    'attr' '=' ID ','
+    'ctx' '=' ctx ','
+    loc
+')'
+{
+    $5
+}
+
+-- *************
+-- *           *
+-- * exp_slice *
+-- *           *
+-- *************
+exp_slice:
+'Slice'
+'('
+    'lower' '=' exp ','
+    'upper' '=' exp ','
+    loc
+')'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "slicify",
+            Token.location = $11
+        },
+        Ast.args = [ $5, $9 ],
+        Ast.expCallLocation = $11
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
 -- *     *
 -- *******
 exp:
-exp_str     { $1 } |
-exp_var     { Ast.ExpVar $1 } |
-exp_bool    { $1 } |
-exp_list    { $1 } |
-exp_unop    { $1 } |
-exp_binop   { $1 } |
-exp_call    { Ast.ExpCall $1 } |
-exp_fstring { $1 }
+exp_str       { $1 } |
+exp_int       { $1 } |
+exp_var       { Ast.ExpVar $1 } |
+exp_bool      { $1 } |
+exp_list      { $1 } |
+exp_unop      { $1 } |
+exp_slice     { $1 } |
+exp_binop     { $1 } |
+exp_field     { $1 } |
+exp_call      { Ast.ExpCall $1 } |
+exp_fstring   { $1 }
 
 -- ***********
 -- *         *
@@ -767,6 +868,71 @@ stmt_with:
     }
 }
 
+-- **************
+-- *            *
+-- * stmt_class *
+-- *            *
+-- **************
+stmt_class:
+'ClassDef'
+'('
+    'name' '=' ID ','
+    'bases' '=' '[' name ']' ','
+    'keywords' '=' '[' ']' ','
+    'body' '=' stmts ','
+    'decorator_list' '=' '[' ']' ','
+    'type_params' '=' '[' ']' ','
+    loc
+')'
+{
+    Ast.StmtReturn $ Ast.StmtReturnContent
+    {
+        Ast.stmtReturnValue = Nothing,
+        Ast.stmtReturnLocation = $32
+    }
+}
+
+-- *******************
+-- *                 *
+-- * stmt_ann_assign *
+-- *                 *
+-- *******************
+stmt_ann_assign:
+'AnnAssign'
+'('
+    'target' '=' name ','
+    'annotation' '=' name ','
+    'simple' '=' INT ','
+    loc
+')'
+{
+    Ast.StmtReturn $ Ast.StmtReturnContent
+    {
+        Ast.stmtReturnValue = Nothing,
+        Ast.stmtReturnLocation = $15
+    }
+}
+
+-- ************
+-- *          *
+-- * stmt_try *
+-- *          *
+-- ************
+stmt_try:
+'Try'
+'('
+    'body' '=' stmts ','
+    loc
+')'
+{
+    Ast.StmtTry $ Ast.StmtTryContent
+    {
+        Ast.stmtTryPart = $5,
+        Ast.stmtCatchPart = [],
+        Ast.stmtTryLocation = $7
+    }
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -774,13 +940,16 @@ stmt_with:
 -- ********
 stmt:
 stmt_if          { $1 } |
+stmt_try         { $1 } |
 stmt_call        { $1 } |
 stmt_with        { $1 } |
+stmt_class       { $1 } |
 stmt_import      { $1 } |
 stmt_return      { $1 } |
 stmt_assign      { $1 } |
 stmt_function    { $1 } |
 stmt_aug_assign  { $1 } |
+stmt_ann_assign  { $1 } |
 stmt_import_from { $1 }
 
 -- *********

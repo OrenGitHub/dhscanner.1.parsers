@@ -96,6 +96,11 @@ import Location
 @KW_ARGS            = args
 @KW_ATTR            = attr
 @KW_ATTR2           = Attribute
+@KW_SUBSCRIPT       = Subscript
+@KW_SLICE           = slice
+@KW_LOWER           = lower
+@KW_UPPER           = upper
+@KW_EXPR_SLICE      = Slice
 @KW_ARGS2           = arguments
 @KW_ARGS3           = posonlyargs
 @KW_ARGS4           = kwonlyargs
@@ -123,7 +128,10 @@ import Location
 @KW_CONVERSION      = conversion
 @KW_FORMATTED_VAL   = FormattedValue
 @KW_ASSIGN          = Assign
+@KW_SIMPLE          = simple
 @KW_ASSIGN2         = AugAssign
+@KW_ASSIGN3         = AnnAssign
+@KW_ANNOTATION      = annotation
 @KW_MODULE          = Module
 @KW_MODULE2         = module
 @KW_UPDATE          = \"update\"
@@ -171,6 +179,8 @@ import Location
 @KW_TEMPLATE_LI     = \"TemplateLiteral\"
 @KW_TEMPLATE_EL     = \"TemplateElement\"
 @KW_STMT_FUNCTION   = FunctionDef
+@KW_STMT_CLASS      = ClassDef
+@KW_SUPERS          = bases
 @KW_FUNCTION_DEC    = \"FunctionDeclaration\"
 @KW_EXPR_CONST      = Constant
 @KW_EXPR_UNOP       = UnaryOp
@@ -188,6 +198,7 @@ import Location
 @KW_STMT_FOR    = \"ForStatement\"
 @KW_STMT_BLOCK  = \"BlockStatement\"
 @KW_STMT_RETURN = Return
+@KW_STMT_TRY    = Try
 @KW_STMT_EXP    = \"ExpressionStatement\"
 
 -- ***************
@@ -300,6 +311,11 @@ tokens :-
 @KW_ARGS            { lex' AlexRawToken_ARGS            }
 @KW_ATTR            { lex' AlexRawToken_ATTR            }
 @KW_ATTR2           { lex' AlexRawToken_ATTR2           }
+@KW_SUBSCRIPT       { lex' AlexRawToken_SUBSCRIPT       }
+@KW_SLICE           { lex' AlexRawToken_SLICE           }
+@KW_LOWER           { lex' AlexRawToken_LOWER           }
+@KW_UPPER           { lex' AlexRawToken_UPPER           }
+@KW_EXPR_SLICE      { lex' AlexRawToken_EXPR_SLICE      }
 @KW_ARGS2           { lex' AlexRawToken_ARGS2           }
 @KW_ARGS3           { lex' AlexRawToken_ARGS3           }
 @KW_ARGS4           { lex' AlexRawToken_ARGS4           }
@@ -327,7 +343,10 @@ tokens :-
 @KW_IMPORTF         { lex' AlexRawToken_IMPORTF         }
 @KW_FORMATTED_VAL   { lex' AlexRawToken_FORMATTED_VAL   }
 @KW_ASSIGN          { lex' AlexRawToken_ASSIGN          }
+@KW_SIMPLE          { lex' AlexRawToken_SIMPLE          }
 @KW_ASSIGN2         { lex' AlexRawToken_ASSIGN2         }
+@KW_ASSIGN3         { lex' AlexRawToken_ASSIGN3         }
+@KW_ANNOTATION      { lex' AlexRawToken_ANNOTATION      }
 @KW_MODULE          { lex' AlexRawToken_MODULE          }
 @KW_MODULE2         { lex' AlexRawToken_MODULE2         }
 @KW_UPDATE          { lex' AlexRawToken_UPDATE          }
@@ -391,8 +410,11 @@ tokens :-
 @KW_STMT_FOR      { lex' AlexRawToken_STMT_FOR      }
 @KW_STMT_BLOCK    { lex' AlexRawToken_STMT_BLOCK    }
 @KW_STMT_RETURN   { lex' AlexRawToken_STMT_RETURN   }
+@KW_STMT_TRY      { lex' AlexRawToken_STMT_TRY      }
 @KW_STMT_EXP      { lex' AlexRawToken_STMT_EXP      }
 @KW_STMT_FUNCTION { lex' AlexRawToken_STMT_FUNCTION }
+@KW_STMT_CLASS    { lex' AlexRawToken_STMT_CLASS    }
+@KW_SUPERS        { lex' AlexRawToken_SUPERS        }
 
 -- *************
 -- *           *
@@ -522,6 +544,11 @@ data AlexRawToken
      | AlexRawToken_FUNC            -- ^ Reserved Keyword
      | AlexRawToken_ATTR            -- ^ Reserved Keyword
      | AlexRawToken_ATTR2           -- ^ Reserved Keyword
+     | AlexRawToken_SUBSCRIPT       -- ^ Reserved Keyword
+     | AlexRawToken_SLICE           -- ^ Reserved Keyword
+     | AlexRawToken_LOWER           -- ^ Reserved Keyword
+     | AlexRawToken_UPPER           -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_SLICE      -- ^ Reserved Keyword
      | AlexRawToken_ARGS            -- ^ Reserved Keyword
      | AlexRawToken_ARGS2           -- ^ Reserved Keyword
      | AlexRawToken_ARGS3           -- ^ Reserved Keyword
@@ -549,7 +576,10 @@ data AlexRawToken
      | AlexRawToken_CONVERSION      -- ^ Reserved Keyword
      | AlexRawToken_FORMATTED_VAL   -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN          -- ^ Reserved Keyword
+     | AlexRawToken_SIMPLE          -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN2         -- ^ Reserved Keyword
+     | AlexRawToken_ASSIGN3         -- ^ Reserved Keyword
+     | AlexRawToken_ANNOTATION      -- ^ Reserved Keyword
      | AlexRawToken_MODULE          -- ^ Reserved Keyword
      | AlexRawToken_MODULE2         -- ^ Reserved Keyword
      | AlexRawToken_START           -- ^ Reserved Keyword
@@ -608,6 +638,8 @@ data AlexRawToken
      | AlexRawToken_TEMPLATE_LI     -- ^ Reserved Keyword
      | AlexRawToken_TEMPLATE_EL     -- ^ Reserved Keyword
      | AlexRawToken_STMT_FUNCTION   -- ^ Reserved Keyword
+     | AlexRawToken_STMT_CLASS      -- ^ Reserved Keyword
+     | AlexRawToken_SUPERS          -- ^ Reserved Keyword
      | AlexRawToken_FUNCTION_DEC    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CONST      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_UNOP       -- ^ Reserved Keyword
@@ -661,6 +693,7 @@ data AlexRawToken
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
      | AlexRawToken_STMT_BLOCK      -- ^ Reserved Keyword
      | AlexRawToken_STMT_RETURN     -- ^ Reserved Keyword
+     | AlexRawToken_STMT_TRY        -- ^ Reserved Keyword
      | AlexRawToken_STMT_EXP        -- ^ Reserved Keyword
 
      -- ***************
