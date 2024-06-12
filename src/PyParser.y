@@ -91,9 +91,14 @@ import Data.Map ( fromList )
 
 'id'                        { AlexTokenTag AlexRawToken_KWID            _ }
 'left'                      { AlexTokenTag AlexRawToken_LEFT            _ }
+'iter'                      { AlexTokenTag AlexRawToken_ITER            _ }
+'Dict'                      { AlexTokenTag AlexRawToken_DICT            _ }
+'keys'                      { AlexTokenTag AlexRawToken_KEYS            _ }
+'right'                     { AlexTokenTag AlexRawToken_RIGHT           _ }
 'op'                        { AlexTokenTag AlexRawToken_OPERATOR        _ }
 'ops'                       { AlexTokenTag AlexRawToken_OPERATOR2       _ }
 'decorator_list'            { AlexTokenTag AlexRawToken_DECORATORS      _ }
+'optional_vars'             { AlexTokenTag AlexRawToken_WITH_VARS       _ }
 'type_params'               { AlexTokenTag AlexRawToken_TYPE_PARAMS     _ }
 'type_ignores'              { AlexTokenTag AlexRawToken_TYPE_IGNORES    _ }
 'comparators'               { AlexTokenTag AlexRawToken_COMPARE2        _ }
@@ -101,8 +106,12 @@ import Data.Map ( fromList )
 'Compare'                   { AlexTokenTag AlexRawToken_COMPARE         _ }
 'operand'                   { AlexTokenTag AlexRawToken_OPERAND         _ }
 'Return'                    { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
+'Yield'                     { AlexTokenTag AlexRawToken_STMT_YIELD      _ }
+'Raise'                     { AlexTokenTag AlexRawToken_STMT_RAISE      _ }
 'Try'                       { AlexTokenTag AlexRawToken_STMT_TRY        _ }
+'exc'                       { AlexTokenTag AlexRawToken_EXC             _ }
 'With'                      { AlexTokenTag AlexRawToken_WITH            _ }
+'AsyncWith'                 { AlexTokenTag AlexRawToken_WITH            _ }
 'withitem'                  { AlexTokenTag AlexRawToken_WITH2           _ }
 'context_expr'              { AlexTokenTag AlexRawToken_CTX_MANAGER     _ }
 'items'                     { AlexTokenTag AlexRawToken_ITEMS           _ }
@@ -110,11 +119,16 @@ import Data.Map ( fromList )
 'elts'                      { AlexTokenTag AlexRawToken_ELTS            _ }
 'False'                     { AlexTokenTag AlexRawToken_FALSE           _ }
 'True'                      { AlexTokenTag AlexRawToken_TRUE            _ }
+'Ellipsis'                  { AlexTokenTag AlexRawToken_ELLIPSIS        _ }
 'Constant'                  { AlexTokenTag AlexRawToken_EXPR_CONST      _ }
+'Continue'                  { AlexTokenTag AlexRawToken_STMT_CONTINUE   _ }
 'Not'                       { AlexTokenTag AlexRawToken_NOT             _ }
 'Add'                       { AlexTokenTag AlexRawToken_ADD             _ }
+'Div'                       { AlexTokenTag AlexRawToken_DIV             _ }
 'USub'                      { AlexTokenTag AlexRawToken_USUB            _ }
+'Mult'                      { AlexTokenTag AlexRawToken_MULT            _ }
 'Eq'                        { AlexTokenTag AlexRawToken_EQ              _ }
+'Gt'                        { AlexTokenTag AlexRawToken_GT              _ }
 'Or'                        { AlexTokenTag AlexRawToken_OR              _ }
 'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ }
 'kwonlyargs'                { AlexTokenTag AlexRawToken_ARGS4           _ }
@@ -131,6 +145,7 @@ import Data.Map ( fromList )
 'Slice'                     { AlexTokenTag AlexRawToken_EXPR_SLICE      _ }
 'func'                      { AlexTokenTag AlexRawToken_FUNC            _ }
 'body'                      { AlexTokenTag AlexRawToken_BODY            _ }
+'None'                      { AlexTokenTag AlexRawToken_NONE            _ }
 'handlers'                  { AlexTokenTag AlexRawToken_HANDLERS        _ }
 'type'                      { AlexTokenTag AlexRawToken_TYPE            _ }
 'finalbody'                 { AlexTokenTag AlexRawToken_BODY2           _ }
@@ -185,6 +200,7 @@ import Data.Map ( fromList )
 -- *             *
 -- ***************
 'UnaryOp'                   { AlexTokenTag AlexRawToken_EXPR_UNOP       _ }
+'BinOp'                     { AlexTokenTag AlexRawToken_EXPR_BINOP      _ }
 
 
 -- **************
@@ -194,7 +210,12 @@ import Data.Map ( fromList )
 -- **************
 
 'If'                        { AlexTokenTag AlexRawToken_STMT_IF         _ }
+'While'                     { AlexTokenTag AlexRawToken_STMT_WHILE      _ }
+'IfExp'                     { AlexTokenTag AlexRawToken_EXPR_IF         _ }
+'AsyncFor'                  { AlexTokenTag AlexRawToken_FOR             _ }
+'For'                       { AlexTokenTag AlexRawToken_FOR             _ }
 'FunctionDef'               { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
+'AsyncFunctionDef'          { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'ClassDef'                  { AlexTokenTag AlexRawToken_STMT_CLASS      _ }
 'bases'                     { AlexTokenTag AlexRawToken_SUPERS          _ }
 
@@ -284,8 +305,11 @@ arg: exp { $1 }
 op:
 'Not'  '(' ')' { Nothing } |
 'Add'  '(' ')' { Nothing } |
+'Div'  '(' ')' { Nothing } |
 'USub' '(' ')' { Nothing } |
+'Mult' '(' ')' { Nothing } |
 'Eq'   '(' ')' { Nothing } |
+'Gt'   '(' ')' { Nothing } |
 'Or'   '(' ')' { Nothing }
 
 -- ************
@@ -427,6 +451,28 @@ exp_int:
     }
 }
 
+-- ************
+-- *          *
+-- * exp_none *
+-- *          *
+-- ************
+exp_none:
+'Constant'
+'('
+    'value' '=' 'None' ','
+    loc
+')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent
+    {
+        Ast.expIntValue = Token.ConstInt
+        {
+            Token.constIntValue = 0,
+            Token.constIntLocation = $7
+        }
+    }
+}
+
 -- ******************
 -- *                *
 -- * exp_bool_false *
@@ -542,12 +588,12 @@ exp_fstring:
     }
 }
 
--- *****************
--- *               *
--- * exp_binop_cmp *
--- *               *
--- *****************
-exp_binop_cmp:
+-- ***************
+-- *             *
+-- * exp_relop_1 *
+-- *             *
+-- ***************
+exp_relop_1:
 'Compare'
 '('
     'left' '=' exp ','
@@ -565,12 +611,12 @@ exp_binop_cmp:
     }
 }
 
--- ******************
--- *                *
--- * exp_binop_cmp2 *
--- *                *
--- ******************
-exp_binop_cmp2:
+-- ***************
+-- *             *
+-- * exp_relop_2 *
+-- *             *
+-- ***************
+exp_relop_2:
 'BoolOp'
 '('
     'op' '=' op ','
@@ -601,12 +647,35 @@ exp_binop_cmp2:
 
 -- *************
 -- *           *
+-- * exp_relop *
+-- *           *
+-- *************
+exp_relop:
+exp_relop_1 { $1 } |
+exp_relop_2 { $1 }
+
+-- *************
+-- *           *
 -- * exp_binop *
 -- *           *
 -- *************
 exp_binop:
-exp_binop_cmp  { $1 } |
-exp_binop_cmp2 { $1 }
+'BinOp'
+'('
+    'left' '=' exp ','
+    'op' '=' op ','
+    'right' '=' exp ','
+    loc
+')'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $5,
+        Ast.expBinopRight = $13,
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $15
+    }
+}
 
 -- ************
 -- *          *
@@ -681,23 +750,99 @@ exp_slice:
     }
 }
 
+-- **********
+-- *        *
+-- * exp_if *
+-- *        *
+-- **********
+exp_if:
+'IfExp'
+'('
+    'test' '=' exp ','
+    'body' '=' exp ','
+    'orelse' '=' exp ','
+    loc
+')'
+{
+    $5
+}
+
+-- ********
+-- *      *
+-- * exps *
+-- *      *
+-- ********
+exps: '[' ']' { [] } | '[' commalistof(exp) ']' { $2 }
+
+-- ************
+-- *          *
+-- * exp_dict *
+-- *          *
+-- ************
+exp_dict:
+'Dict'
+'('
+    'keys' '=' exps ','
+    'values' '=' exps ','
+    loc
+')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent
+    {
+        Ast.expIntValue = Token.ConstInt
+        {
+            Token.constIntValue = 999,
+            Token.constIntLocation = $11
+        }
+    } 
+}
+
+-- ****************
+-- *              *
+-- * exp_ellipsis *
+-- *              *
+-- ****************
+exp_ellipsis:
+'Constant'
+'('
+    'value' '=' 'Ellipsis' ','
+    loc
+')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent
+    {
+        Ast.expIntValue = Token.ConstInt
+        {
+            Token.constIntValue = 999,
+            Token.constIntLocation = $7
+        }
+    }
+}
+
+
 -- *******
 -- *     *
 -- * exp *
 -- *     *
 -- *******
 exp:
+exp_if        { $1 } |
 exp_str       { $1 } |
 exp_int       { $1 } |
+exp_none      { $1 } |
+exp_yield     { $1 } |
+exp_dict      { $1 } |
 exp_var       { Ast.ExpVar $1 } |
 exp_bool      { $1 } |
 exp_list      { $1 } |
 exp_unop      { $1 } |
 exp_slice     { $1 } |
+exp_relop     { $1 } |
 exp_binop     { $1 } |
 exp_field     { $1 } |
 exp_call      { Ast.ExpCall $1 } |
-exp_fstring   { $1 }
+exp_fstring   { $1 } |
+exp_ellipsis  { $1 }
 
 -- ***********
 -- *         *
@@ -776,20 +921,28 @@ stmt_if:
     }
 }
 
--- *************
--- *           *
--- * stmt_call *
--- *           *
--- *************
-stmt_call:
-'Expr'
+-- **************
+-- *            *
+-- * stmt_while *
+-- *            *
+-- **************
+stmt_while:
+'While'
 '('
-    'value' '=' exp_call ','
-    loc
+    'test' '=' exp ','
+    'body' '=' stmts ','
+    'orelse' '=' stmts ','
+    loc 
 ')'
 {
-    Ast.StmtCall $5
+    Ast.StmtWhile $ Ast.StmtWhileContent
+    {
+        Ast.stmtWhileCond = $5,
+        Ast.stmtWhileBody = $9,
+        Ast.stmtWhileLocation = $15
+    }
 }
+
 
 -- ****************
 -- *              *
@@ -835,6 +988,13 @@ stmt_aug_assign:
 
 -- *************
 -- *           *
+-- * with_vars *
+-- *           *
+-- *************
+with_vars: ',' 'optional_vars' '=' name { $3 }
+
+-- *************
+-- *           *
 -- * with_item *
 -- *           *
 -- *************
@@ -842,6 +1002,7 @@ with_item:
 'withitem'
 '('
     'context_expr' '=' exp
+    optional(with_vars)
 ')'
 {
     $5
@@ -893,7 +1054,7 @@ stmt_class:
     'bases' '=' '[' name ']' ','
     'keywords' '=' '[' ']' ','
     'body' '=' stmts ','
-    'decorator_list' '=' '[' ']' ','
+    'decorator_list' '=' exps ','
     'type_params' '=' '[' ']' ','
     loc
 ')'
@@ -901,7 +1062,7 @@ stmt_class:
     Ast.StmtReturn $ Ast.StmtReturnContent
     {
         Ast.stmtReturnValue = Nothing,
-        Ast.stmtReturnLocation = $32
+        Ast.stmtReturnLocation = $31
     }
 }
 
@@ -926,6 +1087,13 @@ stmt_ann_assign:
     }
 }
 
+-- ******************
+-- *                *
+-- * exception_name *
+-- *                *
+-- ******************
+exception_name: 'name' '=' ID ',' { $3 }
+
 -- *********************
 -- *                   *
 -- * exception_handler *
@@ -935,6 +1103,7 @@ exception_handler:
 'ExceptHandler'
 '('
     'type' '=' name ','
+    optional(exception_name)
     'body' '=' stmts ','
     loc
 ')'
@@ -972,6 +1141,95 @@ stmt_try:
     }
 }
 
+-- ************
+-- *          *
+-- * stmt_for *
+-- *          *
+-- ************
+stmt_for:
+'AsyncFor'
+'('
+    'target' '=' var ','
+    'iter' '=' exp ','
+    'body' '=' stmts ','
+    'orelse' '=' stmts ','
+    loc
+')'
+{
+    Ast.StmtWhile $ Ast.StmtWhileContent
+    {
+        Ast.stmtWhileCond = $9,
+        Ast.stmtWhileBody = $13,
+        Ast.stmtWhileLocation = $19
+    }
+}
+
+-- *************
+-- *           *
+-- * exp_yield *
+-- *           *
+-- *************
+exp_yield:
+'Yield'
+'('
+    'value' '=' exp ','
+    loc
+')'
+{
+    $5
+}
+
+-- ************
+-- *          *
+-- * stmt_exp *
+-- *          *
+-- ************
+stmt_exp:
+'Expr'
+'('
+    'value' '=' exp ','
+    loc
+')'
+{
+    Ast.StmtExp $5
+}
+
+-- **************
+-- *            *
+-- * stmt_raise *
+-- *            *
+-- **************
+stmt_raise:
+'Raise'
+'('
+    'exc' '=' exp ','
+    loc
+')'
+{
+    Ast.StmtReturn $ Ast.StmtReturnContent
+    {
+        Ast.stmtReturnValue = Just $5,
+        Ast.stmtReturnLocation = $7
+    }
+}
+
+-- *****************
+-- *               *
+-- * stmt_continue *
+-- *               *
+-- *****************
+stmt_continue:
+'Continue'
+'('
+    loc
+')'
+{
+    Ast.StmtContinue $ Ast.StmtContinueContent
+    {
+        Ast.stmtContinueLocation = $3
+    }
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -980,16 +1238,27 @@ stmt_try:
 stmt:
 stmt_if          { $1 } |
 stmt_try         { $1 } |
-stmt_call        { $1 } |
+stmt_exp         { $1 } |
+stmt_for         { $1 } |
 stmt_with        { $1 } |
 stmt_class       { $1 } |
+stmt_while       { $1 } |
 stmt_import      { $1 } |
+stmt_raise       { $1 } |
 stmt_return      { $1 } |
 stmt_assign      { $1 } |
 stmt_function    { $1 } |
+stmt_continue    { $1 } |
 stmt_aug_assign  { $1 } |
 stmt_ann_assign  { $1 } |
 stmt_import_from { $1 }
+
+-- *************
+-- *           *
+-- * type_hint *
+-- *           *
+-- *************
+type_hint: 'annotation' '=' name ',' { $4 }
 
 -- *********
 -- *       *
@@ -999,7 +1268,9 @@ stmt_import_from { $1 }
 param:
 'arg'
 '('
-    'arg' '=' ID ',' loc
+    'arg' '=' ID ','
+    optional(type_hint)
+    loc
 ')'
 {
     Ast.Param
@@ -1007,12 +1278,12 @@ param:
         Ast.paramName = Token.ParamName $ Token.Named
         {
             Token.content = unquote (tokIDValue $5),
-            Token.location = $7
+            Token.location = $8
         },
         Ast.paramNominalType = Token.NominalTy $ Token.Named
         {
             Token.content = "any",
-            Token.location = $7
+            Token.location = $8
         },
         Ast.paramSerialIdx = 156
     }
@@ -1021,6 +1292,13 @@ param:
 defaults:
 '['                  ']' { Nothing } |
 '[' commalistof(exp) ']' { Nothing }
+
+-- ****************************
+-- *                          *
+-- * possibly_empty_listof(a) *
+-- *                          *
+-- ****************************
+possibly_empty_listof(a): '[' ']' { [] } | '[' commalistof(a) ']' { $2 }
 
 -- **********
 -- *        *
@@ -1031,14 +1309,18 @@ params:
 'arguments'
 '('
     'posonlyargs' '=' '[' ']' ','
-    'args' '=' '[' commalistof(param) ']' ','
+    'args' '=' possibly_empty_listof(param) ','
     'kwonlyargs' '=' '[' ']' ','
     'kw_defaults' '=' '[' ']' ','
     'defaults' '=' defaults
 ')'
 {
-    $11
+    $10
 }
+
+function_def:
+'FunctionDef'      { Nothing } |
+'AsyncFunctionDef' { Nothing }
 
 -- *****************
 -- *               *
@@ -1046,12 +1328,12 @@ params:
 -- *               *
 -- *****************
 stmt_function:
-'FunctionDef'
+function_def
 '('
     'name' '=' ID ','
     'args' '=' params ','
     'body' '=' stmts ','
-    'decorator_list' '=' '[' ']' ','
+    'decorator_list' '=' exps ','
     'type_params' '=' '[' ']' ','
     loc
 ')'
@@ -1061,16 +1343,16 @@ stmt_function:
         Ast.stmtFuncReturnType = Token.NominalTy $ Token.Named
         {
             Token.content = unquote (tokIDValue $5),
-            Token.location = $25
+            Token.location = $24
         },
         Ast.stmtFuncName = Token.FuncName $ Token.Named
         {
             Token.content = unquote (tokIDValue $5),
-            Token.location = $25
+            Token.location = $24
         },
         Ast.stmtFuncParams = $9,
         Ast.stmtFuncBody = $13,
-        Ast.stmtFuncLocation = $25
+        Ast.stmtFuncLocation = $24
     }
 }
 

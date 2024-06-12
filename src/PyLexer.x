@@ -70,10 +70,13 @@ import Location
 @KW_ID              = id
 @KW_CTX             = ctx
 @KW_EQ              = Eq
+@KW_GT              = Gt
 @KW_OR              = Or
 @KW_NOT             = Not
 @KW_ADD             = Add
+@KW_DIV             = Div
 @KW_USUB            = USub
+@KW_MULT            = Mult
 @KW_END             = \"end\"
 @KW_RAW             = \"raw\"
 @KW_LOC             = \"loc\"
@@ -102,6 +105,7 @@ import Location
 @KW_LOWER           = lower
 @KW_UPPER           = upper
 @KW_EXPR_SLICE      = Slice
+@KW_ELLIPSIS        = Ellipsis
 @KW_ARGS2           = arguments
 @KW_ARGS3           = posonlyargs
 @KW_ARGS4           = kwonlyargs
@@ -110,6 +114,7 @@ import Location
 @KW_NAME2           = Name
 @KW_COND            = "cond"
 @KW_BODY            = body
+@KW_NONE            = None
 @KW_HANDLERS        = handlers
 @KW_TYPE            = type
 @KW_EXCEPT_HANDLER  = ExceptHandler
@@ -142,11 +147,10 @@ import Location
 @KW_ELTS            = elts
 @KW_TRUE            = True
 @KW_ITEMS           = items
-@KW_WITH            = With
+@KW_FOR             = For|AsyncFor
+@KW_WITH            = With|AsyncWith
 @KW_WITH2           = withitem
 @KW_CTX_MANAGER     = context_expr
-@KW_START           = \"start\"
-@KW_EXPRS           = "exprs"
 @KW_VALUE           = value
 @KW_VALUES          = values
 @KW_ARRAY           = array
@@ -158,36 +162,22 @@ import Location
 @KW_TYPE_PARAMS     = type_params
 @KW_TYPE_IGNORES    = type_ignores
 @KW_LEFT            = left
+@KW_EXC             = exc
+@KW_ITER            = iter
+@KW_WITH_VARS       = optional_vars
+@KW_DICT            = Dict
+@KW_KEYS            = keys
+@KW_RIGHT           = right
 @KW_OPERATOR        = op
 @KW_OPERATOR2       = ops
 @KW_OPERAND         = operand
-@KW_ARGUMENT        = \"argument\"
-@KW_ARGUMENTS       = \"arguments\"
-@KW_CALLEE          = \"callee\"
-@KW_ASYNC           = \"async\"
-@KW_GENERATOR       = \"generator\"
-@KW_SRC_TYPE        = \"sourceType\"
-@KW_EXPRESSION      = \"expression\"
-@KW_EXPRESSIONS     = \"expressions\"
-@KW_DECLARATIONS    = \"declarations\"
-@KW_ALTERNATE       = \"alternate\"
-@KW_CONSEQUENT      = \"consequent\"
 @KW_STMT_EXPR       = Expr
-@KW_EXPR_VAR        = "Expr_Variable"
-@KW_SCALAR_INT      = "Scalar_Int"
-@KW_IDENTIFIER      = \"Identifier\"
-@KW_RETURN_TYPE     = "returnType"
-@KW_TEMPLATE_LI     = \"TemplateLiteral\"
-@KW_TEMPLATE_EL     = \"TemplateElement\"
-@KW_STMT_FUNCTION   = FunctionDef
+@KW_STMT_FUNCTION   = FunctionDef|AsyncFunctionDef
 @KW_STMT_CLASS      = ClassDef
 @KW_SUPERS          = bases
-@KW_FUNCTION_DEC    = \"FunctionDeclaration\"
 @KW_EXPR_CONST      = Constant
 @KW_EXPR_UNOP       = UnaryOp
-@KW_EXPR_BINOP_PLUS = "Expr_BinaryOp_Plus"
-@KW_VAR_DECLARATION = \"VariableDeclaration\"
-@KW_VAR_DECLARATOR  = \"VariableDeclarator\"
+@KW_EXPR_BINOP      = BinOp
 
 -- **************
 -- *            *
@@ -195,20 +185,14 @@ import Location
 -- *            *
 -- **************
 
-@KW_STMT_IF     = If
-@KW_STMT_FOR    = \"ForStatement\"
-@KW_STMT_BLOCK  = \"BlockStatement\"
-@KW_STMT_RETURN = Return
-@KW_STMT_TRY    = Try
-@KW_STMT_EXP    = \"ExpressionStatement\"
-
--- ***************
--- *             *
--- * expressions *
--- *             *
--- ***************
-
-@KW_EXPR_NEW    = \"NewExpression\"
+@KW_STMT_IF       = If
+@KW_STMT_WHILE    = While
+@KW_EXPR_IF       = IfExp
+@KW_STMT_RETURN   = Return
+@KW_STMT_CONTINUE = Continue
+@KW_STMT_YIELD    = Yield
+@KW_STMT_RAISE    = Raise
+@KW_STMT_TRY      = Try
 
 -- *************
 -- *           *
@@ -286,9 +270,12 @@ tokens :-
 @KW_CTX             { lex' AlexRawToken_CTX             }
 @KW_OR              { lex' AlexRawToken_OR              }
 @KW_EQ              { lex' AlexRawToken_EQ              }
+@KW_GT              { lex' AlexRawToken_GT              }
 @KW_NOT             { lex' AlexRawToken_NOT             }
 @KW_ADD             { lex' AlexRawToken_ADD             }
+@KW_DIV             { lex' AlexRawToken_DIV             }
 @KW_USUB            { lex' AlexRawToken_USUB            }
+@KW_MULT            { lex' AlexRawToken_MULT            }
 @KW_END             { lex' AlexRawToken_END             }
 @KW_RAW             { lex' AlexRawToken_RAW             }
 @KW_LOC             { lex' AlexRawToken_LOC             }
@@ -315,6 +302,7 @@ tokens :-
 @KW_ATTR2           { lex' AlexRawToken_ATTR2           }
 @KW_SUBSCRIPT       { lex' AlexRawToken_SUBSCRIPT       }
 @KW_SLICE           { lex' AlexRawToken_SLICE           }
+@KW_ELLIPSIS        { lex' AlexRawToken_ELLIPSIS        }
 @KW_LOWER           { lex' AlexRawToken_LOWER           }
 @KW_UPPER           { lex' AlexRawToken_UPPER           }
 @KW_EXPR_SLICE      { lex' AlexRawToken_EXPR_SLICE      }
@@ -325,8 +313,16 @@ tokens :-
 @KW_NAME            { lex' AlexRawToken_NAME            }
 @KW_TYPE            { lex' AlexRawToken_TYPE            }
 @KW_LEFT            { lex' AlexRawToken_LEFT            }
+@KW_EXC             { lex' AlexRawToken_EXC             }
+@KW_ITER            { lex' AlexRawToken_ITER            }
+@KW_WITH_VARS       { lex' AlexRawToken_WITH_VARS       }
+@KW_FOR             { lex' AlexRawToken_FOR             }
+@KW_DICT            { lex' AlexRawToken_DICT            }
+@KW_KEYS            { lex' AlexRawToken_KEYS            }
+@KW_RIGHT           { lex' AlexRawToken_RIGHT           }
 @KW_COND            { lex' AlexRawToken_COND            }
 @KW_BODY            { lex' AlexRawToken_BODY            }
+@KW_NONE            { lex' AlexRawToken_NONE            }
 @KW_HANDLERS        { lex' AlexRawToken_HANDLERS        }
 @KW_EXCEPT_HANDLER  { lex' AlexRawToken_EXCEPT_HANDLER  }
 @KW_BODY2           { lex' AlexRawToken_BODY2           }
@@ -361,8 +357,6 @@ tokens :-
 @KW_WITH            { lex' AlexRawToken_WITH            }
 @KW_WITH2           { lex' AlexRawToken_WITH2           }
 @KW_CTX_MANAGER     { lex' AlexRawToken_CTX_MANAGER     }
-@KW_START           { lex' AlexRawToken_START           }
-@KW_EXPRS           { lex' AlexRawToken_EXPRS           }
 @KW_VALUE           { lex' AlexRawToken_VALUE           }
 @KW_VALUES          { lex' AlexRawToken_VALUES          }
 @KW_ARRAY           { lex' AlexRawToken_ARRAY           }
@@ -376,32 +370,13 @@ tokens :-
 @KW_OPERATOR        { lex' AlexRawToken_OPERATOR        }
 @KW_OPERATOR2       { lex' AlexRawToken_OPERATOR2       }
 @KW_OPERAND         { lex' AlexRawToken_OPERAND         }
-@KW_ALTERNATE       { lex' AlexRawToken_ALTERNATE       }
-@KW_CONSEQUENT      { lex' AlexRawToken_CONSEQUENT      }
-@KW_ARGUMENT        { lex' AlexRawToken_ARGUMENT        }
-@KW_ARGUMENTS       { lex' AlexRawToken_ARGUMENTS       }
-@KW_CALLEE          { lex' AlexRawToken_CALLEE          }
-@KW_ASYNC           { lex' AlexRawToken_ASYNC           }
-@KW_EXPRESSION      { lex' AlexRawToken_EXPRESSION      }
-@KW_EXPRESSIONS     { lex' AlexRawToken_EXPRESSIONS     }
-@KW_DECLARATIONS    { lex' AlexRawToken_DECLARATIONS    }
-@KW_SRC_TYPE        { lex' AlexRawToken_SRC_TYPE        }
-@KW_GENERATOR       { lex' AlexRawToken_GENERATOR       }
 @KW_STMT_IF         { lex' AlexRawToken_STMT_IF         }
-@KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
-@KW_EXPR_NEW        { lex' AlexRawToken_EXPR_NEW        }
+@KW_STMT_WHILE      { lex' AlexRawToken_STMT_WHILE      }
+@KW_EXPR_IF         { lex' AlexRawToken_EXPR_IF         }
 @KW_STMT_EXPR       { lex' AlexRawToken_STMT_EXPR       }
-@KW_SCALAR_INT      { lex' AlexRawToken_SCALAR_INT      }
-@KW_IDENTIFIER      { lex' AlexRawToken_IDENTIFIER      }
-@KW_RETURN_TYPE     { lex' AlexRawToken_RETURN_TYPE     }
-@KW_TEMPLATE_LI     { lex' AlexRawToken_TEMPLATE_LI     }
-@KW_TEMPLATE_EL     { lex' AlexRawToken_TEMPLATE_EL     }
-@KW_FUNCTION_DEC    { lex' AlexRawToken_FUNCTION_DEC    }
 @KW_EXPR_CONST      { lex' AlexRawToken_EXPR_CONST      }
 @KW_EXPR_UNOP       { lex' AlexRawToken_EXPR_UNOP       }
-@KW_EXPR_BINOP_PLUS { lex' AlexRawToken_EXPR_BINOP_PLUS }
-@KW_VAR_DECLARATION { lex' AlexRawToken_VAR_DECLARATION }
-@KW_VAR_DECLARATOR  { lex' AlexRawToken_VAR_DECLARATOR  }
+@KW_EXPR_BINOP      { lex' AlexRawToken_EXPR_BINOP      }
 
 -- **************
 -- *            *
@@ -409,15 +384,14 @@ tokens :-
 -- *            *
 -- **************
 
-@KW_STMT_IF       { lex' AlexRawToken_STMT_IF       }
-@KW_STMT_FOR      { lex' AlexRawToken_STMT_FOR      }
-@KW_STMT_BLOCK    { lex' AlexRawToken_STMT_BLOCK    }
-@KW_STMT_RETURN   { lex' AlexRawToken_STMT_RETURN   }
-@KW_STMT_TRY      { lex' AlexRawToken_STMT_TRY      }
-@KW_STMT_EXP      { lex' AlexRawToken_STMT_EXP      }
-@KW_STMT_FUNCTION { lex' AlexRawToken_STMT_FUNCTION }
-@KW_STMT_CLASS    { lex' AlexRawToken_STMT_CLASS    }
-@KW_SUPERS        { lex' AlexRawToken_SUPERS        }
+@KW_STMT_RETURN    { lex' AlexRawToken_STMT_RETURN    }
+@KW_STMT_CONTINUE  { lex' AlexRawToken_STMT_CONTINUE  }
+@KW_STMT_YIELD     { lex' AlexRawToken_STMT_YIELD     }
+@KW_STMT_RAISE     { lex' AlexRawToken_STMT_RAISE     }
+@KW_STMT_TRY       { lex' AlexRawToken_STMT_TRY       }
+@KW_STMT_FUNCTION  { lex' AlexRawToken_STMT_FUNCTION  }
+@KW_STMT_CLASS     { lex' AlexRawToken_STMT_CLASS     }
+@KW_SUPERS         { lex' AlexRawToken_SUPERS         }
 
 -- *************
 -- *           *
@@ -522,9 +496,12 @@ data AlexRawToken
      | AlexRawToken_CTX             -- ^ Reserved Keyword
      | AlexRawToken_OR              -- ^ Reserved Keyword
      | AlexRawToken_EQ              -- ^ Reserved Keyword
+     | AlexRawToken_GT              -- ^ Reserved Keyword
      | AlexRawToken_NOT             -- ^ Reserved Keyword
      | AlexRawToken_ADD             -- ^ Reserved Keyword
+     | AlexRawToken_DIV             -- ^ Reserved Keyword
      | AlexRawToken_USUB            -- ^ Reserved Keyword
+     | AlexRawToken_MULT            -- ^ Reserved Keyword
      | AlexRawToken_END             -- ^ Reserved Keyword
      | AlexRawToken_RAW             -- ^ Reserved Keyword
      | AlexRawToken_LOC             -- ^ Reserved Keyword
@@ -550,6 +527,7 @@ data AlexRawToken
      | AlexRawToken_ATTR2           -- ^ Reserved Keyword
      | AlexRawToken_SUBSCRIPT       -- ^ Reserved Keyword
      | AlexRawToken_SLICE           -- ^ Reserved Keyword
+     | AlexRawToken_ELLIPSIS        -- ^ Reserved Keyword
      | AlexRawToken_LOWER           -- ^ Reserved Keyword
      | AlexRawToken_UPPER           -- ^ Reserved Keyword
      | AlexRawToken_EXPR_SLICE      -- ^ Reserved Keyword
@@ -561,10 +539,18 @@ data AlexRawToken
      | AlexRawToken_MAME            -- ^ Reserved Keyword
      | AlexRawToken_TYPE            -- ^ Reserved Keyword
      | AlexRawToken_LEFT            -- ^ Reserved Keyword
+     | AlexRawToken_EXC             -- ^ Reserved Keyword
+     | AlexRawToken_ITER            -- ^ Reserved Keyword
+     | AlexRawToken_WITH_VARS       -- ^ Reserved Keyword
+     | AlexRawToken_FOR             -- ^ Reserved Keyword
+     | AlexRawToken_DICT            -- ^ Reserved Keyword
+     | AlexRawToken_KEYS            -- ^ Reserved Keyword
+     | AlexRawToken_RIGHT           -- ^ Reserved Keyword
      | AlexRawToken_LOOP            -- ^ Reserved Keyword
      | AlexRawToken_INIT            -- ^ Reserved Keyword
      | AlexRawToken_COND            -- ^ Reserved Keyword
      | AlexRawToken_BODY            -- ^ Reserved Keyword
+     | AlexRawToken_NONE            -- ^ Reserved Keyword
      | AlexRawToken_HANDLERS        -- ^ Reserved Keyword
      | AlexRawToken_EXCEPT_HANDLER  -- ^ Reserved Keyword
      | AlexRawToken_BODY2           -- ^ Reserved Keyword
@@ -603,7 +589,6 @@ data AlexRawToken
      | AlexRawToken_EXPRS           -- ^ Reserved Keyword
      | AlexRawToken_VALUE           -- ^ Reserved Keyword
      | AlexRawToken_VALUES          -- ^ Reserved Keyword
-     | AlexRawToken_RIGHT           -- ^ Reserved Keyword
      | AlexRawToken_STMTS           -- ^ Reserved Keyword
      | AlexRawToken_ARRAY           -- ^ Reserved Keyword
      | AlexRawToken_PARAM           -- ^ Reserved Keyword
@@ -697,9 +682,14 @@ data AlexRawToken
      -- **************
 
      | AlexRawToken_STMT_IF         -- ^ Reserved Keyword
+     | AlexRawToken_STMT_WHILE      -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_IF         -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
      | AlexRawToken_STMT_BLOCK      -- ^ Reserved Keyword
+     | AlexRawToken_STMT_YIELD      -- ^ Reserved Keyword
+     | AlexRawToken_STMT_RAISE      -- ^ Reserved Keyword
      | AlexRawToken_STMT_RETURN     -- ^ Reserved Keyword
+     | AlexRawToken_STMT_CONTINUE   -- ^ Reserved Keyword
      | AlexRawToken_STMT_TRY        -- ^ Reserved Keyword
      | AlexRawToken_STMT_EXP        -- ^ Reserved Keyword
 
