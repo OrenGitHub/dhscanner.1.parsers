@@ -11,4 +11,4 @@ RUN cabal build --only-dependencies
 COPY dhscanner.ast dhscanner.ast
 COPY src src
 RUN cabal build
-# CMD ["cabal", "run"]
+CMD ["cabal", "run"]
