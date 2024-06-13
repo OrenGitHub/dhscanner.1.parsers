@@ -423,7 +423,7 @@ exp_str:
     {
         Ast.expStrValue = Token.ConstStr
         {
-            Token.constStrValue = tokIDValue $5,
+            Token.constStrValue = unquote (tokIDValue $5),
             Token.constStrLocation = $7
         }
     }
