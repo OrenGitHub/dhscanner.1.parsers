@@ -912,6 +912,7 @@ dec_function:
         Ast.stmtFuncName = Token.FuncName $8,
         Ast.stmtFuncParams = $12,
         Ast.stmtFuncBody = $16,
+        Ast.stmtFuncAnnotations = [],
         Ast.stmtFuncLocation = $32
     }
 }

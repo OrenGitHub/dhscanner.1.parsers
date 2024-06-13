@@ -216,6 +216,7 @@ dec_function: 'Stmt_Function' '(' dec_function_attrs ')'
                             Ast.stmtFuncName = name',
                             Ast.stmtFuncParams = params',
                             Ast.stmtFuncBody = body',
+                            Ast.stmtFuncAnnotations = [],
                             Ast.stmtFuncLocation = Location "php" 0 0 0 0
                         }
 }

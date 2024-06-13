@@ -1342,7 +1342,7 @@ function_def
     {
         Ast.stmtFuncReturnType = Token.NominalTy $ Token.Named
         {
-            Token.content = unquote (tokIDValue $5),
+            Token.content = "any",
             Token.location = $24
         },
         Ast.stmtFuncName = Token.FuncName $ Token.Named
@@ -1352,6 +1352,7 @@ function_def
         },
         Ast.stmtFuncParams = $9,
         Ast.stmtFuncBody = $13,
+        Ast.stmtFuncAnnotations = $17,
         Ast.stmtFuncLocation = $24
     }
 }
