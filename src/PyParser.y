@@ -1424,9 +1424,9 @@ stmt_import:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName  = case $6 of { [] -> "BBB"; ((name, alias):_) -> name  },
-        Ast.stmtImportAlias = case $6 of { [] -> "YYY"; ((name, alias):_) -> alias },
-        Ast.stmtImportLocation = $9
+        Ast.stmtImportName  = case $6 of { [] -> "BBB"; ((name, alias, _):_) -> name  },
+        Ast.stmtImportAlias = case $6 of { [] -> "YYY"; ((name, alias, _):_) -> alias },
+        Ast.stmtImportLocation = case $6 of { [] -> $9; ((_, _, loc):_) -> loc }
     }
 }
 
@@ -1438,7 +1438,7 @@ stmt_import:
 stmt_import_from:
 'ImportFrom'
 '('
-    'module' '=' ID ','
+    'module' '=' tokenID ','
     'names' '=' '[' commalistof(alias) ']' ','
     'level' '=' INT ','
     loc
@@ -1446,11 +1446,18 @@ stmt_import_from:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName  = case $10 of { [] -> tokIDValue $5; ((name, alias):_) -> name  },
-        Ast.stmtImportAlias = case $10 of { [] -> tokIDValue $5; ((name, alias):_) -> alias },
-        Ast.stmtImportLocation = $17
+        Ast.stmtImportName  = case $10 of { [] -> $5; ((name, _, _):_) -> ($5 ++ "." ++ name)  },
+        Ast.stmtImportAlias = case $10 of { [] -> $5; ((_, alias, _):_) -> alias },
+        Ast.stmtImportLocation = case $10 of { [] -> $17; ((_, _, loc):_) -> loc }
     }
 }
+
+-- ***********
+-- *         *
+-- * tokenID *
+-- *         *
+-- ***********
+tokenID: ID { unquote (tokIDValue $1) }
 
 -- *********
 -- *       *
@@ -1460,15 +1467,15 @@ stmt_import_from:
 alias:
 'alias'
 '('
-    'name' '=' ID ','
+    'name' '=' tokenID ','
     optional(asname)
     loc
 ')'
 {
     case $7 of
     {
-        Nothing -> (unquote (tokIDValue $5), unquote (tokIDValue $5));
-        Just n -> (unquote (tokIDValue $5), n)
+        Nothing -> ($5, $5, $8);
+        Just n -> ($5, n, $8)
     }
 }
 
