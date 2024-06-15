@@ -1258,7 +1258,7 @@ stmt_import_from { $1 }
 -- * type_hint *
 -- *           *
 -- *************
-type_hint: 'annotation' '=' name ',' { $4 }
+type_hint: 'annotation' '=' name ',' { $3 }
 
 -- *********
 -- *       *
@@ -1268,7 +1268,7 @@ type_hint: 'annotation' '=' name ',' { $4 }
 param:
 'arg'
 '('
-    'arg' '=' ID ','
+    'arg' '=' tokenID ','
     optional(type_hint)
     loc
 ')'
@@ -1277,13 +1277,12 @@ param:
     {
         Ast.paramName = Token.ParamName $ Token.Named
         {
-            Token.content = unquote (tokIDValue $5),
-            Token.location = $8
+            Token.content = $5,
+            Token.location = $8 { Location.colEnd = (Location.colStart $8) + (length $5) }
         },
-        Ast.paramNominalType = Token.NominalTy $ Token.Named
-        {
-            Token.content = "any",
-            Token.location = $8
+        Ast.paramNominalType = case $7 of {
+            Nothing -> Token.NominalTy $ Token.Named { Token.content = "any", Token.location = $8};
+            Just t -> Token.NominalTy t
         },
         Ast.paramSerialIdx = 156
     }
@@ -1374,14 +1373,14 @@ ctx:
 name:
 'Name'
 '('
-    'id' '=' ID ','
+    'id' '=' tokenID ','
     'ctx' '=' ctx ','
     loc
 ')'
 {
     Token.Named
     {
-        Token.content = unquote (tokIDValue $5),
+        Token.content = $5,
         Token.location = $11
     }
 }
