@@ -991,7 +991,7 @@ stmt_aug_assign:
 -- * with_vars *
 -- *           *
 -- *************
-with_vars: ',' 'optional_vars' '=' name { $3 }
+with_vars: ',' 'optional_vars' '=' name { $4 }
 
 -- *************
 -- *           *
@@ -1005,7 +1005,14 @@ with_item:
     optional(with_vars)
 ')'
 {
-    $5
+    case $6 of {
+        Nothing -> Ast.StmtExp $5;
+        Just name -> Ast.StmtAssign $ Ast.StmtAssignContent
+            {
+                Ast.stmtAssignLhs = Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName name,
+                Ast.stmtAssignRhs = $5
+            }
+    }
 }
 
 -- *************
@@ -1023,20 +1030,8 @@ stmt_with:
 {
     Ast.StmtIf $ Ast.StmtIfContent
     {
-        Ast.stmtIfCond = Ast.ExpCall $ Ast.ExpCallContent
-        {
-            Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent
-            {
-                Ast.varName = Token.VarName $ Token.Named
-                {
-                    Token.content = "nop",
-                    Token.location = $13
-                }
-            },
-            Ast.args = $6,
-            Ast.expCallLocation = $13
-        },
-        Ast.stmtIfBody = $11,
+        Ast.stmtIfCond = Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool True $13,
+        Ast.stmtIfBody = $6 ++ $11,
         Ast.stmtElseBody = [],
         Ast.stmtIfLocation = $13
     }
