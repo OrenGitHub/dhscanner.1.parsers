@@ -1681,6 +1681,13 @@ comment:
 -- ************
 comments: '[' ']' { Nothing } | '[' commalistof(comment) ']' { Nothing }
 
+-- *************
+-- *           *
+-- * requireds *
+-- *           *
+-- *************
+requireds: 'requireds' ':' '[' commalistof(identifier) ']' ',' { $4 }
+
 -- **********
 -- *        *
 -- * params *
@@ -1690,6 +1697,7 @@ params_type_2:
 '{'
     'type' ':' 'params' ','
     'location' ':' location ','
+    optional(requireds)
     'comments' ':' comments
 '}'
 {
