@@ -336,6 +336,7 @@ ID       { unquote (tokIDValue $1) } |
 'self'   { "self"                  } |
 'true'   { "true"                  } |
 'false'  { "false"                 } |
+'value'  { "value"                 } |
 'name'   { "name"                  } |
 '.'      { "."                     } |
 'start'  { "start"                 } |
@@ -728,6 +729,12 @@ args:
     $12
 }
 
+-- *****************
+-- *               *
+-- * array_content *
+-- *               *
+-- *****************
+array_content: args { $1 } | 'null' { [] }
 
 -- *************
 -- *           *
@@ -738,7 +745,7 @@ exp_array:
 '{'
     'type' ':' 'array' ','
     'location' ':' location ','
-    'contents' ':' args ','
+    'contents' ':' array_content ','
     'comments' ':' '[' ']'
 '}'
 {
@@ -1072,10 +1079,19 @@ arguments_type_3:
 -- * arguments *
 -- *           *
 -- *************
+arguments_type_4: 'null' { [] }
+
+-- *************
+-- *           *
+-- * arguments *
+-- *           *
+-- *************
 arguments:
 arguments_type_1 { $1 } |
 arguments_type_2 { $1 } |
-arguments_type_3 { $1 }
+arguments_type_3 { $1 } |
+arguments_type_4 { $1 }
+
 
 -- *********************
 -- *                   *
