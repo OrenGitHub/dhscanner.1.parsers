@@ -219,6 +219,7 @@ import Location
 
 @KW_OP_LT       = \"\<\"
 @KW_OP_EQ       = \"==\"
+@KW_OP_PLUSEQ   = \"\+=\"
 @KW_OP_NEQ      = \"!\~\"
 @KW_OP_BANG     = \"!\"
 @KW_OP_OR       = \"\|\|\"
@@ -459,6 +460,7 @@ tokens :-
 
 @KW_OP_LT       { lex' AlexRawToken_OP_LT       }
 @KW_OP_EQ       { lex' AlexRawToken_OP_EQ       }
+@KW_OP_PLUSEQ   { lex' AlexRawToken_OP_PLUSEQ   }
 @KW_OP_NEQ      { lex' AlexRawToken_OP_NEQ      }
 @KW_OP_BANG     { lex' AlexRawToken_OP_BANG     }
 @KW_OP_OR       { lex' AlexRawToken_OP_OR       }
@@ -697,6 +699,7 @@ data AlexRawToken
 
      | AlexRawToken_OP_LT           -- ^ Reserved Keyword
      | AlexRawToken_OP_EQ           -- ^ Reserved Keyword
+     | AlexRawToken_OP_PLUSEQ       -- ^ Reserved Keyword
      | AlexRawToken_OP_NEQ          -- ^ Reserved Keyword
      | AlexRawToken_OP_BANG         -- ^ Reserved Keyword
      | AlexRawToken_OP_OR           -- ^ Reserved Keyword

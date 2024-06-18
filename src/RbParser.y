@@ -242,6 +242,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 
 '<'   { AlexTokenTag AlexRawToken_OP_LT       _ }
 '=='  { AlexTokenTag AlexRawToken_OP_EQ       _ }
+'+='  { AlexTokenTag AlexRawToken_OP_PLUSEQ   _ }
 '!~'  { AlexTokenTag AlexRawToken_OP_NEQ      _ }
 '!'   { AlexTokenTag AlexRawToken_OP_BANG     _ }
 '='   { AlexTokenTag AlexRawToken_OP_ASSIGN   _ }
@@ -335,8 +336,10 @@ ID       { unquote (tokIDValue $1) } |
 'id'     { "id"                    } |
 'self'   { "self"                  } |
 'true'   { "true"                  } |
+'call'   { "call"                  } |
 'false'  { "false"                 } |
 'value'  { "value"                 } |
+'object' { "object"                } |
 'name'   { "name"                  } |
 '.'      { "."                     } |
 'start'  { "start"                 } |
@@ -988,6 +991,7 @@ stmt_for:
 actual_op:
 '..'  { Ast.PLUS    } |
 '=='  { Ast.PLUS    } |
+'+='  { Ast.PLUS    } |
 '&&'  { Ast.PLUS    } |
 '||'  { Ast.PLUS    } |
 '||=' { Ast.PLUS    } |
@@ -1707,14 +1711,12 @@ stmts:
 -- ************
 optional_pair: '[' identifier ',' exp ']' { Nothing }
 
--- ************
--- *          *
--- * contents *
--- *          *
--- ************
-contents_internal:
-'requireds' ':' '[' commalistof(identifier)    ']' { $4      } |
-'optionals' ':' '[' commalistof(optional_pair) ']' { []      } 
+-- *************
+-- *           *
+-- * optionals *
+-- *           *
+-- *************
+optionals: 'optionals' ':' '[' commalistof(optional_pair) ']' ',' { [] } 
 
 -- ************
 -- *          *
@@ -1725,11 +1727,12 @@ contents:
 '{'
     'type' ':' 'params' ','
     'location' ':' location ','
-    contents_internal ','
+    optional(requireds)
+    optional(optionals)
     'comments' ':' '[' ']'
 '}'
 {
-    Data.List.map paramify $10
+    Data.List.map paramify (case $10 of { Nothing -> [] ; Just rs -> rs })
 }
 
 -- **********
