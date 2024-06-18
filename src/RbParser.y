@@ -97,6 +97,7 @@ import Data.Map ( fromList, empty )
 'void_stmt'             { AlexTokenTag AlexRawToken_STMT_VOID       _ }
 'label'                 { AlexTokenTag AlexRawToken_LABEL           _ }
 'block'                 { AlexTokenTag AlexRawToken_BLOCK           _ }
+'block_var'             { AlexTokenTag AlexRawToken_BLOCK_VAR       _ }
 'module'                { AlexTokenTag AlexRawToken_MODULE          _ }
 'method_add_block'      { AlexTokenTag AlexRawToken_BLOCK2          _ }
 'period'                { AlexTokenTag AlexRawToken_PERIOD          _ }
@@ -1484,6 +1485,22 @@ stmt_unless:
     Nothing
 }
 
+-- *************
+-- *           *
+-- * block_var *
+-- *           *
+-- *************
+block_var:
+'{'
+    'type' ':' 'block_var' ','
+    'location' ':' location ','
+    'params' ':' params ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
 -- *********
 -- *       *
 -- * block *
@@ -1493,6 +1510,7 @@ block:
 '{'
     'type' ':' 'block' ','
     'location' ':' location ','
+    optional(block_var)
     'bodystmt' ':' bodystmt ','
     'comments' ':' comments
 '}'
