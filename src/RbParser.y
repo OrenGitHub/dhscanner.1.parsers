@@ -626,11 +626,35 @@ exp_str:
 -- * key *
 -- *     *
 -- *******
+key_type:
+'label'          { Nothing } |
+'string_literal' { Nothing }
+
+-- *******
+-- *     *
+-- * key *
+-- *     *
+-- *******
+key_parts: 'parts' ':' '[' commalistof(string_part) ']' ',' { Nothing }
+
+-- *******
+-- *     *
+-- * key *
+-- *     *
+-- *******
+key_value: 'value' ':' ID ',' { Nothing }
+
+-- *******
+-- *     *
+-- * key *
+-- *     *
+-- *******
 key:
 '{'
-    'type' ':' 'label' ','
+    'type' ':' key_type ','
     'location' ':' location ','
-    'value' ':' ID ','
+    optional(key_parts)
+    optional(key_value)
     'comments' ':' '[' ']'
 '}'
 {
