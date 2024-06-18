@@ -1506,7 +1506,7 @@ block_var:
 -- * block_var_wrapper *
 -- *                   *
 -- *********************
-block_var_wrapper: 'block_var' ':' block_var { $3 }
+block_var_wrapper: 'block_var' ':' block_var ',' { $3 }
 
 -- *********
 -- *       *
