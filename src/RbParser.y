@@ -336,6 +336,7 @@ ID       { unquote (tokIDValue $1) } |
 'id'     { "id"                    } |
 'self'   { "self"                  } |
 'true'   { "true"                  } |
+'type'   { "type"                  } |
 'call'   { "call"                  } |
 'false'  { "false"                 } |
 'value'  { "value"                 } |
