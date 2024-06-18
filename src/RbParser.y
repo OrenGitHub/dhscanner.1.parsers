@@ -663,6 +663,13 @@ exp_dict_1:
     }
 }
 
+-- **********
+-- *        *
+-- * assocs *
+-- *        *
+-- **********
+assocs: 'assocs' ':' '[' commalistof(assoc) ']' ',' { $4 }
+
 -- ************
 -- *          *
 -- * exp_dict *
@@ -672,7 +679,7 @@ exp_dict_2:
 '{'
     'type' ':' 'hash' ','
     'location' ':' location ','
-    'assocs' ':' '[' commalistof(assoc) ']' ','
+    optional(assocs)
     'comments' ':' '[' ']'
 '}'
 {
