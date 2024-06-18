@@ -1306,6 +1306,13 @@ identifier_wrapper:
 
 -- **************
 -- *            *
+-- * superclass *
+-- *            *
+-- **************
+superclass: 'superclass' ':' identifier_wrapper ',' { $3 }
+
+-- **************
+-- *            *
 -- * stmt_class *
 -- *            *
 -- **************
@@ -1314,16 +1321,16 @@ stmt_class:
     'type' ':' 'class' ','
     'location' ':' location ','
     'constant' ':' identifier_wrapper ','
-    'superclass' ':' identifier_wrapper ','
+    optional(superclass)
     'bodystmt' ':' bodystmt ','
     'comments' ':' '[' ']'
 '}'
 {
-    let methods = Data.Map.fromList (catMaybes (Data.List.map (methodify (Token.ClassName $12) (Token.SuperName $16)) (catMaybes $20)))
+    let methods = Data.Map.fromList (catMaybes (Data.List.map (methodify (Token.ClassName $12) $14) (catMaybes $17)))
     in Just $ Left $ Ast.DecClass $ Ast.DecClassContent
     {
         Ast.decClassName = Token.ClassName $12,
-        Ast.decClassSupers = [ Token.SuperName $16 ],
+        Ast.decClassSupers = case $14 of { Nothing -> [] ; Just oneSuper -> [ Token.SuperName oneSuper ] },
         Ast.decClassDataMembers = Ast.DataMembers Data.Map.empty,
         Ast.decClassMethods = Ast.Methods methods
     }
@@ -1703,8 +1710,9 @@ paramify token = let
     nominalType = Token.NominalTy (Token.Named "any" (Token.location token))
     in Ast.Param paramName nominalType 156
 
-methodify :: Token.ClassName -> Token.SuperName -> Either Ast.Dec Ast.Stmt -> Maybe (Token.MethdName,Ast.DecMethodContent)
-methodify c s (Left (Ast.DecMethod d)) = Just ((Ast.decMethodName d), d { Ast.hostingClassName = c, Ast.hostingClassSupers = [ s ] } )
+methodify :: Token.ClassName -> Maybe Token.Named -> Either Ast.Dec Ast.Stmt -> Maybe (Token.MethdName,Ast.DecMethodContent)
+methodify c Nothing  (Left (Ast.DecMethod d)) = Just ((Ast.decMethodName d), d { Ast.hostingClassName = c, Ast.hostingClassSupers = []                    } )
+methodify c (Just s) (Left (Ast.DecMethod d)) = Just ((Ast.decMethodName d), d { Ast.hostingClassName = c, Ast.hostingClassSupers = [ Token.SuperName s ] } )
 methodify _ _ _ = Nothing
 
 unquote :: String -> String
