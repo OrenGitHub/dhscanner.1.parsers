@@ -115,11 +115,14 @@ import Location
 @KW_TRUE            = \"true\"
 @KW_ARGS            = \"args\"
 @KW_ARG_STAR        = \"arg_star\"
+@KW_REGEX           = \"regexp_literal\"
 @KW_NAME            = \"name\"
 @KW_EXPR            =  expr
 @KW_MAME            =  Name
 @KW_TYPE            = \"type\"
 @KW_LEFT            = \"left\"
+@KW_BACKREF         = \"backref\"
+@KW_NEXT            = \"next\"
 @KW_LOOP            = "loop"
 @KW_INIT            = \"init\"
 @KW_COND            = "cond"
@@ -127,6 +130,7 @@ import Location
 @KW_UPDATE          = \"update\"
 @KW_INDEX           = \"index\"
 @KW_PARTS           = \"parts\"
+@KW_OPTIONS         = \"options\"
 @KW_RANGE           = \"range\"
 @KW_PAREN           = \"paren\"
 @KW_FALSE           = \"false\"
@@ -215,6 +219,7 @@ import Location
 
 @KW_OP_LT       = \"\<\"
 @KW_OP_EQ       = \"==\"
+@KW_OP_NEQ      = \"!\~\"
 @KW_OP_BANG     = \"!\"
 @KW_OP_OR       = \"\|\|\"
 @KW_OP_AND      = \"&&\"
@@ -340,17 +345,21 @@ tokens :-
 @KW_TRUE            { lex' AlexRawToken_TRUE            }
 @KW_ARGS            { lex' AlexRawToken_ARGS            }
 @KW_ARG_STAR        { lex' AlexRawToken_ARG_STAR        }
+@KW_REGEX           { lex' AlexRawToken_REGEX           }
 @KW_NAME            { lex' AlexRawToken_NAME            }
 @KW_EXPR            { lex' AlexRawToken_EXPR            }
 @KW_MAME            { lex' AlexRawToken_MAME            }
 @KW_TYPE            { lex' AlexRawToken_TYPE            }
 @KW_LEFT            { lex' AlexRawToken_LEFT            }
+@KW_BACKREF         { lex' AlexRawToken_BACKREF         }
+@KW_NEXT            { lex' AlexRawToken_NEXT            }
 @KW_LOOP            { lex' AlexRawToken_LOOP            }
 @KW_INIT            { lex' AlexRawToken_INIT            }
 @KW_COND            { lex' AlexRawToken_COND            }
 @KW_BODY            { lex' AlexRawToken_BODY            }
 @KW_UPDATE          { lex' AlexRawToken_UPDATE          }
 @KW_PARTS           { lex' AlexRawToken_PARTS           }
+@KW_OPTIONS         { lex' AlexRawToken_OPTIONS         }
 @KW_RANGE           { lex' AlexRawToken_RANGE           }
 @KW_INDEX           { lex' AlexRawToken_INDEX           }
 @KW_PAREN           { lex' AlexRawToken_PAREN           }
@@ -450,6 +459,7 @@ tokens :-
 
 @KW_OP_LT       { lex' AlexRawToken_OP_LT       }
 @KW_OP_EQ       { lex' AlexRawToken_OP_EQ       }
+@KW_OP_NEQ      { lex' AlexRawToken_OP_NEQ      }
 @KW_OP_BANG     { lex' AlexRawToken_OP_BANG     }
 @KW_OP_OR       { lex' AlexRawToken_OP_OR       }
 @KW_OP_AND      { lex' AlexRawToken_OP_AND      }
@@ -599,11 +609,14 @@ data AlexRawToken
      | AlexRawToken_TRUE            -- ^ Reserved Keyword
      | AlexRawToken_ARGS            -- ^ Reserved Keyword
      | AlexRawToken_ARG_STAR        -- ^ Reserved Keyword
+     | AlexRawToken_REGEX           -- ^ Reserved Keyword
      | AlexRawToken_NAME            -- ^ Reserved Keyword
      | AlexRawToken_EXPR            -- ^ Reserved Keyword
      | AlexRawToken_MAME            -- ^ Reserved Keyword
      | AlexRawToken_TYPE            -- ^ Reserved Keyword
      | AlexRawToken_LEFT            -- ^ Reserved Keyword
+     | AlexRawToken_BACKREF         -- ^ Reserved Keyword
+     | AlexRawToken_NEXT            -- ^ Reserved Keyword
      | AlexRawToken_LOOP            -- ^ Reserved Keyword
      | AlexRawToken_INIT            -- ^ Reserved Keyword
      | AlexRawToken_COND            -- ^ Reserved Keyword
@@ -611,6 +624,7 @@ data AlexRawToken
      | AlexRawToken_START           -- ^ Reserved Keyword
      | AlexRawToken_UPDATE          -- ^ Reserved Keyword
      | AlexRawToken_PARTS           -- ^ Reserved Keyword
+     | AlexRawToken_OPTIONS         -- ^ Reserved Keyword
      | AlexRawToken_RANGE           -- ^ Reserved Keyword
      | AlexRawToken_INDEX           -- ^ Reserved Keyword
      | AlexRawToken_PAREN           -- ^ Reserved Keyword
@@ -683,6 +697,7 @@ data AlexRawToken
 
      | AlexRawToken_OP_LT           -- ^ Reserved Keyword
      | AlexRawToken_OP_EQ           -- ^ Reserved Keyword
+     | AlexRawToken_OP_NEQ          -- ^ Reserved Keyword
      | AlexRawToken_OP_BANG         -- ^ Reserved Keyword
      | AlexRawToken_OP_OR           -- ^ Reserved Keyword
      | AlexRawToken_OP_AND          -- ^ Reserved Keyword

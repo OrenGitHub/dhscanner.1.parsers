@@ -130,17 +130,21 @@ import Data.Map ( fromList, empty )
 'true'                  { AlexTokenTag AlexRawToken_TRUE            _ }
 'args'                  { AlexTokenTag AlexRawToken_ARGS            _ }
 'arg_star'              { AlexTokenTag AlexRawToken_ARG_STAR        _ }
+'regexp_literal'        { AlexTokenTag AlexRawToken_REGEX           _ }
 'name'                  { AlexTokenTag AlexRawToken_NAME            _ }
 'expr'                  { AlexTokenTag AlexRawToken_EXPR            _ }
 'Name'                  { AlexTokenTag AlexRawToken_MAME            _ }
 'type'                  { AlexTokenTag AlexRawToken_TYPE            _ }
 'left'                  { AlexTokenTag AlexRawToken_LEFT            _ }
+'backref'               { AlexTokenTag AlexRawToken_BACKREF         _ }
+'next'                  { AlexTokenTag AlexRawToken_NEXT            _ }
 'loop'                  { AlexTokenTag AlexRawToken_LOOP            _ }
 'init'                  { AlexTokenTag AlexRawToken_INIT            _ }
 'cond'                  { AlexTokenTag AlexRawToken_COND            _ }
 'body'                  { AlexTokenTag AlexRawToken_BODY            _ }
 'update'                { AlexTokenTag AlexRawToken_UPDATE          _ }
 'parts'                 { AlexTokenTag AlexRawToken_PARTS           _ }
+'options'               { AlexTokenTag AlexRawToken_OPTIONS         _ }
 'range'                 { AlexTokenTag AlexRawToken_RANGE           _ }
 'index'                 { AlexTokenTag AlexRawToken_INDEX           _ }
 'paren'                 { AlexTokenTag AlexRawToken_PAREN           _ }
@@ -238,6 +242,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 
 '<'   { AlexTokenTag AlexRawToken_OP_LT       _ }
 '=='  { AlexTokenTag AlexRawToken_OP_EQ       _ }
+'!~'  { AlexTokenTag AlexRawToken_OP_NEQ      _ }
 '!'   { AlexTokenTag AlexRawToken_OP_BANG     _ }
 '='   { AlexTokenTag AlexRawToken_OP_ASSIGN   _ }
 '.'   { AlexTokenTag AlexRawToken_OP_DOT      _ }
@@ -700,6 +705,13 @@ exp_dict:
 exp_dict_1 { $1 } |
 exp_dict_2 { $1 }
 
+-- *********
+-- *       *
+-- * parts *
+-- *       *
+-- *********
+parts: '[' ']' { [] } | '[' commalistof(exp) ']' { $2 }
+
 -- ********
 -- *      *
 -- * args *
@@ -709,11 +721,11 @@ args:
 '{'
     'type' ':' 'args' ','
     'location' ':' location ','
-    'parts' ':' '[' commalistof(exp) ']' ','
+    'parts' ':' parts ','
     'comments' ':' '[' ']'
 '}'
 {
-    $13
+    $12
 }
 
 
@@ -861,6 +873,47 @@ exp_args:
     }
 }
 
+-- *************
+-- *           *
+-- * exp_regex *
+-- *           *
+-- *************
+exp_regex:
+'{'
+    'type' ':' 'regexp_literal' ','
+    'location' ':' location ','
+    'parts' ':' '[' commalistof(string_part) ']' ','
+    'options' ':' ID ','
+    'comments' ':' comments
+'}'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 222,
+        Token.constIntLocation = $8
+    }
+}
+
+-- ***********
+-- *         *
+-- * backref *
+-- *         *
+-- ***********
+backref:
+'{'
+    'type' ':' 'backref' ','
+    'location' ':' location ','
+    'value' ':' ID ','
+    'comments' ':' comments
+'}'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 333,
+        Token.constIntLocation = $8
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -868,6 +921,8 @@ exp_args:
 -- *******
 exp:
 exp_str    { $1 } |
+backref    { $1 } |
+exp_regex  { $1 } |
 exp_var    { Ast.ExpVar $1 } |
 exp_call   { $1 } |
 exp_vcall  { $1 } |
@@ -935,6 +990,7 @@ actual_op:
 '-'   { Ast.MINUS   } |
 '<'   { Ast.PLUS    } |
 '='   { Ast.PLUS    } |
+'!~'  { Ast.PLUS    } |
 '.'   { Ast.PLUS    } |
 '!'   { Ast.PLUS    }
 
@@ -1049,7 +1105,7 @@ stmt_assign_type_2:
     'target' ':' var ','
     'operator' ':' operator ','
     'value' ':' exp ','
-    'comments' ':' '[' ']' 
+    'comments' ':' comments 
 '}'
 {
     Just $ Right $ Ast.StmtAssign $ Ast.StmtAssignContent
@@ -1070,7 +1126,7 @@ stmt_assign_type_1:
     'location' ':' location ','
     'target' ':' var ','
     'value' ':' exp ','
-    'comments' ':' '[' ']' 
+    'comments' ':' comments 
 '}'
 {
     Just $ Right $ Ast.StmtAssign $ Ast.StmtAssignContent
@@ -1574,6 +1630,22 @@ stmt_void:
     Nothing
 }
 
+-- *************
+-- *           *
+-- * stmt_next *
+-- *           *
+-- *************
+stmt_next:
+'{'
+    'type' ':' 'next' ','
+    'location' ':' location ','
+    'arguments' ':' args ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -1585,6 +1657,7 @@ stmt_for     { $1 } |
 stmt_exp     { $1 } |
 stmt_assign  { $1 } |
 stmt_void    { $1 } |
+stmt_next    { $1 } |
 stmt_class   { $1 } |
 stmt_command { $1 } |
 stmt_sclass  { $1 } |
