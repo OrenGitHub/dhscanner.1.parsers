@@ -1490,7 +1490,7 @@ stmt_unless:
 -- * block_var *
 -- *           *
 -- *************
-block_var:
+block_var: 
 '{'
     'type' ':' 'block_var' ','
     'location' ':' location ','
@@ -1501,6 +1501,13 @@ block_var:
     Nothing
 }
 
+-- *********************
+-- *                   *
+-- * block_var_wrapper *
+-- *                   *
+-- *********************
+block_var_wrapper: 'block_var' ':' block_var { $3 }
+
 -- *********
 -- *       *
 -- * block *
@@ -1510,7 +1517,7 @@ block:
 '{'
     'type' ':' 'block' ','
     'location' ':' location ','
-    optional(block_var)
+    optional(block_var_wrapper)
     'bodystmt' ':' bodystmt ','
     'comments' ':' comments
 '}'
