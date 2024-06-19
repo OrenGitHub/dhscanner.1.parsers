@@ -1255,7 +1255,7 @@ stmt_if_type_1:
     Just $ Right $ Ast.StmtIf $ Ast.StmtIfContent
     {
         Ast.stmtIfCond = $12,
-        Ast.stmtIfBody = [],
+        Ast.stmtIfBody = rights (catMaybes $16),
         Ast.stmtElseBody = [],
         Ast.stmtIfLocation = $8
     }
