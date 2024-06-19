@@ -1734,14 +1734,14 @@ stmts:
 -- * contents *
 -- *          *
 -- ************
-optional_pair: '[' identifier ',' exp ']' { Nothing }
+optional_pair: '[' identifier ',' exp ']' { $2 }
 
 -- *************
 -- *           *
 -- * optionals *
 -- *           *
 -- *************
-optionals: 'optionals' ':' '[' commalistof(optional_pair) ']' ',' { [] } 
+optionals: 'optionals' ':' '[' commalistof(optional_pair) ']' ',' { $4 } 
 
 -- ************
 -- *          *
@@ -1757,7 +1757,12 @@ contents:
     'comments' ':' '[' ']'
 '}'
 {
-    Data.List.map paramify (case $10 of { Nothing -> [] ; Just rs -> rs })
+    let
+        params1 = case $10 of { Nothing -> [] ; Just ps -> ps }
+        params2 = case $11 of { Nothing -> [] ; Just ps -> ps }
+        params3 = params1 ++ params2
+    in
+        Data.List.map paramify params3
 }
 
 -- **********
@@ -1818,7 +1823,7 @@ params_type_2:
     'comments' ':' comments
 '}'
 {
-    []
+    Data.List.map paramify (case $10 of { Nothing -> [] ; Just ps -> ps })
 }
 
 -- **********
