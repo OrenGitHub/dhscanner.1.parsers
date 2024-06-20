@@ -1338,7 +1338,12 @@ exp_call_without_rcvr:
     'comments' ':' '[' ']'
 '}'
 {
-    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $20
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $20,
+        Ast.args = $24,
+        Ast.expCallLocation = $8
+    }
 }
 
 -- ************
