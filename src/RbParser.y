@@ -1315,7 +1315,13 @@ exp_call_with_args:
         {
             Ast.expFieldLhs = $12,
             Ast.expFieldName = Token.FieldName $20,
-            Ast.expFieldLocation = $8
+            Ast.expFieldLocation = Location {
+                Location.filename = Location.filename $8,
+                lineStart = Location.lineStart $8,
+                colStart = Location.colStart $8,
+                lineEnd = Location.lineEnd (Token.location $20),
+                colEnd = Location.colEnd (Token.location $20)
+            }
         },
         Ast.args = $24,
         Ast.expCallLocation = $8
