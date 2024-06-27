@@ -1156,7 +1156,12 @@ stmt_assign_type_2:
     Just $ Right $ Ast.StmtAssign $ Ast.StmtAssignContent
     {
         Ast.stmtAssignLhs = $12,
-        Ast.stmtAssignRhs = $20
+        Ast.stmtAssignRhs = Ast.ExpBinop $ Ast.ExpBinopContent {
+            expBinopLeft = Ast.ExpVar (Ast.ExpVarContent $12),
+            expBinopRight = $20,
+            expBinopOperator = Ast.PLUS,
+            expBinopLocation = $8
+        }
     }
 }
 
