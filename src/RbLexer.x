@@ -98,6 +98,7 @@ import Location
 @KW_ASSIGN2         = \"opassign\"
 @KW_LOC             = \"location\"
 @KW_COMMAND         = \"command\"
+@KW_COMMAND2        = \"command_call\"
 @KW_MESSAGE         = \"message\"
 @KW_COMMENT         = \"comment\"
 @KW_CONSTANT        = \"constant\"
@@ -335,6 +336,7 @@ tokens :-
 @KW_ASSIGN          { lex' AlexRawToken_ASSIGN          }
 @KW_ASSIGN2         { lex' AlexRawToken_ASSIGN2         }
 @KW_COMMAND         { lex' AlexRawToken_COMMAND         }
+@KW_COMMAND2        { lex' AlexRawToken_COMMAND2        }
 @KW_MESSAGE         { lex' AlexRawToken_MESSAGE         }
 @KW_COMMENT         { lex' AlexRawToken_COMMENT         }
 @KW_CONSTANT        { lex' AlexRawToken_CONSTANT        }
@@ -606,6 +608,7 @@ data AlexRawToken
      | AlexRawToken_STRING3         -- ^ Reserved Keyword
      | AlexRawToken_STRING4         -- ^ Reserved Keyword
      | AlexRawToken_COMMAND         -- ^ Reserved Keyword
+     | AlexRawToken_COMMAND2        -- ^ Reserved Keyword
      | AlexRawToken_COMMENT         -- ^ Reserved Keyword
      | AlexRawToken_MESSAGE         -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT        -- ^ Reserved Keyword

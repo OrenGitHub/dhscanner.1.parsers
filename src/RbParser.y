@@ -114,6 +114,7 @@ import Data.Map ( fromList, empty )
 'opassign'              { AlexTokenTag AlexRawToken_ASSIGN2         _ }
 'location'              { AlexTokenTag AlexRawToken_LOC             _ }
 'command'               { AlexTokenTag AlexRawToken_COMMAND         _ }
+'command_call'          { AlexTokenTag AlexRawToken_COMMAND2        _ }
 'message'               { AlexTokenTag AlexRawToken_MESSAGE         _ }
 'comment'               { AlexTokenTag AlexRawToken_COMMENT         _ }
 'constant'              { AlexTokenTag AlexRawToken_CONSTANT        _ }
@@ -338,23 +339,24 @@ location: '[' INT ',' INT ',' INT ',' INT ']'
 -- *          *
 -- ************
 tokenID:
-ID       { unquote (tokIDValue $1) } |
-'id'     { "id"                    } |
-'self'   { "self"                  } |
-'true'   { "true"                  } |
-'type'   { "type"                  } |
-'call'   { "call"                  } |
-'false'  { "false"                 } |
-'value'  { "value"                 } |
-'object' { "object"                } |
-'name'   { "name"                  } |
-'.'      { "."                     } |
-'start'  { "start"                 } |
-'index'  { "index"                 } |
-'update' { "update"                } |
-'params' { "params"                } |
-'label'  { "label"                 } |
-'class'  { "class"                 }
+ID        { unquote (tokIDValue $1) } |
+'id'      { "id"                    } |
+'self'    { "self"                  } |
+'true'    { "true"                  } |
+'type'    { "type"                  } |
+'call'    { "call"                  } |
+'false'   { "false"                 } |
+'value'   { "value"                 } |
+'object'  { "object"                } |
+'message' { "message"               } |
+'name'    { "name"                  } |
+'.'       { "."                     } |
+'start'   { "start"                 } |
+'index'   { "index"                 } |
+'update'  { "update"                } |
+'params'  { "params"                } |
+'label'   { "label"                 } |
+'class'   { "class"                 }
 
 -- *******************
 -- *                 *
@@ -821,7 +823,7 @@ exp_vcall:
     'type' ':' 'vcall' ','
     'location' ':' location ','
     'value' ':' identifier ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12
@@ -1484,6 +1486,26 @@ stmt_command:
     Nothing
 }
 
+-- ****************
+-- *              *
+-- * stmt_cmdcall *
+-- *              *
+-- ****************
+stmt_cmdcall:
+'{'
+    'type' ':' 'command_call' ','
+    'location' ':' location ','
+    'receiver' ':' exp ','
+    'operator' ':' operator ','
+    'message' ':' identifier ','
+    'arguments' ':' args ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+
 -- ***************
 -- *             *
 -- * stmt_method *
@@ -1727,6 +1749,7 @@ stmt_void    { $1 } |
 stmt_next    { $1 } |
 stmt_class   { $1 } |
 stmt_command { $1 } |
+stmt_cmdcall { $1 } |
 stmt_sclass  { $1 } |
 stmt_method  { $1 } |
 stmt_module  { $1 } |
