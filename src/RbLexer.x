@@ -121,6 +121,12 @@ import Location
 @KW_MAME            =  Name
 @KW_TYPE            = \"type\"
 @KW_LEFT            = \"left\"
+@KW_EXCEPTION       = \"exception\"
+@KW_EXCEPTIONS      = \"exceptions\"
+@KW_RESCUE          = \"rescue\"
+@KW_RESCUE2         = \"rescue_clause\"
+@KW_RESCUE3         = \"rescue_ex\"
+@KW_VARIABLE        = \"variable\"
 @KW_BACKREF         = \"backref\"
 @KW_NEXT            = \"next\"
 @KW_LOOP            = "loop"
@@ -352,6 +358,12 @@ tokens :-
 @KW_MAME            { lex' AlexRawToken_MAME            }
 @KW_TYPE            { lex' AlexRawToken_TYPE            }
 @KW_LEFT            { lex' AlexRawToken_LEFT            }
+@KW_EXCEPTION       { lex' AlexRawToken_EXCEPTION       }
+@KW_EXCEPTIONS      { lex' AlexRawToken_EXCEPTIONS      }
+@KW_RESCUE          { lex' AlexRawToken_RESCUE          }
+@KW_RESCUE2         { lex' AlexRawToken_RESCUE2         }
+@KW_RESCUE3         { lex' AlexRawToken_RESCUE3         }
+@KW_VARIABLE        { lex' AlexRawToken_VARIABLE        }
 @KW_BACKREF         { lex' AlexRawToken_BACKREF         }
 @KW_NEXT            { lex' AlexRawToken_NEXT            }
 @KW_LOOP            { lex' AlexRawToken_LOOP            }
@@ -617,6 +629,12 @@ data AlexRawToken
      | AlexRawToken_MAME            -- ^ Reserved Keyword
      | AlexRawToken_TYPE            -- ^ Reserved Keyword
      | AlexRawToken_LEFT            -- ^ Reserved Keyword
+     | AlexRawToken_EXCEPTION       -- ^ Reserved Keyword
+     | AlexRawToken_EXCEPTIONS      -- ^ Reserved Keyword
+     | AlexRawToken_RESCUE          -- ^ Reserved Keyword
+     | AlexRawToken_RESCUE2         -- ^ Reserved Keyword
+     | AlexRawToken_RESCUE3         -- ^ Reserved Keyword
+     | AlexRawToken_VARIABLE        -- ^ Reserved Keyword
      | AlexRawToken_BACKREF         -- ^ Reserved Keyword
      | AlexRawToken_NEXT            -- ^ Reserved Keyword
      | AlexRawToken_LOOP            -- ^ Reserved Keyword

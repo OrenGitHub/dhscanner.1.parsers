@@ -136,6 +136,12 @@ import Data.Map ( fromList, empty )
 'Name'                  { AlexTokenTag AlexRawToken_MAME            _ }
 'type'                  { AlexTokenTag AlexRawToken_TYPE            _ }
 'left'                  { AlexTokenTag AlexRawToken_LEFT            _ }
+'exception'             { AlexTokenTag AlexRawToken_EXCEPTION       _ }
+'exceptions'            { AlexTokenTag AlexRawToken_EXCEPTIONS      _ }
+'rescue'                { AlexTokenTag AlexRawToken_RESCUE          _ }
+'rescue_clause'         { AlexTokenTag AlexRawToken_RESCUE2         _ }
+'rescue_ex'             { AlexTokenTag AlexRawToken_RESCUE3         _ }
+'variable'              { AlexTokenTag AlexRawToken_VARIABLE        _ }
 'backref'               { AlexTokenTag AlexRawToken_BACKREF         _ }
 'next'                  { AlexTokenTag AlexRawToken_NEXT            _ }
 'loop'                  { AlexTokenTag AlexRawToken_LOOP            _ }
@@ -371,7 +377,7 @@ identifier:
     'type' ':' identifier_type ','
     'location' ':' location ','
     'value' ':' tokenID ','
-    'comments' ':' '[' ']' 
+    'comments' ':' comments 
 '}'
 {
     Token.Named
@@ -1851,22 +1857,104 @@ params:
 params_type_1 { $1 } |
 params_type_2 { $1 }
 
+-- **********
+-- *        *
+-- * rescue *
+-- *        *
+-- **********
+variable:
+'{'
+    'type' ':' 'var_field' ','
+    'location' ':' location ','
+    'value' ':' identifier ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+-- **********
+-- *        *
+-- * rescue *
+-- *        *
+-- **********
+exception:
+'{'
+    'type' ':' 'rescue_ex' ','
+    'location' ':' location ','
+    'exceptions' ':' 'null' ','
+    'variable' ':' variable ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+-- **********
+-- *        *
+-- * rescue *
+-- *        *
+-- **********
+rescue:
+'{'
+    'type' ':' 'rescue' ','
+    'location' ':' location ','
+    'exception' ':' exception ','
+    'stmts' ':' stmts ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+-- *****************
+-- *               *
+-- * rescue_clause *
+-- *               *
+-- *****************
+rescue_clause: 'rescue_clause' ':' rescue ',' { Nothing }
+
 -- ************
 -- *          *
 -- * bodystmt *
 -- *          *
 -- ************
-bodystmt:
+bodystmt_type_1:
 '{'
     'type' ':' 'bodystmt' ','
     'location' ':' location ','
     'stmts' ':' stmts ','
+    optional(rescue_clause)
     'comments' ':' '[' ']'
 '}'
 {
     $12
 }
 
+-- ************
+-- *          *
+-- * bodystmt *
+-- *          *
+-- ************
+bodystmt_type_2:
+'{'
+    'type' ':' 'stmts' ','
+    'location' ':' location ','
+    'body' ':' '[' commalistof(stmt) ']' ','
+    'comments' ':' comments
+'}'
+{
+    []
+}
+
+-- ************
+-- *          *
+-- * bodystmt *
+-- *          *
+-- ************
+bodystmt:
+bodystmt_type_1 { $1 } |
+bodystmt_type_2 { $1 }
 
 {
 
