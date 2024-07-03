@@ -10,8 +10,6 @@ import Yesod
 import Prelude
 import Data.Aeson()
 import GHC.Generics
-import Data.Text.Lazy
-import Data.Aeson.Text (encodeToLazyText)
 
 -- project imports
 import qualified JsParser
