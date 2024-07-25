@@ -725,10 +725,10 @@ alexEOF = do
         {
             tokenRaw = TokenEOF,
             tokenLoc = Location {
-                lineStart = l,
-                lineEnd = l,
-                colStart = c,
-                colEnd = c,
+                lineStart = fromIntegral l,
+                lineEnd = fromIntegral l,
+                colStart = fromIntegral c,
+                colEnd = fromIntegral c,
                 filename = (filepath alexUserState)
             }
         }
@@ -746,10 +746,10 @@ lex f ((AlexPn _ l c),_,_,str) i = do
         {
             tokenRaw = (f (take i str)),
             tokenLoc = Location {
-                lineStart = l,
-                lineEnd = l,
-                colStart = c,
-                colEnd = c+i,
+                lineStart = fromIntegral l,
+                lineEnd = fromIntegral l,
+                colStart = fromIntegral c,
+                colEnd = fromIntegral (c+i),
                 filename = (filepath alexUserState)
             }
         }

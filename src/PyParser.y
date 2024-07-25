@@ -1273,7 +1273,7 @@ param:
         Ast.paramName = Token.ParamName $ Token.Named
         {
             Token.content = $5,
-            Token.location = $8 { Location.colEnd = (Location.colStart $8) + (length $5) }
+            Token.location = $8 { Location.colEnd = (Location.colStart $8) + (fromIntegral (length $5)) }
         },
         Ast.paramNominalType = case $7 of {
             Nothing -> Token.NominalTy $ Token.Named { Token.content = "any", Token.location = $8};
@@ -1494,10 +1494,10 @@ loc:
     Location
     {
         Location.filename = getFilename $1,
-        lineStart = tokIntValue $3,
-        colStart = tokIntValue $7,
-        lineEnd = tokIntValue $11,
-        colEnd = tokIntValue $15
+        lineStart = fromIntegral (tokIntValue $3),
+        colStart = fromIntegral (tokIntValue $7),
+        lineEnd = fromIntegral (tokIntValue $11),
+        colEnd = fromIntegral (tokIntValue $15)
     }
 }
 

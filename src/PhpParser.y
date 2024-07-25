@@ -903,10 +903,10 @@ loc: '[' INT ':' INT '-' INT ':' INT ']'
     Location
     {
         Location.filename = getFilename $1,
-        lineStart = tokIntValue $2,
-        colStart = tokIntValue $4,
-        lineEnd = tokIntValue $6,
-        colEnd = tokIntValue $8
+        lineStart = fromIntegral (tokIntValue $2),
+        colStart = fromIntegral (tokIntValue $4),
+        lineEnd = fromIntegral (tokIntValue $6),
+        colEnd = fromIntegral (tokIntValue $8)
     }
 }
 

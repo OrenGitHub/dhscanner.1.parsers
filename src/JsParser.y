@@ -324,10 +324,10 @@ location:
     Location
     {
         Location.filename = Location.filename (location $7),
-        lineStart = tokIntValue $7,
-        colStart = 1 + (tokIntValue $11),
-        lineEnd = tokIntValue $19,
-        colEnd = tokIntValue $23
+        lineStart = fromIntegral (tokIntValue $7),
+        colStart = fromIntegral (1 + (tokIntValue $11)),
+        lineEnd = fromIntegral (tokIntValue $19),
+        colEnd = fromIntegral (tokIntValue $23)
     }
 }
 
