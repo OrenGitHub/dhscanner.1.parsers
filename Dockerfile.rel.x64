@@ -1,0 +1,4 @@
+FROM haskell:9.4.8
+RUN wget https://github.com/OrenGitHub/dhscanner.1.parsers/releases/download/v0.0.5/parsers.x64
+RUN chmod +x parsers.x64
+CMD ["./parsers.x64"]
