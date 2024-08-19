@@ -405,7 +405,7 @@ var_subscript { $1 }
 -- * exp_var *
 -- *         *
 -- ***********
-exp_var: var { Ast.ExpVarContent $1 }
+exp_var: var { Ast.ExpVar (Ast.ExpVarContent $1) }
 
 -- ***********
 -- *         *
@@ -832,7 +832,7 @@ exp_int       { $1 } |
 exp_none      { $1 } |
 exp_yield     { $1 } |
 exp_dict      { $1 } |
-exp_var       { Ast.ExpVar $1 } |
+exp_var       { $1 } |
 exp_bool      { $1 } |
 exp_list      { $1 } |
 exp_unop      { $1 } |

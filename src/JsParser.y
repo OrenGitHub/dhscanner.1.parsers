@@ -433,7 +433,7 @@ var_field:
 {
     Ast.VarField $ Ast.VarFieldContent
     {
-        varFieldLhs = Ast.ExpVarContent $12,
+        varFieldLhs = Ast.ExpVar (Ast.ExpVarContent $12),
         varFieldName = Token.FieldName $16,
         varFieldLocation = $20
     }

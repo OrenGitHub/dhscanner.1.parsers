@@ -633,7 +633,7 @@ exp_call    { Ast.ExpCall $1 } |
 exp_binop   { $1 } |
 exp_array   { $1 } |
 exp_lambda  { $1 } |
-exp_var     { Ast.ExpVar $1 }
+exp_var     { $1 }
 
 -- *************
 -- *           *
@@ -728,7 +728,7 @@ exp_bool:
 -- * exp_var *
 -- *         *
 -- ***********
-exp_var: var { Ast.ExpVarContent $1 }
+exp_var: var { Ast.ExpVar (Ast.ExpVarContent $1) }
 
 -- *************
 -- *           *
@@ -811,7 +811,7 @@ exp_method_call:
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
         {
-            Ast.varFieldLhs = Ast.ExpVarContent $6,
+            Ast.varFieldLhs = Ast.ExpVar (Ast.ExpVarContent $6),
             Ast.varFieldName = Token.FieldName $ Token.Named { Token.content = tokIDValue $14, Token.location = $10 },
             Ast.varFieldLocation = Location {
                 Location.filename = getFilename $1,
@@ -843,7 +843,7 @@ exp_static_method_call:
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
         {
-            Ast.varFieldLhs = Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent
+            Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent
             {
                 Ast.varName = Token.VarName $ Token.Named { Token.content = tokIDValue $11, Token.location = $7 }
             },

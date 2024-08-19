@@ -73,6 +73,8 @@ import Location
 @KW_END             = \"end\"
 @KW_RAW             = \"raw\"
 @KW_SELF            = \"self\"
+@KW_GVAR            = \"gvar\"
+@KW_BEGIN           = \"begin\"
 @KW_CALL            = \"call\"
 @KW_VCALL           = \"vcall\"
 @KW_DICT            = \"bare_assoc_hash\"
@@ -126,6 +128,7 @@ import Location
 @KW_EXCEPTIONS      = \"exceptions\"
 @KW_RESCUE          = \"rescue\"
 @KW_RESCUE2         = \"rescue_clause\"
+@KW_RESCUE4         = \"else_clause\"
 @KW_RESCUE3         = \"rescue_ex\"
 @KW_VARIABLE        = \"variable\"
 @KW_BACKREF         = \"backref\"
@@ -311,6 +314,8 @@ tokens :-
 @KW_END             { lex' AlexRawToken_END             }
 @KW_RAW             { lex' AlexRawToken_RAW             }
 @KW_SELF            { lex' AlexRawToken_SELF            }
+@KW_GVAR            { lex' AlexRawToken_GVAR            }
+@KW_BEGIN           { lex' AlexRawToken_BEGIN           }
 @KW_CALL            { lex' AlexRawToken_CALL            }
 @KW_VCALL           { lex' AlexRawToken_VCALL           }
 @KW_LOC             { lex' AlexRawToken_LOC             }
@@ -364,6 +369,7 @@ tokens :-
 @KW_EXCEPTIONS      { lex' AlexRawToken_EXCEPTIONS      }
 @KW_RESCUE          { lex' AlexRawToken_RESCUE          }
 @KW_RESCUE2         { lex' AlexRawToken_RESCUE2         }
+@KW_RESCUE4         { lex' AlexRawToken_RESCUE4         }
 @KW_RESCUE3         { lex' AlexRawToken_RESCUE3         }
 @KW_VARIABLE        { lex' AlexRawToken_VARIABLE        }
 @KW_BACKREF         { lex' AlexRawToken_BACKREF         }
@@ -583,6 +589,8 @@ data AlexRawToken
      | AlexRawToken_END             -- ^ Reserved Keyword
      | AlexRawToken_RAW             -- ^ Reserved Keyword
      | AlexRawToken_SELF            -- ^ Reserved Keyword
+     | AlexRawToken_GVAR            -- ^ Reserved Keyword
+     | AlexRawToken_BEGIN           -- ^ Reserved Keyword
      | AlexRawToken_CALL            -- ^ Reserved Keyword
      | AlexRawToken_VCALL           -- ^ Reserved Keyword
      | AlexRawToken_LOC             -- ^ Reserved Keyword
@@ -636,6 +644,7 @@ data AlexRawToken
      | AlexRawToken_EXCEPTIONS      -- ^ Reserved Keyword
      | AlexRawToken_RESCUE          -- ^ Reserved Keyword
      | AlexRawToken_RESCUE2         -- ^ Reserved Keyword
+     | AlexRawToken_RESCUE4         -- ^ Reserved Keyword
      | AlexRawToken_RESCUE3         -- ^ Reserved Keyword
      | AlexRawToken_VARIABLE        -- ^ Reserved Keyword
      | AlexRawToken_BACKREF         -- ^ Reserved Keyword

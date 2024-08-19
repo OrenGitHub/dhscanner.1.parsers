@@ -88,6 +88,8 @@ import Data.Map ( fromList, empty )
 'end'                   { AlexTokenTag AlexRawToken_END             _ }
 'raw'                   { AlexTokenTag AlexRawToken_RAW             _ }
 'self'                  { AlexTokenTag AlexRawToken_SELF            _ }
+'gvar'                  { AlexTokenTag AlexRawToken_GVAR            _ }
+'begin'                 { AlexTokenTag AlexRawToken_BEGIN           _ }
 'call'                  { AlexTokenTag AlexRawToken_CALL            _ }
 'vcall'                 { AlexTokenTag AlexRawToken_VCALL           _ }
 'superclass'            { AlexTokenTag AlexRawToken_SUPER           _ }
@@ -141,6 +143,7 @@ import Data.Map ( fromList, empty )
 'exceptions'            { AlexTokenTag AlexRawToken_EXCEPTIONS      _ }
 'rescue'                { AlexTokenTag AlexRawToken_RESCUE          _ }
 'rescue_clause'         { AlexTokenTag AlexRawToken_RESCUE2         _ }
+'else_clause'           { AlexTokenTag AlexRawToken_RESCUE4         _ }
 'rescue_ex'             { AlexTokenTag AlexRawToken_RESCUE3         _ }
 'variable'              { AlexTokenTag AlexRawToken_VARIABLE        _ }
 'backref'               { AlexTokenTag AlexRawToken_BACKREF         _ }
@@ -367,6 +370,7 @@ identifier_type:
 'const' { Nothing } |
 'ident' { Nothing } |
 'ivar'  { Nothing } |
+'gvar'  { Nothing } |
 'kw'    { Nothing }
 
 -- **************
@@ -413,8 +417,7 @@ param:
 -- * exp_var *
 -- *         *
 -- ***********
-exp_var:
-identifier_wrapper { Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $1 }
+exp_var: var { Ast.ExpVar (Ast.ExpVarContent $1) }
 
 -- *************
 -- *           *
@@ -497,7 +500,7 @@ var_field:
 {
     Ast.VarField $ Ast.VarFieldContent
     {
-        Ast.varFieldLhs = Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12,
+        Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12,
         Ast.varFieldName = Token.FieldName $20,
         Ast.varFieldLocation = $8
     }
@@ -883,11 +886,11 @@ subscript:
     'comments' ':' comments
 '}'
 {
-    Ast.ExpSubscript $ ExpSubscriptContent
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSubscript $ Ast.VarSubscriptContent
     {
-        Ast.expSubscriptLhs = $12,
-        Ast.expSubscriptIdx = $16,
-        Ast.expSubscriptLocation = $8
+        Ast.varSubscriptLhs = $12,
+        Ast.varSubscriptIdx = $16,
+        Ast.varSubscriptLocation = $8
     }
 }
 
@@ -957,6 +960,26 @@ backref:
     }
 }
 
+-- ********
+-- *      *
+-- * gvar *
+-- *      *
+-- ********
+exp_gvar:
+'{'
+    'type' ':' 'gvar' ','
+    'location' ':' location ','
+    'value' ':' ID ','
+    'comments' ':' comments
+'}'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 333,
+        Token.constIntLocation = $8
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -966,12 +989,12 @@ exp:
 exp_str    { $1 } |
 backref    { $1 } |
 exp_regex  { $1 } |
-exp_var    { Ast.ExpVar $1 } |
+exp_var    { $1 } |
+exp_gvar   { $1 } |
 exp_call   { $1 } |
 exp_vcall  { $1 } |
 exp_dict   { $1 } |
 exp_array  { $1 } |
-subscript  { $1 } |
 fstring    { $1 } |
 exp_unop   { $1 } |
 exp_args   { $1 } |
@@ -1298,11 +1321,11 @@ exp_call_without_args:
     'comments' ':' '[' ']'
 '}'
 {
-    Ast.ExpField $ Ast.ExpFieldContent
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
     {
-        Ast.expFieldLhs = $12,
-        Ast.expFieldName = Token.FieldName $20,
-        Ast.expFieldLocation = $8
+        Ast.varFieldLhs = $12,
+        Ast.varFieldName = Token.FieldName $20,
+        Ast.varFieldLocation = $8
     }
 }
 
@@ -1324,11 +1347,11 @@ exp_call_with_args:
 {
     Ast.ExpCall $ Ast.ExpCallContent
     {
-        Ast.callee = Ast.ExpField $ Ast.ExpFieldContent
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
         {
-            Ast.expFieldLhs = $12,
-            Ast.expFieldName = Token.FieldName $20,
-            Ast.expFieldLocation = Location {
+            Ast.varFieldLhs = $12,
+            Ast.varFieldName = Token.FieldName $20,
+            Ast.varFieldLocation = Location {
                 Location.filename = Location.filename $8,
                 lineStart = Location.lineStart $8,
                 colStart = Location.colStart $8,
@@ -1735,6 +1758,23 @@ stmt_next:
     Nothing
 }
 
+-- **************
+-- *            *
+-- * stmt_begin *
+-- *            *
+-- **************
+stmt_begin:
+'{'
+    'type' ':' 'begin' ','
+    'location' ':' location ','
+    'bodystmt' ':' bodystmt','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+
 -- ********
 -- *      *
 -- * stmt *
@@ -1745,6 +1785,7 @@ stmt_if      { $1 } |
 stmt_for     { $1 } |
 stmt_exp     { $1 } |
 stmt_assign  { $1 } |
+stmt_begin   { $1 } |
 stmt_void    { $1 } |
 stmt_next    { $1 } |
 stmt_class   { $1 } |
@@ -1894,7 +1935,17 @@ variable:
 '}'
 {
     Nothing
-}
+} |
+'null' { Nothing }
+
+-- **************
+-- *            *
+-- * exceptions *
+-- *            *
+-- **************
+exceptions:
+'null' { Nothing } |
+exp    { Nothing }
 
 -- **********
 -- *        *
@@ -1905,7 +1956,7 @@ exception:
 '{'
     'type' ':' 'rescue_ex' ','
     'location' ':' location ','
-    'exceptions' ':' 'null' ','
+    'exceptions' ':' exceptions ','
     'variable' ':' variable ','
     'comments' ':' comments
 '}'
@@ -1937,6 +1988,13 @@ rescue:
 -- *****************
 rescue_clause: 'rescue_clause' ':' rescue ',' { Nothing }
 
+-- *****************
+-- *               *
+-- * rescue_clause *
+-- *               *
+-- *****************
+else_clause: 'else_clause' ':' stmts ',' { Nothing }
+
 -- ************
 -- *          *
 -- * bodystmt *
@@ -1948,6 +2006,7 @@ bodystmt_type_1:
     'location' ':' location ','
     'stmts' ':' stmts ','
     optional(rescue_clause)
+    optional(else_clause)
     'comments' ':' '[' ']'
 '}'
 {
