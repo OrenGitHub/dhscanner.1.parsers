@@ -466,6 +466,9 @@ exp_unop:
     }
 }
 
+var_simple_type:
+'var_field' { Nothing } |
+'var_ref'   { Nothing }
 
 -- **************
 -- *            *
@@ -474,7 +477,7 @@ exp_unop:
 -- **************
 var_simple:
 '{'
-    'type' ':' 'var_field' ','
+    'type' ':' var_simple_type ','
     'location' ':' location ','
     'value' ':' identifier ','
     'comments' ':' '[' ']'
@@ -506,6 +509,10 @@ var_field:
     }
 }
 
+var_subscript_type:
+'aref_field' { Nothing } |
+'aref'       { Nothing }
+
 -- *****************
 -- *               *
 -- * var_subscript *
@@ -513,9 +520,9 @@ var_field:
 -- *****************
 var_subscript:
 '{'
-    'type' ':' 'aref_field' ','
+    'type' ':' var_subscript_type ','
     'location' ':' location ','
-    'collection' ':' exp_var ','
+    'collection' ':' exp ','
     'index' ':' exp ','
     'comments' ':' comments
 '}'
@@ -528,6 +535,28 @@ var_subscript:
     }
 }
 
+-- ****************
+-- *              *
+-- * var_parented *
+-- *              *
+-- ****************
+var_parented:
+'{'
+    'type' ':' 'const_path_ref' ','
+    'location' ':' location ','
+    'parent' ':' var ','
+    'constant' ':' identifier ','
+    'comments' ':' '[' ']'
+'}'
+{
+    Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $12,
+        Ast.varFieldName = Token.FieldName $16,
+        Ast.varFieldLocation = $8
+    }
+}
+
 -- ************
 -- *          *
 -- * variable *
@@ -536,6 +565,7 @@ var_subscript:
 var:
 var_simple    { $1 } |
 var_field     { $1 } |
+var_parented  { $1 } |
 var_subscript { $1 }
 
 -- ***************
@@ -1476,16 +1506,16 @@ stmt_class:
 '{'
     'type' ':' 'class' ','
     'location' ':' location ','
-    'constant' ':' identifier_wrapper ','
+    'constant' ':' var ','
     optional(superclass)
     'bodystmt' ':' bodystmt ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
-    let methods = Data.Map.fromList (catMaybes (Data.List.map (methodify (Token.ClassName $12) $14) (catMaybes $17)))
+    let methods = Data.Map.fromList (catMaybes (Data.List.map (methodify (Token.ClassName (nameify $12)) $14) (catMaybes $17)))
     in Just $ Left $ Ast.DecClass $ Ast.DecClassContent
     {
-        Ast.decClassName = Token.ClassName $12,
+        Ast.decClassName = Token.ClassName (nameify $12),
         Ast.decClassSupers = case $14 of { Nothing -> [] ; Just oneSuper -> [ Token.SuperName oneSuper ] },
         Ast.decClassDataMembers = Ast.DataMembers Data.Map.empty,
         Ast.decClassMethods = Ast.Methods methods
@@ -2057,6 +2087,20 @@ paramify token = let
     paramName = Token.ParamName token
     nominalType = Token.NominalTy (Token.Named "any" (Token.location token))
     in Ast.Param paramName nominalType 156
+
+nameify :: Ast.Var -> Token.Named
+nameify (Ast.VarSimple    v) = nameifyVarSimple    v
+nameify (Ast.VarField     v) = nameifyVarField     v
+nameify (Ast.VarSubscript v) = nameifyVarSubscript v
+
+nameifyVarSimple :: Ast.VarSimpleContent -> Token.Named
+nameifyVarSimple = Token.getVarNameToken . Ast.varName
+
+nameifyVarField :: Ast.VarFieldContent -> Token.Named
+nameifyVarField = Token.getFieldNameToken . Ast.varFieldName
+
+nameifyVarSubscript :: Ast.VarSubscriptContent -> Token.Named
+nameifyVarSubscript v = Token.Named "popo" (Ast.varSubscriptLocation v)
 
 methodify :: Token.ClassName -> Maybe Token.Named -> Either Ast.Dec Ast.Stmt -> Maybe (Token.MethdName,Ast.DecMethodContent)
 methodify c Nothing  (Left (Ast.DecMethod d)) = Just ((Ast.decMethodName d), d { Ast.hostingClassName = c, Ast.hostingClassSupers = []                    } )
