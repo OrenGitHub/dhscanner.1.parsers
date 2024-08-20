@@ -85,6 +85,7 @@ import Location
 @KW_MODULE          = \"module\"
 @KW_BLOCK2          = \"method_add_block\"
 @KW_ASSOC           = \"assoc\"
+@KW_ASSOC2          = \"assoc_splat\"
 @KW_ASSOCS          = \"assocs\"
 @KW_PERIOD          = \"period\"
 @KW_PARENT          = \"parent\"
@@ -124,6 +125,10 @@ import Location
 @KW_MAME            =  Name
 @KW_TYPE            = \"type\"
 @KW_LEFT            = \"left\"
+@KW_ARG_BLOCK       = \"arg_block\"
+@KW_REST            = \"keyword_rest\"
+@KW_REST2           = \"kwrest_param\"
+@KW_DYNA            = \"dyna_symbol\"
 @KW_EXCEPTION       = \"exception\"
 @KW_EXCEPTIONS      = \"exceptions\"
 @KW_RESCUE          = \"rescue\"
@@ -201,6 +206,7 @@ import Location
 
 @KW_STMT_IF     = \"if\"
 @KW_STMT_ELSE   = \"else\"
+@KW_STMT_ELSE2  = \"elsif\"
 @KW_STMT_IF2    = \"if_op\"
 @KW_STMT_FOR    = \"for\"
 @KW_STMT_BLOCK  = \"BlockStatement\"
@@ -327,6 +333,7 @@ tokens :-
 @KW_MODULE          { lex' AlexRawToken_MODULE          }
 @KW_BLOCK2          { lex' AlexRawToken_BLOCK2          }
 @KW_ASSOC           { lex' AlexRawToken_ASSOC           }
+@KW_ASSOC2          { lex' AlexRawToken_ASSOC2          }
 @KW_ASSOCS          { lex' AlexRawToken_ASSOCS          }
 @KW_PERIOD          { lex' AlexRawToken_PERIOD          }
 @KW_PARENT          { lex' AlexRawToken_PARENT          }
@@ -365,6 +372,10 @@ tokens :-
 @KW_MAME            { lex' AlexRawToken_MAME            }
 @KW_TYPE            { lex' AlexRawToken_TYPE            }
 @KW_LEFT            { lex' AlexRawToken_LEFT            }
+@KW_ARG_BLOCK       { lex' AlexRawToken_ARG_BLOCK       }
+@KW_REST            { lex' AlexRawToken_REST            }
+@KW_REST2           { lex' AlexRawToken_REST2           }
+@KW_DYNA            { lex' AlexRawToken_DYNA            }
 @KW_EXCEPTION       { lex' AlexRawToken_EXCEPTION       }
 @KW_EXCEPTIONS      { lex' AlexRawToken_EXCEPTIONS      }
 @KW_RESCUE          { lex' AlexRawToken_RESCUE          }
@@ -424,6 +435,7 @@ tokens :-
 @KW_GENERATOR       { lex' AlexRawToken_GENERATOR       }
 @KW_STMT_IF         { lex' AlexRawToken_STMT_IF         }
 @KW_STMT_ELSE       { lex' AlexRawToken_STMT_ELSE       }
+@KW_STMT_ELSE2      { lex' AlexRawToken_STMT_ELSE2      }
 @KW_STMT_IF2        { lex' AlexRawToken_STMT_IF2        }
 @KW_STMT_VOID       { lex' AlexRawToken_STMT_VOID       }
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
@@ -607,6 +619,7 @@ data AlexRawToken
      | AlexRawToken_MODULE          -- ^ Reserved Keyword
      | AlexRawToken_BLOCK2          -- ^ Reserved Keyword
      | AlexRawToken_ASSOC           -- ^ Reserved Keyword
+     | AlexRawToken_ASSOC2          -- ^ Reserved Keyword
      | AlexRawToken_ASSOCS          -- ^ Reserved Keyword
      | AlexRawToken_PERIOD          -- ^ Reserved Keyword
      | AlexRawToken_PARENT          -- ^ Reserved Keyword
@@ -640,6 +653,10 @@ data AlexRawToken
      | AlexRawToken_MAME            -- ^ Reserved Keyword
      | AlexRawToken_TYPE            -- ^ Reserved Keyword
      | AlexRawToken_LEFT            -- ^ Reserved Keyword
+     | AlexRawToken_ARG_BLOCK       -- ^ Reserved Keyword
+     | AlexRawToken_REST            -- ^ Reserved Keyword
+     | AlexRawToken_REST2           -- ^ Reserved Keyword
+     | AlexRawToken_DYNA            -- ^ Reserved Keyword
      | AlexRawToken_EXCEPTION       -- ^ Reserved Keyword
      | AlexRawToken_EXCEPTIONS      -- ^ Reserved Keyword
      | AlexRawToken_RESCUE          -- ^ Reserved Keyword
@@ -765,6 +782,7 @@ data AlexRawToken
 
      | AlexRawToken_STMT_IF         -- ^ Reserved Keyword
      | AlexRawToken_STMT_ELSE       -- ^ Reserved Keyword
+     | AlexRawToken_STMT_ELSE2      -- ^ Reserved Keyword
      | AlexRawToken_STMT_IF2        -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
      | AlexRawToken_STMT_BLOCK      -- ^ Reserved Keyword

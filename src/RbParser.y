@@ -96,6 +96,7 @@ import Data.Map ( fromList, empty )
 'hash'                  { AlexTokenTag AlexRawToken_DICT2           _ }
 'bare_assoc_hash'       { AlexTokenTag AlexRawToken_DICT            _ }
 'assoc'                 { AlexTokenTag AlexRawToken_ASSOC           _ }
+'assoc_splat'           { AlexTokenTag AlexRawToken_ASSOC2          _ }
 'void_stmt'             { AlexTokenTag AlexRawToken_STMT_VOID       _ }
 'label'                 { AlexTokenTag AlexRawToken_LABEL           _ }
 'block'                 { AlexTokenTag AlexRawToken_BLOCK           _ }
@@ -139,6 +140,10 @@ import Data.Map ( fromList, empty )
 'Name'                  { AlexTokenTag AlexRawToken_MAME            _ }
 'type'                  { AlexTokenTag AlexRawToken_TYPE            _ }
 'left'                  { AlexTokenTag AlexRawToken_LEFT            _ }
+'arg_block'             { AlexTokenTag AlexRawToken_ARG_BLOCK       _ }
+'keyword_rest'          { AlexTokenTag AlexRawToken_REST            _ }
+'kwrest_param'          { AlexTokenTag AlexRawToken_REST2           _ }
+'dyna_symbol'           { AlexTokenTag AlexRawToken_DYNA            _ }
 'exception'             { AlexTokenTag AlexRawToken_EXCEPTION       _ }
 'exceptions'            { AlexTokenTag AlexRawToken_EXCEPTIONS      _ }
 'rescue'                { AlexTokenTag AlexRawToken_RESCUE          _ }
@@ -237,6 +242,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 
 'if'                  { AlexTokenTag AlexRawToken_STMT_IF     _ }
 'else'                { AlexTokenTag AlexRawToken_STMT_ELSE   _ }
+'elif'                { AlexTokenTag AlexRawToken_STMT_ELSE2  _ }
 'if_op'               { AlexTokenTag AlexRawToken_STMT_IF2    _ }
 'ForStatement'        { AlexTokenTag AlexRawToken_STMT_FOR    _ }
 'BlockStatement'      { AlexTokenTag AlexRawToken_STMT_BLOCK  _ }
@@ -349,6 +355,7 @@ ID        { unquote (tokIDValue $1) } |
 'type'    { "type"                  } |
 'call'    { "call"                  } |
 'false'   { "false"                 } |
+'args'    { "args"                  } |
 'value'   { "value"                 } |
 'object'  { "object"                } |
 'message' { "message"               } |
@@ -468,7 +475,12 @@ exp_unop:
 
 var_simple_type:
 'var_field' { Nothing } |
+'const_ref' { Nothing } |
 'var_ref'   { Nothing }
+
+var_simple_content:
+'value'    { Nothing } |
+'constant' { Nothing }
 
 -- **************
 -- *            *
@@ -479,7 +491,7 @@ var_simple:
 '{'
     'type' ':' var_simple_type ','
     'location' ':' location ','
-    'value' ':' identifier ','
+    var_simple_content ':' identifier ','
     'comments' ':' '[' ']'
 '}'
 {
@@ -707,17 +719,37 @@ key:
 -- * assoc *
 -- *       *
 -- *********
-assoc:
+assoc_type_1:
 '{'
     'type' ':' 'assoc' ','
     'location' ':' location ','
     'key' ':' key ','
     'value' ':' exp ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Nothing
 }
+
+-- *********
+-- *       *
+-- * assoc *
+-- *       *
+-- *********
+assoc_type_2:
+'{'
+    'type' ':' 'assoc_splat' ','
+    'location' ':' location ','
+    'value' ':' exp ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+assoc:
+assoc_type_1 { Nothing } |
+assoc_type_2 { Nothing }
 
 -- ************
 -- *          *
@@ -1010,6 +1042,37 @@ exp_gvar:
     }
 }
 
+-- ********
+-- *      *
+-- * dyna *
+-- *      *
+-- ********
+exp_dyna:
+'{'
+    'type' ':' 'dyna_symbol' ','
+    'location' ':' location ','
+    'parts' ':' '[' commalistof(string_part) ']' ','
+    'comments' ':' comments
+'}'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 333,
+        Token.constIntLocation = $8
+    }
+}
+
+arg_block:
+'{'
+    'type' ':' 'arg_block' ','
+    'location' ':' location ','
+    'value' ':' exp ','
+    'comments' ':' comments
+'}'
+{
+    $12
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1019,8 +1082,10 @@ exp:
 exp_str    { $1 } |
 backref    { $1 } |
 exp_regex  { $1 } |
+arg_block  { $1 } |
 exp_var    { $1 } |
 exp_gvar   { $1 } |
+exp_dyna   { $1 } |
 exp_call   { $1 } |
 exp_vcall  { $1 } |
 exp_dict   { $1 } |
@@ -1280,6 +1345,14 @@ stmt_if_type_2:
     }
 }
 
+else_type:
+'else' { Nothing } |
+'elif' { Nothing }
+
+predicate: 'predicate' ':' exp ',' { Nothing }
+
+consequent: 'consequent' ':' stmt_else ',' { Nothing }
+
 -- *************
 -- *           *
 -- * stmt_else *
@@ -1287,9 +1360,11 @@ stmt_if_type_2:
 -- *************
 stmt_else:
 '{'
-    'type' ':' 'else' ','
+    'type' ':' else_type ','
     'location' ':' location ','
+    optional(predicate)
     'stmts' ':' stmts ','
+    optional(consequent)
     'comments' ':' comments
 '}'
 {
@@ -1326,6 +1401,30 @@ stmt_if_type_1:
         Ast.stmtIfLocation = $8
     }
 }
+
+-- ***********
+-- *         *
+-- * stmt_if *
+-- *         *
+-- ***********
+stmt_if2:
+'{'
+    'type' ':' 'if' ','
+    'location' ':' location ','
+    'predicate' ':' stmt_assign ','
+    'stmts' ':' stmts ','
+    'comments' ':' comments
+'}'
+{
+    Just $ Right $ Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 888 $8,
+        Ast.stmtIfBody = rights (catMaybes $16),
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $8
+    }
+}
+
 
 -- ***********
 -- *         *
@@ -1812,6 +1911,7 @@ stmt_begin:
 -- ********
 stmt:
 stmt_if      { $1 } |
+stmt_if2     { $1 } |
 stmt_for     { $1 } |
 stmt_exp     { $1 } |
 stmt_assign  { $1 } |
@@ -1859,6 +1959,19 @@ optional_pair: '[' identifier ',' exp ']' { $2 }
 -- *************
 optionals: 'optionals' ':' '[' commalistof(optional_pair) ']' ',' { $4 } 
 
+rest: 'keyword_rest' ':' rest_params ',' { Nothing }
+
+rest_params:
+'{'
+    'type' ':' 'kwrest_param' ','
+    'location' ':' location ','
+    'name' ':' identifier ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
 -- ************
 -- *          *
 -- * contents *
@@ -1870,7 +1983,8 @@ contents:
     'location' ':' location ','
     optional(requireds)
     optional(optionals)
-    'comments' ':' '[' ']'
+    optional(rest)
+    'comments' ':' comments
 '}'
 {
     let
@@ -1994,6 +2108,8 @@ exception:
     Nothing
 }
 
+rescue_exception: 'exception' ':' exception ',' { Nothing }
+
 -- **********
 -- *        *
 -- * rescue *
@@ -2003,7 +2119,7 @@ rescue:
 '{'
     'type' ':' 'rescue' ','
     'location' ':' location ','
-    'exception' ':' exception ','
+    optional(rescue_exception)
     'stmts' ':' stmts ','
     'comments' ':' comments
 '}'
