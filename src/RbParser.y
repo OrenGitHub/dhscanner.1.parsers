@@ -257,6 +257,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 -- *************
 
 '<'   { AlexTokenTag AlexRawToken_OP_LT       _ }
+'<<'  { AlexTokenTag AlexRawToken_OP_SHL      _ }
 '=='  { AlexTokenTag AlexRawToken_OP_EQ       _ }
 '+='  { AlexTokenTag AlexRawToken_OP_PLUSEQ   _ }
 '!~'  { AlexTokenTag AlexRawToken_OP_NEQ      _ }
@@ -359,6 +360,7 @@ ID        { unquote (tokIDValue $1) } |
 'value'   { "value"                 } |
 'object'  { "object"                } |
 'message' { "message"               } |
+'contents' { "contents"             } |
 'name'    { "name"                  } |
 '.'       { "."                     } |
 'start'   { "start"                 } |
@@ -1151,6 +1153,7 @@ actual_op:
 '%'   { Ast.PERCENT } |
 '-'   { Ast.MINUS   } |
 '<'   { Ast.PLUS    } |
+'<<'  { Ast.PLUS    } |
 '='   { Ast.PLUS    } |
 '!~'  { Ast.PLUS    } |
 '.'   { Ast.PLUS    } |
