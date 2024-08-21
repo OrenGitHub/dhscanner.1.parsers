@@ -1903,7 +1903,13 @@ stmt_begin:
     'comments' ':' comments
 '}'
 {
-    Nothing
+    Just $ Right $ Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 1 $8,
+        Ast.stmtIfBody = rights (catMaybes $12),
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $8
+    }
 }
 
 
@@ -2175,7 +2181,7 @@ bodystmt_type_2:
     'comments' ':' comments
 '}'
 {
-    []
+    $13
 }
 
 -- ************
