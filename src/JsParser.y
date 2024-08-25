@@ -260,7 +260,6 @@ program:
     Ast.Root
     {
         Ast.filename = "DDD",
-        decs = [],
         stmts = rights $9
     }
 }
@@ -951,9 +950,6 @@ getFuncBody = undefined
 
 getFuncParams :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe [ Ast.Param ]
 getFuncParams = undefined
-
--- getFilename :: (Either Location Ast.Dec) -> FilePath
--- getFilename x = case x of { Left l -> Location.filename l; Right dec -> Location.filename $ Ast.locationDec dec }
 
 -- add the /real/ serial index of the param
 -- the parser just puts an arbitrary value

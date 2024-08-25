@@ -276,7 +276,6 @@ program:
     Ast.Root
     {
         Ast.filename = "DDD",
-        decs = [],
         stmts = $5
     }
 }

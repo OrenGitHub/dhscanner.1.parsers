@@ -321,8 +321,7 @@ program:
     Ast.Root
     {
         Ast.filename = getFilename $1,
-        Ast.stmts = rights (catMaybes $12),
-        Ast.decs = Data.List.foldl' (++) [] (lefts (catMaybes $12))
+        Ast.stmts = rights (catMaybes $12)
     }
 }
 
@@ -1615,16 +1614,16 @@ stmt_class:
 '}'
 {
     let
-        allDecs = Data.List.foldl' (++) [] (lefts (catMaybes $17))
-        justMethodDecs = \d -> case d of { (Ast.DecMethod m) -> Just m; _ -> Nothing }
-        methodDecs = catMaybes $ Data.List.map justMethodDecs allDecs
-        methods = Data.Map.fromList (methodify (Token.ClassName (nameify $12)) $14 methodDecs)
-    in Just $ Left $ Data.List.singleton $ Ast.DecClass $ Ast.DecClassContent
+        allStmts = rights (catMaybes $17)
+        justFuncStmts = \d -> case d of { (Ast.StmtFunc f) -> Just f; _ -> Nothing }
+        funcStmts = catMaybes $ Data.List.map justFuncStmts allStmts
+        methods = Data.Map.fromList (methodify (Token.ClassName (nameify $12)) $14 funcStmts)
+    in Just $ Right $ Ast.StmtClass $ Ast.StmtClassContent
     {
-        Ast.decClassName = Token.ClassName (nameify $12),
-        Ast.decClassSupers = case $14 of { Nothing -> [] ; Just oneSuper -> [ Token.SuperName oneSuper ] },
-        Ast.decClassDataMembers = Ast.DataMembers Data.Map.empty,
-        Ast.decClassMethods = Ast.Methods methods
+        Ast.stmtClassName = Token.ClassName (nameify $12),
+        Ast.stmtClassSupers = case $14 of { Nothing -> [] ; Just oneSuper -> [ Token.SuperName oneSuper ] },
+        Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
+        Ast.stmtClassMethods = Ast.Methods methods
     }
 }
 
@@ -1682,15 +1681,14 @@ stmt_method_type_1:
     'comments' ':' '[' ']'
 '}'
 {
-    Just $ Left $ Data.List.singleton $ Ast.DecMethod $ DecMethodContent
+    Just $ Right $ Ast.StmtFunc $ Ast.StmtFuncContent
     {
-        Ast.decMethodReturnType = Token.NominalTy (Token.Named "any" $8),
-        Ast.decMethodName = Token.MethdName $20,
-        Ast.decMethodParams = $24,
-        Ast.decMethodBody = rights (catMaybes $28),
-        Ast.decMethodLocation = $8,
-        Ast.hostingClassName = Token.ClassName (Token.Named "<class>" $8),
-        Ast.hostingClassSupers = []
+        Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" $8),
+        Ast.stmtFuncName = Token.FuncName $20,
+        Ast.stmtFuncParams = $24,
+        Ast.stmtFuncBody = rights (catMaybes $28),
+        Ast.stmtFuncLocation = $8,
+        Ast.stmtFuncAnnotations = []
     }
 }
 
@@ -1711,15 +1709,14 @@ stmt_method_type_2:
     'comments' ':' '[' ']'
 '}'
 {
-    Just $ Left $ Data.List.singleton $ Ast.DecMethod $ DecMethodContent
+    Just $ Right $ Ast.StmtFunc $ Ast.StmtFuncContent
     {
-        Ast.decMethodReturnType = Token.NominalTy (Token.Named "any" $8),
-        Ast.decMethodName = Token.MethdName $20,
-        Ast.decMethodParams = $24,
-        Ast.decMethodBody = rights (catMaybes $28),
-        Ast.decMethodLocation = $8,
-        Ast.hostingClassName = Token.ClassName (Token.Named "<class>" $8),
-        Ast.hostingClassSupers = []
+        Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" $8),
+        Ast.stmtFuncName = Token.FuncName $20,
+        Ast.stmtFuncParams = $24,
+        Ast.stmtFuncBody = rights (catMaybes $28),
+        Ast.stmtFuncLocation = $8,
+        Ast.stmtFuncAnnotations = []
     }
 }
 
@@ -1860,8 +1857,13 @@ stmt_module:
     'comments' ':' comments
 '}'
 {
-    -- Just $ Left []
-    Just $ Left $ modulize $12 (Data.List.foldl' (++) [] (lefts (catMaybes $16)))
+    Just $ Right $ Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 999 $8,
+        Ast.stmtIfBody = modulize $12 (rights (catMaybes $16)),
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $8
+    }
 }
 
 -- *************
@@ -2232,38 +2234,49 @@ nameifyVarField = Token.getFieldNameToken . Ast.varFieldName
 nameifyVarSubscript :: Ast.VarSubscriptContent -> Token.Named
 nameifyVarSubscript v = Token.Named "popo" (Ast.varSubscriptLocation v)
 
-modulize :: Token.Named -> [ Ast.Dec ] -> [ Ast.Dec ]
-modulize moduleName = Data.List.map (\dec -> modulize' moduleName dec)
+modulize :: Token.Named -> [ Ast.Stmt ] -> [ Ast.Stmt ]
+modulize moduleName = Data.List.map (modulize' moduleName)
 
-modulize' :: Token.Named -> Ast.Dec -> Ast.Dec
-modulize' moduleName (Ast.DecClass  c) = modulizeDecClass  c moduleName
-modulize' moduleName (Ast.DecMethod m) = modulizeDecMethod m moduleName
-modulize' moduleName (Ast.DecVar    v) = Ast.DecVar v
+modulize' :: Token.Named -> Ast.Stmt -> Ast.Stmt
+modulize' moduleName (Ast.StmtClass c) = modulizeStmtClass c moduleName
+modulize' moduleName (Ast.StmtFunc  f) = modulizeStmtFunc  f moduleName
+modulize' moduleName stmt = stmt
 
-modulizeDecClass :: Ast.DecClassContent -> Token.Named -> Ast.Dec
-modulizeDecClass c (Token.Named moduleName _) = let
-    token = Token.getClassNameToken (Ast.decClassName c)
+modulizeStmtClass :: Ast.StmtClassContent -> Token.Named -> Ast.Stmt
+modulizeStmtClass c (Token.Named moduleName _) = let
+    token = Token.getClassNameToken (Ast.stmtClassName c)
     location' = Token.location token
     name' = Token.content token
     name'' = moduleName ++ "." ++ name'
     c' = Token.Named name'' location'
-    in Ast.DecClass $ c { Ast.decClassName = Token.ClassName c' }
+    in Ast.StmtClass $ c { Ast.stmtClassName = Token.ClassName c' }
 
-modulizeDecMethod :: Ast.DecMethodContent -> Token.Named -> Ast.Dec
-modulizeDecMethod m (Token.Named moduleName _) = let
-    token = Token.getMethdNameToken (Ast.decMethodName m)
+modulizeStmtFunc :: Ast.StmtFuncContent -> Token.Named -> Ast.Stmt
+modulizeStmtFunc f (Token.Named moduleName _) = let
+    token = Token.getFuncNameToken (Ast.stmtFuncName f)
     location' = Token.location token
     name' = Token.content token
     name'' = moduleName ++ "." ++ name'
-    m' = Token.Named name'' location'
-    in Ast.DecMethod $ m { Ast.decMethodName = Token.MethdName m' } 
+    f' = Token.Named name'' location'
+    in Ast.StmtFunc $ f { Ast.stmtFuncName = Token.FuncName f' } 
 
-methodify :: Token.ClassName -> Maybe Token.Named -> [ Ast.DecMethodContent ] -> [(Token.MethdName, Ast.DecMethodContent)]
+methodify :: Token.ClassName -> Maybe Token.Named -> [ Ast.StmtFuncContent ] -> [(Token.MethdName, Ast.StmtMethodContent)]
 methodify c Nothing = Data.List.map (methodify' c Nothing)
+methodify c (Just s) = Data.List.map (methodify' c (Just s))
 
-methodify' :: Token.ClassName -> Maybe Token.Named -> Ast.DecMethodContent -> (Token.MethdName, Ast.DecMethodContent)
-methodify' c Nothing  d = ((Ast.decMethodName d), d { Ast.hostingClassName = c, Ast.hostingClassSupers = []                    } )
-methodify' c (Just s) d = ((Ast.decMethodName d), d { Ast.hostingClassName = c, Ast.hostingClassSupers = [ Token.SuperName s ] } )
+methodify' :: Token.ClassName -> Maybe Token.Named -> Ast.StmtFuncContent -> (Token.MethdName, Ast.StmtMethodContent)
+methodify' c s f = methodify'' c (case s of { Nothing -> Nothing; Just n -> Just (Token.SuperName n) }) f
+
+methodify'' :: Token.ClassName -> Maybe Token.SuperName -> Ast.StmtFuncContent -> (Token.MethdName, Ast.StmtMethodContent)
+methodify'' c s f = let m = Token.MethdName $ Token.getFuncNameToken (Ast.stmtFuncName f) in (m, Ast.StmtMethodContent {
+    Ast.stmtMethodReturnType = (Ast.stmtFuncReturnType f),
+    Ast.stmtMethodName = Token.MethdName $ Token.getFuncNameToken (Ast.stmtFuncName f),
+    Ast.stmtMethodParams = (Ast.stmtFuncParams f),
+    Ast.stmtMethodBody = (Ast.stmtFuncBody f),
+    Ast.stmtMethodLocation = (Ast.stmtFuncLocation f),
+    Ast.hostingClassName = c,
+    Ast.hostingClassSupers = case s of { Nothing -> []; Just oneSuperClassName -> [ oneSuperClassName ] }
+})
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)

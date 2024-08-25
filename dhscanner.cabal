@@ -51,7 +51,7 @@ executable parser
     build-depends:
         base,
         containers,
-        dhscanner-ast,
+        dhscanner-ast >= 0.1.0.3,
         aeson,
         array,
         yesod,
