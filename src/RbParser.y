@@ -2240,7 +2240,11 @@ modulize moduleName = Data.List.map (modulize' moduleName)
 modulize' :: Token.Named -> Ast.Stmt -> Ast.Stmt
 modulize' moduleName (Ast.StmtClass c) = modulizeStmtClass c moduleName
 modulize' moduleName (Ast.StmtFunc  f) = modulizeStmtFunc  f moduleName
+modulize' moduleName (Ast.StmtIf    s) = modulizeStmtIf    s moduleName
 modulize' moduleName stmt = stmt
+
+modulizeStmtIf :: Ast.StmtIfContent -> Token.Named -> Ast.Stmt
+modulizeStmtIf s moduleName = Ast.StmtIf (s { Ast.stmtIfBody = modulize moduleName (Ast.stmtIfBody s) })
 
 modulizeStmtClass :: Ast.StmtClassContent -> Token.Named -> Ast.Stmt
 modulizeStmtClass c (Token.Named moduleName _) = let
