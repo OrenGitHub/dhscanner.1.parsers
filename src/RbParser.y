@@ -21,7 +21,7 @@ import qualified Token
 import Data.Maybe
 import Data.Either
 import Data.List ( map, singleton, foldl', filter )
-import Data.Map ( fromList, empty )
+import Data.Map ( fromList, empty, map )
 
 }
 
@@ -2246,14 +2246,16 @@ modulize' moduleName stmt = stmt
 modulizeStmtIf :: Ast.StmtIfContent -> Token.Named -> Ast.Stmt
 modulizeStmtIf s moduleName = Ast.StmtIf (s { Ast.stmtIfBody = modulize moduleName (Ast.stmtIfBody s) })
 
+fixHostingClass :: String -> Ast.StmtMethodContent -> Ast.StmtMethodContent
+fixHostingClass moduleName method = let
+    c = Token.getClassNameToken (Ast.hostingClassName method)
+    hostingClassName' = c { Token.content = moduleName ++ "." ++ (Token.content c) }
+    in method { Ast.hostingClassName = Token.ClassName hostingClassName' }
+
 modulizeStmtClass :: Ast.StmtClassContent -> Token.Named -> Ast.Stmt
 modulizeStmtClass c (Token.Named moduleName _) = let
-    token = Token.getClassNameToken (Ast.stmtClassName c)
-    location' = Token.location token
-    name' = Token.content token
-    name'' = moduleName ++ "." ++ name'
-    c' = Token.Named name'' location'
-    in Ast.StmtClass $ c { Ast.stmtClassName = Token.ClassName c' }
+    methods = Data.Map.map (fixHostingClass moduleName) (Ast.actualMethods (Ast.stmtClassMethods c))
+    in Ast.StmtClass $ c { Ast.stmtClassMethods = Ast.Methods methods }
 
 modulizeStmtFunc :: Ast.StmtFuncContent -> Token.Named -> Ast.Stmt
 modulizeStmtFunc f (Token.Named moduleName _) = let
