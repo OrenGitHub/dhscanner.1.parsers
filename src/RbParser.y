@@ -91,6 +91,7 @@ import Data.Map ( fromList, empty, map )
 'self'                  { AlexTokenTag AlexRawToken_SELF            _ }
 'gvar'                  { AlexTokenTag AlexRawToken_GVAR            _ }
 'begin'                 { AlexTokenTag AlexRawToken_BEGIN           _ }
+'break'                 { AlexTokenTag AlexRawToken_BREAK           _ }
 'call'                  { AlexTokenTag AlexRawToken_CALL            _ }
 'vcall'                 { AlexTokenTag AlexRawToken_VCALL           _ }
 'superclass'            { AlexTokenTag AlexRawToken_SUPER           _ }
@@ -357,6 +358,7 @@ ID        { unquote (tokIDValue $1) } |
 'name'    { "name"                  } |
 '.'       { "."                     } |
 '='       { "="                     } |
+'+'       { "+"                     } |
 'start'   { "start"                 } |
 'index'   { "index"                 } |
 'update'  { "update"                } |
@@ -1938,6 +1940,22 @@ stmt_begin:
     }
 }
 
+-- **************
+-- *            *
+-- * stmt_break *
+-- *            *
+-- **************
+stmt_break:
+'{'
+    'type' ':' 'break' ','
+    'location' ':' location ','
+    'arguments' ':' arguments ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
 
 -- ********
 -- *      *
@@ -1951,6 +1969,7 @@ stmt_for     { $1 } |
 stmt_exp     { $1 } |
 stmt_assign  { $1 } |
 stmt_begin   { $1 } |
+stmt_break   { $1 } |
 stmt_void    { $1 } |
 stmt_next    { $1 } |
 stmt_class   { $1 } |

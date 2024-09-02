@@ -76,6 +76,7 @@ import Location
 @KW_SELF            = \"self\"
 @KW_GVAR            = \"gvar\"
 @KW_BEGIN           = \"begin\"
+@KW_BREAK           = \"break\"
 @KW_CALL            = \"call\"
 @KW_VCALL           = \"vcall\"
 @KW_DICT            = \"bare_assoc_hash\"
@@ -325,6 +326,7 @@ tokens :-
 @KW_SELF            { lex' AlexRawToken_SELF            }
 @KW_GVAR            { lex' AlexRawToken_GVAR            }
 @KW_BEGIN           { lex' AlexRawToken_BEGIN           }
+@KW_BREAK           { lex' AlexRawToken_BREAK           }
 @KW_CALL            { lex' AlexRawToken_CALL            }
 @KW_VCALL           { lex' AlexRawToken_VCALL           }
 @KW_LOC             { lex' AlexRawToken_LOC             }
@@ -601,6 +603,7 @@ data AlexRawToken
      | AlexRawToken_SELF            -- ^ Reserved Keyword
      | AlexRawToken_GVAR            -- ^ Reserved Keyword
      | AlexRawToken_BEGIN           -- ^ Reserved Keyword
+     | AlexRawToken_BREAK           -- ^ Reserved Keyword
      | AlexRawToken_CALL            -- ^ Reserved Keyword
      | AlexRawToken_VCALL           -- ^ Reserved Keyword
      | AlexRawToken_LOC             -- ^ Reserved Keyword
