@@ -69,6 +69,7 @@ import Location
 -- ************
 @KW                 = \"kw\"
 @KW_ID              = \"id\"
+@KW_INT             = \"int\"
 @KW_OP              = \"op\"
 @KW_END             = \"end\"
 @KW_RAW             = \"raw\"
@@ -234,6 +235,7 @@ import Location
 -- *************
 
 @KW_OP_LT       = \"\<\"
+@KW_OP_GT       = \"\>\"
 @KW_OP_SHL      = \"\<\<\"
 @KW_OP_EQ       = \"==\"
 @KW_OP_PLUSEQ   = \"\+=\"
@@ -241,6 +243,7 @@ import Location
 @KW_OP_BANG     = \"!\"
 @KW_OP_OR       = \"\|\|\"
 @KW_OP_AND      = \"&&\"
+@KW_OP_AND2     = \"and\"
 @KW_OP_OR2      = \"\|\|=\"
 @KW_OP_ASSIGN   = \"=\"
 @KW_OP_DOT      = \"\.\"
@@ -269,8 +272,6 @@ import Location
 @QUOTE = \"
 @NON_QUOTE = $printable # \"
 @ID = (@QUOTE)(@NON_QUOTE*)(@QUOTE)
-@QUOTED_INT = (@QUOTE)(@INT)(@QUOTE)
-@QUOTED_BOOL = (@QUOTE)(true)(@QUOTE)|(@QUOTE)(false)(@QUOTE)
 
 -- ***************
 -- *             *
@@ -317,6 +318,7 @@ tokens :-
 
 @KW                 { lex' AlexRawToken_KW              }
 @KW_ID              { lex' AlexRawToken_KWID            }
+@KW_INT             { lex' AlexRawToken_KWINT           }
 @KW_OP              { lex' AlexRawToken_OP              }
 @KW_END             { lex' AlexRawToken_END             }
 @KW_RAW             { lex' AlexRawToken_RAW             }
@@ -450,15 +452,6 @@ tokens :-
 @KW_RETURN_TYPE     { lex' AlexRawToken_RETURN_TYPE     }
 @KW_FUNCTION_DEC    { lex' AlexRawToken_FUNCTION_DEC    }
 
--- *********
--- *       *
--- * other *
--- *       *
--- *********
-
-@QUOTED_INT  { lex' AlexRawToken_QUOTED_INT  }
-@QUOTED_BOOL { lex' AlexRawToken_QUOTED_BOOL }
-
 -- ***************
 -- *             *
 -- * expressions *
@@ -492,6 +485,7 @@ tokens :-
 -- *************
 
 @KW_OP_LT       { lex' AlexRawToken_OP_LT       }
+@KW_OP_GT       { lex' AlexRawToken_OP_GT       }
 @KW_OP_SHL      { lex' AlexRawToken_OP_SHL      }
 @KW_OP_EQ       { lex' AlexRawToken_OP_EQ       }
 @KW_OP_PLUSEQ   { lex' AlexRawToken_OP_PLUSEQ   }
@@ -499,6 +493,7 @@ tokens :-
 @KW_OP_BANG     { lex' AlexRawToken_OP_BANG     }
 @KW_OP_OR       { lex' AlexRawToken_OP_OR       }
 @KW_OP_AND      { lex' AlexRawToken_OP_AND      }
+@KW_OP_AND2     { lex' AlexRawToken_OP_AND2     }
 @KW_OP_OR2      { lex' AlexRawToken_OP_OR2      }
 @KW_OP_ASSIGN   { lex' AlexRawToken_OP_ASSIGN   }
 @KW_OP_DOT      { lex' AlexRawToken_OP_DOT      }
@@ -599,6 +594,7 @@ data AlexRawToken
  
      | AlexRawToken_KW              -- ^ Reserved Keyword
      | AlexRawToken_KWID            -- ^ Reserved Keyword
+     | AlexRawToken_KWINT           -- ^ Reserved Keyword
      | AlexRawToken_OP              -- ^ Reserved Keyword
      | AlexRawToken_END             -- ^ Reserved Keyword
      | AlexRawToken_RAW             -- ^ Reserved Keyword
@@ -731,15 +727,6 @@ data AlexRawToken
      | AlexRawToken_EXPR_BINOP_LT   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_PLUS -- ^ Reserved Keyword
 
-     -- *********
-     -- *       *
-     -- * other *
-     -- *       *
-     -- *********
-
-     | AlexRawToken_QUOTED_INT      -- ^ Reserved Keyword
-     | AlexRawToken_QUOTED_BOOL     -- ^ Reserved Keyword
-
      -- *************
      -- *           *
      -- * operators *
@@ -747,6 +734,7 @@ data AlexRawToken
      -- *************
 
      | AlexRawToken_OP_LT           -- ^ Reserved Keyword
+     | AlexRawToken_OP_GT           -- ^ Reserved Keyword
      | AlexRawToken_OP_SHL          -- ^ Reserved Keyword
      | AlexRawToken_OP_EQ           -- ^ Reserved Keyword
      | AlexRawToken_OP_PLUSEQ       -- ^ Reserved Keyword
@@ -754,6 +742,7 @@ data AlexRawToken
      | AlexRawToken_OP_BANG         -- ^ Reserved Keyword
      | AlexRawToken_OP_OR           -- ^ Reserved Keyword
      | AlexRawToken_OP_AND          -- ^ Reserved Keyword
+     | AlexRawToken_OP_AND2         -- ^ Reserved Keyword
      | AlexRawToken_OP_OR2          -- ^ Reserved Keyword
      | AlexRawToken_OP_ASSIGN       -- ^ Reserved Keyword
      | AlexRawToken_OP_DOT          -- ^ Reserved Keyword

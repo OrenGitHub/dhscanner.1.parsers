@@ -84,6 +84,7 @@ import Data.Map ( fromList, empty, map )
 
 'kw'                    { AlexTokenTag AlexRawToken_KW              _ }
 'id'                    { AlexTokenTag AlexRawToken_KWID            _ }
+'int'                   { AlexTokenTag AlexRawToken_KWINT           _ }
 'op'                    { AlexTokenTag AlexRawToken_OP              _ }
 'end'                   { AlexTokenTag AlexRawToken_END             _ }
 'raw'                   { AlexTokenTag AlexRawToken_RAW             _ }
@@ -212,15 +213,6 @@ import Data.Map ( fromList, empty, map )
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'def'                   { AlexTokenTag AlexRawToken_FUNCTION_DEC    _ }
 
--- *********
--- *       *
--- * other *
--- *       *
--- *********
-
-QUOTED_INT  { AlexTokenTag AlexRawToken_QUOTED_INT  _ }
-QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
-
 -- ***************
 -- *             *
 -- * expressions *
@@ -257,6 +249,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 -- *************
 
 '<'   { AlexTokenTag AlexRawToken_OP_LT       _ }
+'>'   { AlexTokenTag AlexRawToken_OP_GT       _ }
 '<<'  { AlexTokenTag AlexRawToken_OP_SHL      _ }
 '=='  { AlexTokenTag AlexRawToken_OP_EQ       _ }
 '+='  { AlexTokenTag AlexRawToken_OP_PLUSEQ   _ }
@@ -273,6 +266,7 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 '||'  { AlexTokenTag AlexRawToken_OP_OR       _ }
 '&&'  { AlexTokenTag AlexRawToken_OP_AND      _ }
 '||=' { AlexTokenTag AlexRawToken_OP_OR2      _ }
+'and' { AlexTokenTag AlexRawToken_OP_AND2     _ }
 
 -- ****************************
 -- *                          *
@@ -362,6 +356,7 @@ ID        { unquote (tokIDValue $1) } |
 'contents' { "contents"             } |
 'name'    { "name"                  } |
 '.'       { "."                     } |
+'='       { "="                     } |
 'start'   { "start"                 } |
 'index'   { "index"                 } |
 'update'  { "update"                } |
@@ -1074,6 +1069,26 @@ arg_block:
     $12
 }
 
+-- ***********
+-- *         *
+-- * exp_int *
+-- *         *
+-- ***********
+exp_int:
+'{'
+    'type' ':' 'int' ','
+    'location' ':' location ','
+    'value' ':' ID ','
+    'comments' ':' comments
+'}'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = read (unquote (tokIDValue $12)),
+        Token.constIntLocation = $8
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1081,6 +1096,7 @@ arg_block:
 -- *******
 exp:
 exp_str    { $1 } |
+exp_int    { $1 } |
 backref    { $1 } |
 exp_regex  { $1 } |
 arg_block  { $1 } |
@@ -1097,7 +1113,9 @@ exp_args   { $1 } |
 exp_binop  { $1 } |
 exp_paren  { $1 } |
 exp_yield  { $1 } |
-arg_star   { $1 }
+exp_cmd    { $1 } |
+arg_star   { $1 } |
+exp_cmdcall {$1 }
 
 -- **************
 -- *            *
@@ -1143,6 +1161,7 @@ stmt_for:
 actual_op:
 '..'  { Ast.PLUS    } |
 '=='  { Ast.PLUS    } |
+'and' { Ast.PLUS    } |
 '+='  { Ast.PLUS    } |
 '&&'  { Ast.PLUS    } |
 '||'  { Ast.PLUS    } |
@@ -1152,6 +1171,7 @@ actual_op:
 '%'   { Ast.PERCENT } |
 '-'   { Ast.MINUS   } |
 '<'   { Ast.PLUS    } |
+'>'   { Ast.PLUS    } |
 '<<'  { Ast.PLUS    } |
 '='   { Ast.PLUS    } |
 '!~'  { Ast.PLUS    } |
@@ -1627,29 +1647,29 @@ stmt_class:
     }
 }
 
--- ****************
--- *              *
--- * stmt_command *
--- *              *
--- ****************
-stmt_command:
+-- ***************
+-- *             *
+-- * exp_command *
+-- *             *
+-- ***************
+exp_cmd:
 '{'
     'type' ':' 'command' ','
     'location' ':' location ','
     'message' ':' identifier ','
     'arguments' ':' arguments ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
-    Nothing
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12
 }
 
--- ****************
--- *              *
--- * stmt_cmdcall *
--- *              *
--- ****************
-stmt_cmdcall:
+-- ***************
+-- *             *
+-- * exp_cmdcall *
+-- *             *
+-- ***************
+exp_cmdcall:
 '{'
     'type' ':' 'command_call' ','
     'location' ':' location ','
@@ -1657,12 +1677,11 @@ stmt_cmdcall:
     'operator' ':' operator ','
     'message' ':' identifier ','
     'arguments' ':' args ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
-    Nothing
+    $12
 }
-
 
 -- ***************
 -- *             *
@@ -1935,8 +1954,6 @@ stmt_begin   { $1 } |
 stmt_void    { $1 } |
 stmt_next    { $1 } |
 stmt_class   { $1 } |
-stmt_command { $1 } |
-stmt_cmdcall { $1 } |
 stmt_sclass  { $1 } |
 stmt_method  { $1 } |
 stmt_module  { $1 } |
