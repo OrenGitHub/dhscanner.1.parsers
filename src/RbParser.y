@@ -116,6 +116,7 @@ import Data.Map ( fromList, empty, map )
 'class'                 { AlexTokenTag AlexRawToken_CLASS           _ }
 'sclass'                { AlexTokenTag AlexRawToken_SCLASS          _ }
 'assign'                { AlexTokenTag AlexRawToken_ASSIGN          _ }
+'massign'               { AlexTokenTag AlexRawToken_ASSIGN3         _ }
 'opassign'              { AlexTokenTag AlexRawToken_ASSIGN2         _ }
 'location'              { AlexTokenTag AlexRawToken_LOC             _ }
 'command'               { AlexTokenTag AlexRawToken_COMMAND         _ }
@@ -142,6 +143,7 @@ import Data.Map ( fromList, empty, map )
 'Name'                  { AlexTokenTag AlexRawToken_MAME            _ }
 'type'                  { AlexTokenTag AlexRawToken_TYPE            _ }
 'left'                  { AlexTokenTag AlexRawToken_LEFT            _ }
+'mlhs'                  { AlexTokenTag AlexRawToken_LEFT2           _ }
 'arg_block'             { AlexTokenTag AlexRawToken_ARG_BLOCK       _ }
 'keyword_rest'          { AlexTokenTag AlexRawToken_REST            _ }
 'kwrest_param'          { AlexTokenTag AlexRawToken_REST2           _ }
@@ -262,6 +264,7 @@ import Data.Map ( fromList, empty, map )
 '-'   { AlexTokenTag AlexRawToken_OP_MINUS    _ }
 '*'   { AlexTokenTag AlexRawToken_OP_TIMES    _ }
 '..'  { AlexTokenTag AlexRawToken_OP_DOTDOT   _ }
+'::'  { AlexTokenTag AlexRawToken_OP_COLON2   _ }
 '%'   { AlexTokenTag AlexRawToken_OP_PERCENT  _ }
 '++'  { AlexTokenTag AlexRawToken_OP_PLUSPLUS _ }
 '||'  { AlexTokenTag AlexRawToken_OP_OR       _ }
@@ -636,7 +639,7 @@ fstring:
 '{'
     'type' ':' 'string_literal' ','
     'location' ':' location ','
-    'parts' ':' '[' commalistof(string_part) ']' ','
+    'parts' ':' parts ','
     'comments' ':' '[' ']'
 '}'
 {
@@ -647,7 +650,7 @@ fstring:
             Token.content = "fstring",
             Token.location = $8
         },
-        Ast.args = $13,
+        Ast.args = $12,
         Ast.expCallLocation = $8
     }
 }
@@ -922,7 +925,7 @@ exp_paren:
     'type' ':' 'paren' ','
     'location' ':' location ','
     'contents' ':' stmts ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
@@ -1117,6 +1120,7 @@ exp_paren  { $1 } |
 exp_yield  { $1 } |
 exp_cmd    { $1 } |
 arg_star   { $1 } |
+string_part {$1 } |
 exp_cmdcall {$1 }
 
 -- **************
@@ -1162,6 +1166,7 @@ stmt_for:
 -- ************
 actual_op:
 '..'  { Ast.PLUS    } |
+'::'  { Ast.PLUS    } |
 '=='  { Ast.PLUS    } |
 'and' { Ast.PLUS    } |
 '+='  { Ast.PLUS    } |
@@ -1336,6 +1341,34 @@ stmt_assign_type_1:
     }
 }
 
+mlhs:
+'{'
+    'type' ':' 'mlhs' ','
+    'location' ':' location ','
+    'parts' ':' parts ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+-- ***************
+-- *             *
+-- * stmt_assign *
+-- *             *
+-- ***************
+stmt_assign_type_3:
+'{'
+    'type' ':' 'massign' ','
+    'location' ':' location ','
+    'target' ':' mlhs ','
+    'value' ':' exp ','
+    'comments' ':' comments 
+'}'
+{
+    Nothing
+}
+
 -- ***************
 -- *             *
 -- * stmt_assign *
@@ -1343,7 +1376,8 @@ stmt_assign_type_1:
 -- ***************
 stmt_assign:
 stmt_assign_type_1 { $1 } |
-stmt_assign_type_2 { $1 }
+stmt_assign_type_2 { $1 } |
+stmt_assign_type_3 { $1 }
 
 -- ***********
 -- *         *
@@ -1414,7 +1448,7 @@ stmt_if_type_1:
     'predicate' ':' exp ','
     'stmts' ':' stmts ','
     optional(else_part)
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Just $ Right $ Ast.StmtIf $ Ast.StmtIfContent
@@ -2057,7 +2091,7 @@ params_type_1:
     'type' ':' 'paren' ','
     'location' ':' location ','
     'contents' ':' contents ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     $12

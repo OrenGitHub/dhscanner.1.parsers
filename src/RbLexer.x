@@ -101,6 +101,7 @@ import Location
 @KW_SCLASS          = \"sclass\"
 @KW_ASSIGN          = \"assign\"
 @KW_ASSIGN2         = \"opassign\"
+@KW_ASSIGN3         = \"massign\"
 @KW_LOC             = \"location\"
 @KW_COMMAND         = \"command\"
 @KW_COMMAND2        = \"command_call\"
@@ -127,6 +128,7 @@ import Location
 @KW_MAME            =  Name
 @KW_TYPE            = \"type\"
 @KW_LEFT            = \"left\"
+@KW_LEFT2           = \"mlhs\"
 @KW_ARG_BLOCK       = \"arg_block\"
 @KW_REST            = \"keyword_rest\"
 @KW_REST2           = \"kwrest_param\"
@@ -254,6 +256,7 @@ import Location
 @KW_OP_PERCENT  = \"\%\"
 @KW_OP_DOTDOT   = \"\.\.\"
 @KW_OP_PLUSPLUS = \"\+\+\"
+@KW_OP_COLON2   = \"::\"
 
 -- ************
 -- *          *
@@ -352,6 +355,7 @@ tokens :-
 @KW_SCLASS          { lex' AlexRawToken_SCLASS          }
 @KW_ASSIGN          { lex' AlexRawToken_ASSIGN          }
 @KW_ASSIGN2         { lex' AlexRawToken_ASSIGN2         }
+@KW_ASSIGN3         { lex' AlexRawToken_ASSIGN3         }
 @KW_COMMAND         { lex' AlexRawToken_COMMAND         }
 @KW_COMMAND2        { lex' AlexRawToken_COMMAND2        }
 @KW_MESSAGE         { lex' AlexRawToken_MESSAGE         }
@@ -377,6 +381,7 @@ tokens :-
 @KW_MAME            { lex' AlexRawToken_MAME            }
 @KW_TYPE            { lex' AlexRawToken_TYPE            }
 @KW_LEFT            { lex' AlexRawToken_LEFT            }
+@KW_LEFT2           { lex' AlexRawToken_LEFT2           }
 @KW_ARG_BLOCK       { lex' AlexRawToken_ARG_BLOCK       }
 @KW_REST            { lex' AlexRawToken_REST            }
 @KW_REST2           { lex' AlexRawToken_REST2           }
@@ -505,6 +510,7 @@ tokens :-
 @KW_OP_DOTDOT   { lex' AlexRawToken_OP_DOTDOT   }
 @KW_OP_PERCENT  { lex' AlexRawToken_OP_PERCENT  }
 @KW_OP_PLUSPLUS { lex' AlexRawToken_OP_PLUSPLUS }
+@KW_OP_COLON2   { lex' AlexRawToken_OP_COLON2   }
 
 -- ***************************
 -- *                         *
@@ -611,6 +617,7 @@ data AlexRawToken
      | AlexRawToken_SCLASS          -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN          -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN2         -- ^ Reserved Keyword
+     | AlexRawToken_ASSIGN3         -- ^ Reserved Keyword
      | AlexRawToken_SUPER           -- ^ Reserved Keyword
      | AlexRawToken_DICT            -- ^ Reserved Keyword
      | AlexRawToken_DICT2           -- ^ Reserved Keyword
@@ -654,6 +661,7 @@ data AlexRawToken
      | AlexRawToken_MAME            -- ^ Reserved Keyword
      | AlexRawToken_TYPE            -- ^ Reserved Keyword
      | AlexRawToken_LEFT            -- ^ Reserved Keyword
+     | AlexRawToken_LEFT2           -- ^ Reserved Keyword
      | AlexRawToken_ARG_BLOCK       -- ^ Reserved Keyword
      | AlexRawToken_REST            -- ^ Reserved Keyword
      | AlexRawToken_REST2           -- ^ Reserved Keyword
@@ -755,6 +763,7 @@ data AlexRawToken
      | AlexRawToken_OP_DOTDOT       -- ^ Reserved Keyword
      | AlexRawToken_OP_PERCENT      -- ^ Reserved Keyword
      | AlexRawToken_OP_PLUSPLUS     -- ^ Reserved Keyword
+     | AlexRawToken_OP_COLON2       -- ^ Reserved Keyword
 
      -- ***************
      -- *             *
