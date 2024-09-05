@@ -1895,7 +1895,7 @@ stmt_block:
     'comments' ':' comments
 '}'
 {
-    Nothing
+    Just $ Right $ Ast.StmtExp $12
 }
 
 -- ***************
