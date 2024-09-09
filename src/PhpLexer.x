@@ -72,6 +72,7 @@ import Location
 @KW_USES            = "uses"
 @KW_EXPR            = "expr"
 @KW_MAME            = "Name"
+@KW_NULL            = "null"
 @KW_TYPE            = "type"
 @KW_LEFT            = "left"
 @KW_LOOP            = "loop"
@@ -84,21 +85,24 @@ import Location
 @KW_ARRAY           = "array"
 @KW_PARAM           = "Param"
 @KW_STMT_IF         = "Stmt_If"
+@KW_STMT_ELSE       = "Stmt_Else"
 @KW_USE_ITEM        = "UseItem"
 @KW_STMT_FOR        = "Stmt_For"
 @KW_STMT_USE        = "Stmt_Use"
 @KW_STMT_ECHO       = "Stmt_Echo"
 @KW_EXPR_VAR        = "Expr_Variable"
 @KW_EXPR_NEW        = "Expr_New"
+@KW_EXPR_EXIT       = "Expr_Exit"
 @KW_EXPR_LAMBDA     = "Expr_Closure"
 @KW_EXPR_ASSIGN     = "Expr_Assign"
+@KW_EXPR_ISSET      = "Expr_Isset"
 @KW_EXPR_ARRAY      = "Expr_Array"
+@KW_EXPR_ARRAY2     = "Expr_ArrayDimFetch"
 @KW_EXPR_CALL       = "Expr_FuncCall"
 @KW_EXPR_SCALL      = "Expr_StaticCall"
 @KW_EXPR_MCALL      = "Expr_MethodCall"
 @KW_STMT_EXPR       = "Stmt_Expression"
 @KW_SCALAR_INT      = "Scalar_Int"
-@KW_SCALAR_STR      = "Scalar_String"
 @KW_IDENTIFIER      = "Identifier"
 @KW_RETURN_TYPE     = "returnType"
 @KW_STMT_RETURN     = "Stmt_Return"
@@ -109,6 +113,7 @@ import Location
 @KW_EXPR_CONST_GET  = "Expr_ConstFetch"
 @KW_EXPR_PROP_GET   = "Expr_PropertyFetch"
 @KW_EXPR_BINOP_LT   = "Expr_BinaryOp_Smaller"
+@KW_EXPR_UNOP_NOT   = "Expr_BooleanNot"
 @KW_EXPR_BINOP_PLUS = "Expr_BinaryOp_Plus"
 
 -- ************
@@ -133,7 +138,12 @@ import Location
 -- * strings *
 -- *         *
 -- ***********
-@REST = "/token"|"/status"|"/frontend/public/pwned"|"You've been pwned !"|"Everything seems fine"|"/upload/profile/photo"|"/uploads/v1/user/profile.png"|"saved profile picture to /uploads/v1/user/profile.png"|"/test"|"999 666 MMM"|"/ghsa_97m3"|"DDD 444 111"
+@NON_WHITE = . # $white
+
+@LOC = (@INT)(":")(@INT)
+@DASH = ($white)(\-)($white)
+@RANGE = (@LOC)(@DASH)(@LOC)
+@STR = "Scalar_String"(@LBRACK)(@RANGE)(@RBRACK)(@LPAREN)($white+)("value: ")(@NON_WHITE+)($white+)(@RPAREN)
 
 -- ***************
 -- *             *
@@ -183,6 +193,7 @@ tokens :-
 @KW_USES            { lex' AlexRawToken_USES            }
 @KW_EXPR            { lex' AlexRawToken_EXPR            }
 @KW_MAME            { lex' AlexRawToken_MAME            }
+@KW_NULL            { lex' AlexRawToken_NULL            }
 @KW_TYPE            { lex' AlexRawToken_TYPE            }
 @KW_LEFT            { lex' AlexRawToken_LEFT            }
 @KW_LOOP            { lex' AlexRawToken_LOOP            }
@@ -195,21 +206,24 @@ tokens :-
 @KW_ARRAY           { lex' AlexRawToken_ARRAY           }
 @KW_PARAM           { lex' AlexRawToken_PARAM           }
 @KW_STMT_IF         { lex' AlexRawToken_STMT_IF         }
+@KW_STMT_ELSE       { lex' AlexRawToken_STMT_ELSE       }
 @KW_USE_ITEM        { lex' AlexRawToken_USE_ITEM        }
 @KW_STMT_FOR        { lex' AlexRawToken_STMT_FOR        }
 @KW_STMT_USE        { lex' AlexRawToken_STMT_USE        }
 @KW_STMT_ECHO       { lex' AlexRawToken_STMT_ECHO       }
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
 @KW_EXPR_NEW        { lex' AlexRawToken_EXPR_NEW        }
+@KW_EXPR_EXIT       { lex' AlexRawToken_EXPR_EXIT       }
 @KW_EXPR_LAMBDA     { lex' AlexRawToken_EXPR_LAMBDA     }
 @KW_EXPR_ASSIGN     { lex' AlexRawToken_EXPR_ASSIGN     }
+@KW_EXPR_ISSET      { lex' AlexRawToken_EXPR_ISSET      }
 @KW_EXPR_ARRAY      { lex' AlexRawToken_EXPR_ARRAY      }
+@KW_EXPR_ARRAY2     { lex' AlexRawToken_EXPR_ARRAY2     }
 @KW_EXPR_CALL       { lex' AlexRawToken_EXPR_CALL       }
 @KW_EXPR_MCALL      { lex' AlexRawToken_EXPR_MCALL      }
 @KW_EXPR_SCALL      { lex' AlexRawToken_EXPR_SCALL      }
 @KW_STMT_EXPR       { lex' AlexRawToken_STMT_EXPR       }
 @KW_SCALAR_INT      { lex' AlexRawToken_SCALAR_INT      }
-@KW_SCALAR_STR      { lex' AlexRawToken_SCALAR_STR      }
 @KW_IDENTIFIER      { lex' AlexRawToken_IDENTIFIER      }
 @KW_RETURN_TYPE     { lex' AlexRawToken_RETURN_TYPE     }
 @KW_STMT_RETURN     { lex' AlexRawToken_STMT_RETURN     }
@@ -221,6 +235,7 @@ tokens :-
 @KW_EXPR_PROP_GET   { lex' AlexRawToken_EXPR_PROP_GET   }
 @KW_EXPR_BINOP_LT   { lex' AlexRawToken_EXPR_BINOP_LT   }
 @KW_EXPR_BINOP_PLUS { lex' AlexRawToken_EXPR_BINOP_PLUS }
+@KW_EXPR_UNOP_NOT   { lex' AlexRawToken_EXPR_UNOP_NOT   }
 
 -- ***************************
 -- *                         *
@@ -238,7 +253,7 @@ tokens :-
 
 @ID        { lex  AlexRawToken_ID                 }
 @INT       { lex (AlexRawToken_INT . round. read) }
-@REST      { lex AlexRawToken_REST                }
+@STR       { lex AlexRawToken_STR                 }
 
 {
 
@@ -297,7 +312,7 @@ data AlexRawToken
 
      = AlexRawToken_INT Int         -- ^ locations and numbers
      | AlexRawToken_ID String       -- ^ including consant strings
-     | AlexRawToken_REST String     -- ^ constant strings with non ID chars
+     | AlexRawToken_STR String      -- ^ constant strings
       
      | AlexRawToken_LPAREN          -- ^ Parentheses __(__
      | AlexRawToken_RPAREN          -- ^ Parentheses __)__
@@ -311,6 +326,7 @@ data AlexRawToken
      | AlexRawToken_USES            -- ^ Reserved Keyword
      | AlexRawToken_EXPR            -- ^ Reserved Keyword
      | AlexRawToken_MAME            -- ^ Reserved Keyword
+     | AlexRawToken_NULL            -- ^ Reserved Keyword
      | AlexRawToken_TYPE            -- ^ Reserved Keyword
      | AlexRawToken_LEFT            -- ^ Reserved Keyword
      | AlexRawToken_LOOP            -- ^ Reserved Keyword
@@ -323,15 +339,19 @@ data AlexRawToken
      | AlexRawToken_ARRAY           -- ^ Reserved Keyword
      | AlexRawToken_PARAM           -- ^ Reserved Keyword
      | AlexRawToken_STMT_IF         -- ^ Reserved Keyword
+     | AlexRawToken_STMT_ELSE       -- ^ Reserved Keyword
      | AlexRawToken_USE_ITEM        -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
      | AlexRawToken_STMT_USE        -- ^ Reserved Keyword
      | AlexRawToken_STMT_ECHO       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_VAR        -- ^ Reserved Keyword
      | AlexRawToken_EXPR_NEW        -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_EXIT       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_LAMBDA     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_ISSET      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ARRAY      -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_ARRAY2     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CALL       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_MCALL      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_SCALL      -- ^ Reserved Keyword
@@ -349,6 +369,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_PROP_GET   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_LT   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_PLUS -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_UNOP_NOT   -- ^ Reserved Keyword
 
      | AlexRawToken_COLON           -- ^ Punctuation __:__
      | AlexRawToken_SLASH           -- ^ Punctuation __:__
@@ -449,7 +470,7 @@ tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> s; _ -> ""; }
 -- *            *
 -- **************
 tokStrValue :: AlexTokenTag -> String
-tokStrValue t = case (tokenRaw t) of { AlexRawToken_REST s -> s; _ -> ""; }
+tokStrValue t = case (tokenRaw t) of { AlexRawToken_STR s -> s; _ -> ""; }
 
 -- ************
 -- *          *
