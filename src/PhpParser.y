@@ -106,8 +106,10 @@ import Data.Map ( fromList )
 'Stmt_For'              { AlexTokenTag AlexRawToken_STMT_FOR        _ }
 'Stmt_Echo'             { AlexTokenTag AlexRawToken_STMT_ECHO       _ }
 'Expr_Closure'          { AlexTokenTag AlexRawToken_EXPR_LAMBDA     _ }
+'Expr_Cast_Double'      { AlexTokenTag AlexRawToken_EXPR_CAST       _ }
 'Expr_New'              { AlexTokenTag AlexRawToken_EXPR_NEW        _ }
 'Expr_Exit'             { AlexTokenTag AlexRawToken_EXPR_EXIT       _ }
+'Expr_Ternary'          { AlexTokenTag AlexRawToken_EXPR_TERNARY    _ }
 'Expr_Variable'         { AlexTokenTag AlexRawToken_EXPR_VAR        _ }
 'Expr_FuncCall'         { AlexTokenTag AlexRawToken_EXPR_CALL       _ }
 'Expr_MethodCall'       { AlexTokenTag AlexRawToken_EXPR_MCALL      _ }
@@ -124,13 +126,17 @@ import Data.Map ( fromList )
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'Expr_Assign'           { AlexTokenTag AlexRawToken_EXPR_ASSIGN     _ }
 'Expr_Array'            { AlexTokenTag AlexRawToken_EXPR_ARRAY      _ }
+'ArrayItem'             { AlexTokenTag AlexRawToken_EXPR_ARRAY3     _ }
 'Expr_ArrayDimFetch'    { AlexTokenTag AlexRawToken_EXPR_ARRAY2     _ }
 'Expr_Isset'            { AlexTokenTag AlexRawToken_EXPR_ISSET      _ }
 'Expr_ConstFetch'       { AlexTokenTag AlexRawToken_EXPR_CONST_GET  _ }
 'Expr_PropertyFetch'    { AlexTokenTag AlexRawToken_EXPR_PROP_GET   _ }
 'Expr_BooleanNot'       { AlexTokenTag AlexRawToken_EXPR_UNOP_NOT   _ }
 'Expr_BinaryOp_Plus'    { AlexTokenTag AlexRawToken_EXPR_BINOP_PLUS _ }
+'Expr_BinaryOp_Concat'  { AlexTokenTag AlexRawToken_EXPR_BINOP_CONCAT _ }
+'Expr_BinaryOp_BooleanOr' { AlexTokenTag AlexRawToken_EXPR_BINOP_OR _ }
 'Expr_BinaryOp_Smaller' { AlexTokenTag AlexRawToken_EXPR_BINOP_LT   _ }
+'Expr_BinaryOp_Identical' { AlexTokenTag AlexRawToken_EXPR_BINOP_IS _ }
 
 -- ****************************
 -- *                          *
@@ -227,6 +233,7 @@ stmt_if        { $1 } |
 stmt_use       { $1 } |
 stmt_for       { $1 } |
 stmt_exp       { $1 } |
+stmt_echo      { $1 } |
 stmt_assign    { $1 } |
 stmt_class     { $1 } |
 stmt_function  { $1 } |
@@ -494,7 +501,23 @@ stmt_assign:
 -- * stmt_if *
 -- *         *
 -- ***********
-stmt_echo: 'Stmt_Echo' loc '(' 'exprs' ':' exps ')' { Nothing }
+stmt_echo:
+'Stmt_Echo' loc
+'('
+    'exprs' ':' exps
+')'
+{
+    Ast.StmtCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "echo",
+            Token.location = $2
+        },
+        Ast.args = $6,
+        Ast.expCallLocation = $2
+    }
+}
 
 -- ***************
 -- *             *
@@ -591,6 +614,36 @@ exp_isset:
     }
 }
 
+-- ***************
+-- *             *
+-- * exp_ternary *
+-- *             *
+-- ***************
+exp_ternary:
+'Expr_Ternary' loc
+'('
+    'cond' ':' exp
+    ID ':' exp
+    ID ':' exp
+')'
+{
+    $6
+}
+
+-- ************
+-- *          *
+-- * exp_cast *
+-- *          *
+-- ************
+exp_cast:
+'Expr_Cast_Double' loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -603,12 +656,31 @@ exp_new     { $1 } |
 exp_not     { $1 } |
 exp_bool    { $1 } |
 exp_exit    { $1 } |
+exp_cast    { $1 } |
 exp_call    { Ast.ExpCall $1 } |
 exp_binop   { $1 } |
 exp_isset   { $1 } |
 exp_array   { $1 } |
 exp_lambda  { $1 } |
+exp_ternary { $1 } |
 exp_var     { $1 }
+
+array_item:
+'ArrayItem' loc
+'('
+    ID ':' exp
+    'value' ':' exp 
+    ID ':' ID
+    ID ':' ID
+')'
+{
+    Nothing
+}
+
+numbered_array_item: INT ':' array_item { $3 }
+
+array_items:
+'array' '(' ')' { [] } | 'array' '(' listof(numbered_array_item) ')' { $3 }
 
 -- *************
 -- *           *
@@ -616,7 +688,10 @@ exp_var     { $1 }
 -- *           *
 -- *************
 exp_array:
-'Expr_Array' loc '(' ID ':' 'array' '(' ')' ')'
+'Expr_Array' loc
+'('
+    ID ':' array_items
+')'
 {
     Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
     {
@@ -705,12 +780,32 @@ exp_bool:
 -- ***********
 exp_var: var { Ast.ExpVar (Ast.ExpVarContent $1) }
 
+operator:
+'Expr_BinaryOp_Smaller'   { Nothing } |
+'Expr_BinaryOp_Concat'    { Nothing } |
+'Expr_BinaryOp_Identical' { Nothing } |
+'Expr_BinaryOp_BooleanOr' { Nothing }
+
 -- *************
 -- *           *
 -- * exp_binop *
 -- *           *
 -- *************
-exp_binop: 'Expr_BinaryOp_Smaller' loc '(' 'left' ':' exp 'right' ':' exp ')' { $6 } 
+exp_binop:
+operator loc
+'('
+    'left' ':' exp
+    'right' ':' exp
+')'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $6,
+        Ast.expBinopRight = $9,
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $2
+    }
+} 
 
 -- ***********
 -- *         *

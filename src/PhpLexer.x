@@ -93,10 +93,13 @@ import Location
 @KW_EXPR_VAR        = "Expr_Variable"
 @KW_EXPR_NEW        = "Expr_New"
 @KW_EXPR_EXIT       = "Expr_Exit"
+@KW_EXPR_TERNARY    = "Expr_Ternary"
 @KW_EXPR_LAMBDA     = "Expr_Closure"
+@KW_EXPR_CAST       = "Expr_Cast_Double"
 @KW_EXPR_ASSIGN     = "Expr_Assign"
 @KW_EXPR_ISSET      = "Expr_Isset"
 @KW_EXPR_ARRAY      = "Expr_Array"
+@KW_EXPR_ARRAY3     = "ArrayItem"
 @KW_EXPR_ARRAY2     = "Expr_ArrayDimFetch"
 @KW_EXPR_CALL       = "Expr_FuncCall"
 @KW_EXPR_SCALL      = "Expr_StaticCall"
@@ -113,8 +116,11 @@ import Location
 @KW_EXPR_CONST_GET  = "Expr_ConstFetch"
 @KW_EXPR_PROP_GET   = "Expr_PropertyFetch"
 @KW_EXPR_BINOP_LT   = "Expr_BinaryOp_Smaller"
+@KW_EXPR_BINOP_IS   = "Expr_BinaryOp_Identical"
 @KW_EXPR_UNOP_NOT   = "Expr_BooleanNot"
 @KW_EXPR_BINOP_PLUS = "Expr_BinaryOp_Plus"
+@KW_EXPR_BINOP_CONCAT = "Expr_BinaryOp_Concat"
+@KW_EXPR_BINOP_OR   = "Expr_BinaryOp_BooleanOr"
 
 -- ************
 -- *          *
@@ -139,11 +145,11 @@ import Location
 -- *         *
 -- ***********
 @NON_WHITE = . # $white
-
 @LOC = (@INT)(":")(@INT)
 @DASH = ($white)(\-)($white)
 @RANGE = (@LOC)(@DASH)(@LOC)
-@STR = "Scalar_String"(@LBRACK)(@RANGE)(@RBRACK)(@LPAREN)($white+)("value: ")(@NON_WHITE+)($white+)(@RPAREN)
+$no_rparen = [ $printable $white ] # \) 
+@STR = "Scalar_String"(@LBRACK)(@RANGE)(@RBRACK)(@LPAREN)($white+)("value: ")($no_rparen+)(@RPAREN)
 
 -- ***************
 -- *             *
@@ -214,11 +220,14 @@ tokens :-
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
 @KW_EXPR_NEW        { lex' AlexRawToken_EXPR_NEW        }
 @KW_EXPR_EXIT       { lex' AlexRawToken_EXPR_EXIT       }
+@KW_EXPR_TERNARY    { lex' AlexRawToken_EXPR_TERNARY    }
 @KW_EXPR_LAMBDA     { lex' AlexRawToken_EXPR_LAMBDA     }
+@KW_EXPR_CAST       { lex' AlexRawToken_EXPR_CAST       }
 @KW_EXPR_ASSIGN     { lex' AlexRawToken_EXPR_ASSIGN     }
 @KW_EXPR_ISSET      { lex' AlexRawToken_EXPR_ISSET      }
 @KW_EXPR_ARRAY      { lex' AlexRawToken_EXPR_ARRAY      }
 @KW_EXPR_ARRAY2     { lex' AlexRawToken_EXPR_ARRAY2     }
+@KW_EXPR_ARRAY3     { lex' AlexRawToken_EXPR_ARRAY3     }
 @KW_EXPR_CALL       { lex' AlexRawToken_EXPR_CALL       }
 @KW_EXPR_MCALL      { lex' AlexRawToken_EXPR_MCALL      }
 @KW_EXPR_SCALL      { lex' AlexRawToken_EXPR_SCALL      }
@@ -234,7 +243,10 @@ tokens :-
 @KW_EXPR_CONST_GET  { lex' AlexRawToken_EXPR_CONST_GET  }
 @KW_EXPR_PROP_GET   { lex' AlexRawToken_EXPR_PROP_GET   }
 @KW_EXPR_BINOP_LT   { lex' AlexRawToken_EXPR_BINOP_LT   }
+@KW_EXPR_BINOP_IS   { lex' AlexRawToken_EXPR_BINOP_IS   }
 @KW_EXPR_BINOP_PLUS { lex' AlexRawToken_EXPR_BINOP_PLUS }
+@KW_EXPR_BINOP_CONCAT { lex' AlexRawToken_EXPR_BINOP_CONCAT }
+@KW_EXPR_BINOP_OR   { lex' AlexRawToken_EXPR_BINOP_OR   }
 @KW_EXPR_UNOP_NOT   { lex' AlexRawToken_EXPR_UNOP_NOT   }
 
 -- ***************************
@@ -347,11 +359,14 @@ data AlexRawToken
      | AlexRawToken_EXPR_VAR        -- ^ Reserved Keyword
      | AlexRawToken_EXPR_NEW        -- ^ Reserved Keyword
      | AlexRawToken_EXPR_EXIT       -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_TERNARY    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_LAMBDA     -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_CAST       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ISSET      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ARRAY      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ARRAY2     -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_ARRAY3     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CALL       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_MCALL      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_SCALL      -- ^ Reserved Keyword
@@ -368,7 +383,10 @@ data AlexRawToken
      | AlexRawToken_EXPR_CONST_GET  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_PROP_GET   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_LT   -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_IS   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_PLUS -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_CONCAT -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_OR   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_UNOP_NOT   -- ^ Reserved Keyword
 
      | AlexRawToken_COLON           -- ^ Punctuation __:__
