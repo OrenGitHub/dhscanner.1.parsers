@@ -103,10 +103,18 @@ import Data.Map ( fromList )
 'UseItem'               { AlexTokenTag AlexRawToken_USE_ITEM        _ }
 'Stmt_If'               { AlexTokenTag AlexRawToken_STMT_IF         _ }
 'Stmt_Else'             { AlexTokenTag AlexRawToken_STMT_ELSE       _ }
+'Stmt_ElseIf'           { AlexTokenTag AlexRawToken_STMT_ELIF       _ }
 'Stmt_For'              { AlexTokenTag AlexRawToken_STMT_FOR        _ }
+'Stmt_Switch'           { AlexTokenTag AlexRawToken_STMT_SWITCH     _ }
+'Stmt_Case'             { AlexTokenTag AlexRawToken_STMT_CASE       _ }
+'Stmt_Foreach'          { AlexTokenTag AlexRawToken_STMT_FOREACH    _ }
 'Stmt_Echo'             { AlexTokenTag AlexRawToken_STMT_ECHO       _ }
+'Stmt_Unset'            { AlexTokenTag AlexRawToken_STMT_UNSET      _ }
 'Expr_Closure'          { AlexTokenTag AlexRawToken_EXPR_LAMBDA     _ }
 'Expr_Cast_Double'      { AlexTokenTag AlexRawToken_EXPR_CAST       _ }
+'Expr_Cast_Int'         { AlexTokenTag AlexRawToken_EXPR_CAST2      _ }
+'Expr_Cast_Bool'        { AlexTokenTag AlexRawToken_EXPR_CAST4      _ }
+'Expr_Cast_String'      { AlexTokenTag AlexRawToken_EXPR_CAST3      _ }
 'Expr_New'              { AlexTokenTag AlexRawToken_EXPR_NEW        _ }
 'Expr_Exit'             { AlexTokenTag AlexRawToken_EXPR_EXIT       _ }
 'Expr_Ternary'          { AlexTokenTag AlexRawToken_EXPR_TERNARY    _ }
@@ -117,26 +125,35 @@ import Data.Map ( fromList )
 'Stmt_Use'              { AlexTokenTag AlexRawToken_STMT_USE        _ }
 'Stmt_Expression'       { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'Scalar_Int'            { AlexTokenTag AlexRawToken_SCALAR_INT      _ }
+'Scalar_InterpolatedString' { AlexTokenTag AlexRawToken_SCALAR_FSTRING _ }
 'Identifier'            { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
 'Stmt_Return'           { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
 'Stmt_Property'         { AlexTokenTag AlexRawToken_STMT_PROPERTY   _ }
 'Stmt_ClassMethod'      { AlexTokenTag AlexRawToken_STMT_CLASSMETH  _ }
 'returnType'            { AlexTokenTag AlexRawToken_RETURN_TYPE     _ }
 'Stmt_Class'            { AlexTokenTag AlexRawToken_STMT_CLASS      _ }
+'Stmt_Continue'         { AlexTokenTag AlexRawToken_STMT_CONT       _ }
+'Stmt_Break'            { AlexTokenTag AlexRawToken_STMT_BREAK      _ }
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'Expr_Assign'           { AlexTokenTag AlexRawToken_EXPR_ASSIGN     _ }
 'Expr_Array'            { AlexTokenTag AlexRawToken_EXPR_ARRAY      _ }
+'Expr_Empty'            { AlexTokenTag AlexRawToken_EXPR_EMPTY      _ }
 'ArrayItem'             { AlexTokenTag AlexRawToken_EXPR_ARRAY3     _ }
 'Expr_ArrayDimFetch'    { AlexTokenTag AlexRawToken_EXPR_ARRAY2     _ }
 'Expr_Isset'            { AlexTokenTag AlexRawToken_EXPR_ISSET      _ }
 'Expr_ConstFetch'       { AlexTokenTag AlexRawToken_EXPR_CONST_GET  _ }
 'Expr_PropertyFetch'    { AlexTokenTag AlexRawToken_EXPR_PROP_GET   _ }
 'Expr_BooleanNot'       { AlexTokenTag AlexRawToken_EXPR_UNOP_NOT   _ }
+'Expr_UnaryMinus'       { AlexTokenTag AlexRawToken_EXPR_UNOP_MINUS _ }
 'Expr_BinaryOp_Plus'    { AlexTokenTag AlexRawToken_EXPR_BINOP_PLUS _ }
 'Expr_BinaryOp_Concat'  { AlexTokenTag AlexRawToken_EXPR_BINOP_CONCAT _ }
 'Expr_BinaryOp_BooleanOr' { AlexTokenTag AlexRawToken_EXPR_BINOP_OR _ }
+'Expr_BinaryOp_BooleanAnd' { AlexTokenTag AlexRawToken_EXPR_BINOP_AND _ }
 'Expr_BinaryOp_Smaller' { AlexTokenTag AlexRawToken_EXPR_BINOP_LT   _ }
+'Expr_BinaryOp_Equal'   { AlexTokenTag AlexRawToken_EXPR_BINOP_EQ   _ }
+'Expr_BinaryOp_Greater' { AlexTokenTag AlexRawToken_EXPR_BINOP_GT   _ }
 'Expr_BinaryOp_Identical' { AlexTokenTag AlexRawToken_EXPR_BINOP_IS _ }
+'Expr_BinaryOp_NotIdentical' { AlexTokenTag AlexRawToken_EXPR_BINOP_ISNOT _ }
 
 -- ****************************
 -- *                          *
@@ -170,8 +187,10 @@ program: stmts
 }
 
 tokenID:
-ID     { tokIDValue $1 } |
-'null' { "null"        }
+ID      { tokIDValue $1 } |
+'array' { "array"       } |
+'value' { "value"       } |
+'null'  { "null"        }
 
 
 -- **********************
@@ -180,7 +199,7 @@ ID     { tokIDValue $1 } |
 -- *                    *
 -- **********************
 listof(a): a { [$1] } | a listof(a) { $1:$2 }
-ornull(a): 'null' { [] } | a { $1 }
+ornull(a): 'null' { Nothing } | a { Just $1 }
 
 -- *********
 -- *       *
@@ -208,7 +227,7 @@ stmt_function:
     ID ':' ID
     'name' ':' identifier
     ID ':' params
-    'returnType' ':' 'null'
+    'returnType' ':' type
     'stmts' ':' stmts
 ')'
 {
@@ -223,6 +242,62 @@ stmt_function:
     }
 }
 
+-- *************
+-- *           *
+-- * stmt_cont *
+-- *           *
+-- *************
+stmt_cont:
+'Stmt_Continue' loc
+'('
+    ID ':' 'null'
+')'
+{
+    Ast.StmtContinue (Ast.StmtContinueContent $2)
+}
+
+case:
+'Stmt_Case' loc
+'('
+    'cond' ':' exp
+    'stmts' ':' stmts
+')'
+{
+    Nothing
+}
+
+numbered_case: INT ':' case { Nothing }
+cases: 'array' '(' listof(numbered_case) ')' { Nothing }
+
+-- ***************
+-- *             *
+-- * stmt_switch *
+-- *             *
+-- ***************
+stmt_switch:
+'Stmt_Switch' loc
+'('
+    'cond' ':' exp
+    ID ':' cases
+')'
+{
+    Ast.StmtExp $6
+}
+
+-- *************
+-- *           *
+-- * stmt_cont *
+-- *           *
+-- *************
+stmt_break:
+'Stmt_Break' loc
+'('
+    ID ':' 'null'
+')'
+{
+    Ast.StmtBreak (Ast.StmtBreakContent $2)
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -232,10 +307,15 @@ stmt:
 stmt_if        { $1 } | 
 stmt_use       { $1 } |
 stmt_for       { $1 } |
+stmt_foreach   { $1 } |
 stmt_exp       { $1 } |
 stmt_echo      { $1 } |
+stmt_unset     { $1 } |
 stmt_assign    { $1 } |
+stmt_switch    { $1 } |
 stmt_class     { $1 } |
+stmt_cont      { $1 } |
+stmt_break     { $1 } |
 stmt_function  { $1 } |
 stmt_return    { $1 }
 
@@ -309,8 +389,13 @@ data_member:
 }
 
 type:
-ID { Nothing } |
+tokenID { Nothing } |
+identifier { Nothing } |
 'Name' loc '(' 'name' ':' ID ')' { Nothing }
+
+param_default_value:
+tokenID { Nothing } |
+exp     { Nothing }
 
 param:
 'Param' loc
@@ -321,7 +406,7 @@ param:
     ID ':' ID
     ID ':' ID
     'var' ':' 'Expr_Variable' loc '(' 'name' ':' tokenID ')'
-    ID ':' ID
+    ID ':' param_default_value
 ')'
 {
     Ast.Param
@@ -391,6 +476,21 @@ stmt_else:
     $6
 }
 
+elseif:
+'Stmt_ElseIf' loc
+'('
+    'cond' ':' exp
+    'stmts' ':' stmts
+')'
+{
+    $9
+}
+
+numbered_elseif: INT ':' elseif { $3 }
+
+elseifs:
+'array' '(' ')' { [] } | 'array' '(' listof(numbered_elseif) ')' { [] }
+
 -- ***********
 -- *         *
 -- * stmt_if *
@@ -401,7 +501,7 @@ stmt_if:
 '('
     'cond' ':' exp
     'stmts' ':' stmts
-    ID ':' 'array' '(' ')'
+    ID ':' elseifs
     ID ':' ornull(stmt_else)
 ')'
 {
@@ -496,11 +596,11 @@ stmt_assign:
     }
 }
 
--- ***********
--- *         *
--- * stmt_if *
--- *         *
--- ***********
+-- *************
+-- *           *
+-- * stmt_echo *
+-- *           *
+-- *************
 stmt_echo:
 'Stmt_Echo' loc
 '('
@@ -519,16 +619,43 @@ stmt_echo:
     }
 }
 
+-- *************
+-- *           *
+-- * stmt_echo *
+-- *           *
+-- *************
+stmt_unset:
+'Stmt_Unset' loc
+'('
+    ID ':' exps
+')'
+{
+    Ast.StmtCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "unset",
+            Token.location = $2
+        },
+        Ast.args = $6,
+        Ast.expCallLocation = $2
+    }
+}
+
+exp_or_null:
+'null' { Nothing } |
+exp { Just $1 }
+
 -- ***************
 -- *             *
 -- * stmt_return *
 -- *             *
 -- ***************
-stmt_return: 'Stmt_Return' loc '(' 'expr' ':' exp ')'
+stmt_return: 'Stmt_Return' loc '(' 'expr' ':' exp_or_null ')'
 {
     Ast.StmtReturn $ Ast.StmtReturnContent
     {
-        Ast.stmtReturnValue = Just $6,
+        Ast.stmtReturnValue = $6,
         Ast.stmtReturnLocation = $2
     }
 }
@@ -635,7 +762,7 @@ exp_ternary:
 -- * exp_cast *
 -- *          *
 -- ************
-exp_cast:
+exp_cast1:
 'Expr_Cast_Double' loc
 '('
     'expr' ':' exp
@@ -643,6 +770,122 @@ exp_cast:
 {
     $6
 }
+
+-- ************
+-- *          *
+-- * exp_cast *
+-- *          *
+-- ************
+exp_cast2:
+'Expr_Cast_Int' loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+}
+
+-- ************
+-- *          *
+-- * exp_cast *
+-- *          *
+-- ************
+exp_cast3:
+'Expr_Cast_String' loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+}
+
+-- ************
+-- *          *
+-- * exp_cast *
+-- *          *
+-- ************
+exp_cast4:
+'Expr_Cast_Bool' loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+}
+
+-- ************
+-- *          *
+-- * exp_cast *
+-- *          *
+-- ************
+exp_cast:
+exp_cast1 { $1 } |
+exp_cast2 { $1 } |
+exp_cast3 { $1 } |
+exp_cast4 { $1 }
+
+-- *************
+-- *           *
+-- * exp_empty *
+-- *           *
+-- *************
+exp_empty:
+'Expr_Empty' loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+}
+
+interpolated_string_part: exp { $1 }
+
+numbered_interpolated_string_part:
+INT ':' interpolated_string_part { $3 }
+
+interpolated_string_parts:
+'array' '(' listof(numbered_interpolated_string_part) ')' { $3 }
+
+-- ***************
+-- *             *
+-- * exp_fstring *
+-- *             *
+-- ***************
+exp_fstring:
+'Scalar_InterpolatedString' loc
+'('
+    ID ':' interpolated_string_parts
+')'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "fstring",
+            Token.location = $2
+        },
+        Ast.args = $6,
+        Ast.expCallLocation = $2
+    }
+}
+
+unop_operator:
+'Expr_UnaryMinus' { Nothing }
+
+-- ************
+-- *          *
+-- * exp_unop *
+-- *          *
+-- ************
+exp_unop:
+unop_operator loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+} 
+
 
 -- *******
 -- *     *
@@ -659,16 +902,19 @@ exp_exit    { $1 } |
 exp_cast    { $1 } |
 exp_call    { Ast.ExpCall $1 } |
 exp_binop   { $1 } |
+exp_unop    { $1 } |
 exp_isset   { $1 } |
+exp_empty   { $1 } |
 exp_array   { $1 } |
 exp_lambda  { $1 } |
 exp_ternary { $1 } |
+exp_fstring { $1 } |
 exp_var     { $1 }
 
 array_item:
 'ArrayItem' loc
 '('
-    ID ':' exp
+    ID ':' ornull(exp)
     'value' ':' exp 
     ID ':' ID
     ID ':' ID
@@ -781,10 +1027,14 @@ exp_bool:
 exp_var: var { Ast.ExpVar (Ast.ExpVarContent $1) }
 
 operator:
-'Expr_BinaryOp_Smaller'   { Nothing } |
-'Expr_BinaryOp_Concat'    { Nothing } |
-'Expr_BinaryOp_Identical' { Nothing } |
-'Expr_BinaryOp_BooleanOr' { Nothing }
+'Expr_BinaryOp_Smaller'      { Nothing } |
+'Expr_BinaryOp_Equal'        { Nothing } |
+'Expr_BinaryOp_Greater'      { Nothing } |
+'Expr_BinaryOp_Concat'       { Nothing } |
+'Expr_BinaryOp_Identical'    { Nothing } |
+'Expr_BinaryOp_NotIdentical' { Nothing } |
+'Expr_BinaryOp_BooleanOr'    { Nothing } |
+'Expr_BinaryOp_BooleanAnd'   { Nothing }
 
 -- *************
 -- *           *
@@ -821,9 +1071,10 @@ exp_new:
 {
     Ast.ExpCall $ Ast.ExpCallContent
     {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
         {
-            Ast.varName = Token.VarName $ Token.Named { Token.content = $11, Token.location = $2 }
+            Token.content = $11,
+            Token.location = $2
         },
         Ast.args = [],
         Ast.expCallLocation = $2
@@ -962,6 +1213,30 @@ stmt_for: 'Stmt_For' loc '(' 'init' ':' stmts 'cond' ':' exps 'loop' ':' exp 'st
         Ast.stmtWhileLocation = $2
     }
 }
+
+-- ****************
+-- *              *
+-- * stmt_foreach *
+-- *              *
+-- ****************
+stmt_foreach:
+'Stmt_Foreach' loc
+'('
+    'expr' ':' exp
+    ID ':' exp
+    ID ':' ID 
+    ID ':' exp
+    'stmts' ':' stmts
+')'
+{
+    Ast.StmtWhile $ Ast.StmtWhileContent
+    {
+        Ast.stmtWhileCond = $6,
+        Ast.stmtWhileBody = $18,
+        Ast.stmtWhileLocation = $2
+    }
+}
+
 
 -- *******
 -- *     *
