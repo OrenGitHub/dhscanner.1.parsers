@@ -998,11 +998,6 @@ exp_int: 'Scalar_Int' loc '(' 'value' ':' INT ')'
     }
 }
 
-str:
-tokenID { $1 } |
-STR     { tokStrValue $1 } |
-INT     { show $ tokIntValue $1 }
-
 -- ***********
 -- *         *
 -- * exp_str *
@@ -1012,8 +1007,11 @@ exp_str: STR
 {
     Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
     {
-        Token.constStrValue = tokStrValue $1,
-        Token.constStrLocation = Location "MMM" 0 0 0 0
+        Token.constStrValue = case (tokStrValue $1) of { Nothing -> "LLL"; Just (s,_) -> s },
+        Token.constStrLocation = case (tokStrLocation $1) of {
+            Nothing -> Location (Location.filename (tokenLoc $1)) 6 6 6 6;
+            Just loc -> loc
+        }
     }
 }
 

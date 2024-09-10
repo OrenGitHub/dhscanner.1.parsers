@@ -25,6 +25,7 @@ where
 
 import Prelude hiding (lex)
 import Control.Monad ( liftM )
+import Data.List
 import Location
 }
 
@@ -540,11 +541,61 @@ tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> s; _ -> ""; }
 
 -- **************
 -- *            *
--- * tokIDValue *
+-- * findString *
 -- *            *
 -- **************
-tokStrValue :: AlexTokenTag -> String
-tokStrValue t = case (tokenRaw t) of { AlexRawToken_STR s -> s; _ -> ""; }
+findString :: String -> String -> Maybe Int
+findString needle haystack = Data.List.findIndex (Data.List.isPrefixOf needle) (Data.List.tails haystack)
+
+-- ******************
+-- *                *
+-- * tokStrLocation *
+-- *                *
+-- ******************
+tokStrLocation' :: AlexTokenTag -> String -> Maybe Location
+tokStrLocation' t s = case (findString "[" s) of
+    Nothing -> Nothing
+    Just i1 -> let s1 = drop (i1 + 1) s in case (findString ":" s1) of
+        Nothing -> Nothing
+        Just i2 -> let { startLine = read (take i2 s1); s2 = (drop (i2 + 1) s1) } in case (findString " - " s2) of
+            Nothing -> Nothing
+            Just i3 -> let { startCol = read (take i3 s2); s3 = drop (i3 + 3) s2 } in case (findString ":" s3) of
+                Nothing -> Nothing
+                Just i4 -> let { endLine = read (take i4 s3); s4 = drop (i4 + 1) s3 } in case (findString "]" s4) of
+                    Nothing -> Nothing
+                    Just i5 -> let { endCol = read (take i5 s4) } in Just $ Location {
+                        Location.filename = Location.filename (tokenLoc t),
+                        Location.lineStart = startLine,
+                        Location.lineEnd = endLine,
+                        Location.colStart = startCol,
+                        Location.colEnd = endCol
+                    }
+
+-- ******************
+-- *                *
+-- * tokStrLocation *
+-- *                *
+-- ******************
+tokStrLocation :: AlexTokenTag -> Maybe Location
+tokStrLocation t = case (tokenRaw t) of { (AlexRawToken_STR s) -> tokStrLocation' t s; _ -> Nothing }
+
+-- ***************
+-- *             *
+-- * tokStrValue *
+-- *             *
+-- ***************
+tokStrValue' :: AlexTokenTag -> String -> Maybe (String,Location)
+tokStrValue' t s = case (tokStrLocation t) of 
+    Nothing -> Nothing
+    Just location -> Just ("MKMKMK", location)
+
+-- ***************
+-- *             *
+-- * tokStrValue *
+-- *             *
+-- ***************
+tokStrValue :: AlexTokenTag -> Maybe (String,Location)
+tokStrValue t = case (tokenRaw t) of { (AlexRawToken_STR s) -> tokStrValue' t s; _ -> Nothing; }
 
 -- ************
 -- *          *
