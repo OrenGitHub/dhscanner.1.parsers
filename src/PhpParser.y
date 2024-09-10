@@ -105,6 +105,7 @@ import Data.Map ( fromList )
 'Stmt_Else'             { AlexTokenTag AlexRawToken_STMT_ELSE       _ }
 'Stmt_ElseIf'           { AlexTokenTag AlexRawToken_STMT_ELIF       _ }
 'Stmt_For'              { AlexTokenTag AlexRawToken_STMT_FOR        _ }
+'Stmt_Nop'              { AlexTokenTag AlexRawToken_STMT_NOP        _ }
 'Stmt_Switch'           { AlexTokenTag AlexRawToken_STMT_SWITCH     _ }
 'Stmt_Case'             { AlexTokenTag AlexRawToken_STMT_CASE       _ }
 'Stmt_Foreach'          { AlexTokenTag AlexRawToken_STMT_FOREACH    _ }
@@ -298,6 +299,17 @@ stmt_break:
     Ast.StmtBreak (Ast.StmtBreakContent $2)
 }
 
+-- ************
+-- *          *
+-- * stmt_nop *
+-- *          *
+-- ************
+stmt_nop: 'Stmt_Nop' loc '(' ')'
+{
+    Ast.StmtBreak (Ast.StmtBreakContent $2)
+}
+
+
 -- ********
 -- *      *
 -- * stmt *
@@ -307,6 +319,7 @@ stmt:
 stmt_if        { $1 } | 
 stmt_use       { $1 } |
 stmt_for       { $1 } |
+stmt_nop       { $1 } |
 stmt_foreach   { $1 } |
 stmt_exp       { $1 } |
 stmt_echo      { $1 } |
@@ -1223,7 +1236,7 @@ stmt_foreach:
 'Stmt_Foreach' loc
 '('
     'expr' ':' exp
-    ID ':' exp
+    ID ':' ornull(exp)
     ID ':' ID 
     ID ':' exp
     'stmts' ':' stmts

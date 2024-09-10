@@ -89,6 +89,7 @@ import Location
 @KW_STMT_ELIF       = "Stmt_ElseIf"
 @KW_USE_ITEM        = "UseItem"
 @KW_STMT_FOR        = "Stmt_For"
+@KW_STMT_NOP        = "Stmt_Nop"
 @KW_STMT_SWITCH     = "Stmt_Switch"
 @KW_STMT_CASE       = "Stmt_Case"
 @KW_STMT_FOREACH    = "Stmt_Foreach"
@@ -165,9 +166,9 @@ import Location
 @LOC = (@INT)(":")(@INT)
 @DASH = ($white)(\-)($white)
 @RANGE = (@LOC)(@DASH)(@LOC)
-$no_rparen = [ $printable $white ] # \) 
-@STR1 = "Scalar_String"(@LBRACK)(@RANGE)(@RBRACK)(@LPAREN)($white+)("value: ")($no_rparen+)(@RPAREN)
-@STR2 = "InterpolatedStringPart"(@LBRACK)(@RANGE)(@RBRACK)(@LPAREN)($white+)("value: ")($no_rparen+)(@RPAREN)
+$no_newline = [ $printable $white ] # \n 
+@STR1 = "Scalar_String"(@LBRACK)(@RANGE)(@RBRACK)(@LPAREN)($white+)("value: ")($no_newline*)\n($white+)(@RPAREN)
+@STR2 = "InterpolatedStringPart"(@LBRACK)(@RANGE)(@RBRACK)(@LPAREN)($white+)("value: ")($no_newline*)\n($white+)(@RPAREN)
 @STR=(@STR1)|(@STR2)
 
 -- ***************
@@ -235,6 +236,7 @@ tokens :-
 @KW_STMT_ELIF       { lex' AlexRawToken_STMT_ELIF       }
 @KW_USE_ITEM        { lex' AlexRawToken_USE_ITEM        }
 @KW_STMT_FOR        { lex' AlexRawToken_STMT_FOR        }
+@KW_STMT_NOP        { lex' AlexRawToken_STMT_NOP        }
 @KW_STMT_SWITCH     { lex' AlexRawToken_STMT_SWITCH     }
 @KW_STMT_CASE       { lex' AlexRawToken_STMT_CASE       }
 @KW_STMT_FOREACH    { lex' AlexRawToken_STMT_FOREACH    }
@@ -391,6 +393,7 @@ data AlexRawToken
      | AlexRawToken_STMT_ELIF       -- ^ Reserved Keyword
      | AlexRawToken_USE_ITEM        -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
+     | AlexRawToken_STMT_NOP        -- ^ Reserved Keyword
      | AlexRawToken_STMT_SWITCH     -- ^ Reserved Keyword
      | AlexRawToken_STMT_CASE       -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOREACH    -- ^ Reserved Keyword
