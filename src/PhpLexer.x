@@ -584,10 +584,24 @@ tokStrLocation t = case (tokenRaw t) of { (AlexRawToken_STR s) -> tokStrLocation
 -- * tokStrValue *
 -- *             *
 -- ***************
+tokStrValue'' :: AlexTokenTag -> String -> Maybe String
+tokStrValue'' t s = case (findString "value: " s) of
+    Nothing -> Nothing
+    Just i1 -> let s1 = drop (i1 + 7) s in case (findString "\n" s1) of
+        Nothing -> Nothing
+        Just i2 -> Just (take i2 s1)
+
+-- ***************
+-- *             *
+-- * tokStrValue *
+-- *             *
+-- ***************
 tokStrValue' :: AlexTokenTag -> String -> Maybe (String,Location)
 tokStrValue' t s = case (tokStrLocation t) of 
     Nothing -> Nothing
-    Just location -> Just ("MKMKMK", location)
+    Just location -> case (tokStrValue'' t s) of
+        Nothing -> Nothing
+        Just constStrValue -> Just (constStrValue,location)
 
 -- ***************
 -- *             *
