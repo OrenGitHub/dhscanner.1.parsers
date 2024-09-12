@@ -60,6 +60,7 @@ import Location
 @COLON  = ":"
 @SLASH  = "\"
 @HYPHEN = \- 
+@OR     = \|
 
 -- ************
 -- *          *
@@ -100,6 +101,7 @@ import Location
 @KW_EXPR_VAR        = "Expr_Variable"
 @KW_EXPR_NEW        = "Expr_New"
 @KW_EXPR_EXIT       = "Expr_Exit"
+@KW_EXPR_IMPORT     = "Expr_Include"
 @KW_EXPR_TERNARY    = "Expr_Ternary"
 @KW_EXPR_LAMBDA     = "Expr_Closure"
 @KW_EXPR_CAST       = "Expr_Cast_Double"
@@ -118,6 +120,7 @@ import Location
 @KW_STMT_EXPR       = "Stmt_Expression"
 @KW_SCALAR_INT      = "Scalar_Int"
 @KW_SCALAR_FSTRING  = "Scalar_InterpolatedString"
+@KW_SCALAR_FILE     = "Scalar_MagicConst_File"
 @KW_IDENTIFIER      = "Identifier"
 @KW_RETURN_TYPE     = "returnType"
 @KW_STMT_RETURN     = "Stmt_Return"
@@ -129,6 +132,7 @@ import Location
 @KW_STMT_FUNCTION   = "Stmt_Function"
 @KW_EXPR_CONST_GET  = "Expr_ConstFetch"
 @KW_EXPR_PROP_GET   = "Expr_PropertyFetch"
+@KW_EXPR_PROP_GET2  = "Expr_StaticPropertyFetch"
 @KW_EXPR_BINOP_LT   = "Expr_BinaryOp_Smaller"
 @KW_EXPR_BINOP_GT   = "Expr_BinaryOp_Greater"
 @KW_EXPR_BINOP_EQ   = "Expr_BinaryOp_Equal"
@@ -136,6 +140,7 @@ import Location
 @KW_EXPR_BINOP_ISNOT = "Expr_BinaryOp_NotIdentical"
 @KW_EXPR_UNOP_NOT   = "Expr_BooleanNot"
 @KW_EXPR_BINOP_PLUS = "Expr_BinaryOp_Plus"
+@KW_EXPR_BINOP_MINUS = "Expr_BinaryOp_Minus"
 @KW_EXPR_UNOP_MINUS = "Expr_UnaryMinus"
 @KW_EXPR_BINOP_CONCAT = "Expr_BinaryOp_Concat"
 @KW_EXPR_BINOP_OR   = "Expr_BinaryOp_BooleanOr"
@@ -206,6 +211,7 @@ tokens :-
 @COLON     { lex' AlexRawToken_COLON  }
 @SLASH     { lex' AlexRawToken_SLASH  }
 @HYPHEN    { lex' AlexRawToken_HYPHEN }
+@OR        { lex' AlexRawToken_OR     }
 
 -- ************
 -- *          *
@@ -247,6 +253,7 @@ tokens :-
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
 @KW_EXPR_NEW        { lex' AlexRawToken_EXPR_NEW        }
 @KW_EXPR_EXIT       { lex' AlexRawToken_EXPR_EXIT       }
+@KW_EXPR_IMPORT     { lex' AlexRawToken_EXPR_IMPORT     }
 @KW_EXPR_TERNARY    { lex' AlexRawToken_EXPR_TERNARY    }
 @KW_EXPR_LAMBDA     { lex' AlexRawToken_EXPR_LAMBDA     }
 @KW_EXPR_CAST       { lex' AlexRawToken_EXPR_CAST       }
@@ -265,6 +272,7 @@ tokens :-
 @KW_STMT_EXPR       { lex' AlexRawToken_STMT_EXPR       }
 @KW_SCALAR_INT      { lex' AlexRawToken_SCALAR_INT      }
 @KW_SCALAR_FSTRING  { lex' AlexRawToken_SCALAR_FSTRING  }
+@KW_SCALAR_FILE     { lex' AlexRawToken_SCALAR_FILE     }
 @KW_IDENTIFIER      { lex' AlexRawToken_IDENTIFIER      }
 @KW_RETURN_TYPE     { lex' AlexRawToken_RETURN_TYPE     }
 @KW_STMT_RETURN     { lex' AlexRawToken_STMT_RETURN     }
@@ -276,12 +284,14 @@ tokens :-
 @KW_STMT_FUNCTION   { lex' AlexRawToken_STMT_FUNCTION   }
 @KW_EXPR_CONST_GET  { lex' AlexRawToken_EXPR_CONST_GET  }
 @KW_EXPR_PROP_GET   { lex' AlexRawToken_EXPR_PROP_GET   }
+@KW_EXPR_PROP_GET2  { lex' AlexRawToken_EXPR_PROP_GET2  }
 @KW_EXPR_BINOP_LT   { lex' AlexRawToken_EXPR_BINOP_LT   }
 @KW_EXPR_BINOP_GT   { lex' AlexRawToken_EXPR_BINOP_GT   }
 @KW_EXPR_BINOP_EQ   { lex' AlexRawToken_EXPR_BINOP_EQ   }
 @KW_EXPR_BINOP_IS   { lex' AlexRawToken_EXPR_BINOP_IS   }
 @KW_EXPR_BINOP_ISNOT { lex' AlexRawToken_EXPR_BINOP_ISNOT }
 @KW_EXPR_BINOP_PLUS { lex' AlexRawToken_EXPR_BINOP_PLUS }
+@KW_EXPR_BINOP_MINUS { lex' AlexRawToken_EXPR_BINOP_MINUS }
 @KW_EXPR_UNOP_MINUS { lex' AlexRawToken_EXPR_UNOP_MINUS }
 @KW_EXPR_BINOP_CONCAT { lex' AlexRawToken_EXPR_BINOP_CONCAT }
 @KW_EXPR_BINOP_OR   { lex' AlexRawToken_EXPR_BINOP_OR   }
@@ -404,6 +414,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_VAR        -- ^ Reserved Keyword
      | AlexRawToken_EXPR_NEW        -- ^ Reserved Keyword
      | AlexRawToken_EXPR_EXIT       -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_IMPORT     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_TERNARY    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_LAMBDA     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST       -- ^ Reserved Keyword
@@ -422,6 +433,7 @@ data AlexRawToken
      | AlexRawToken_STMT_EXPR       -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_INT      -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_FSTRING  -- ^ Reserved Keyword
+     | AlexRawToken_SCALAR_FILE     -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_STR      -- ^ Reserved Keyword
      | AlexRawToken_IDENTIFIER      -- ^ Reserved Keyword
      | AlexRawToken_STMT_RETURN     -- ^ Reserved Keyword
@@ -434,13 +446,15 @@ data AlexRawToken
      | AlexRawToken_STMT_FUNCTION   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CONST_GET  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_PROP_GET   -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_PROP_GET2  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_LT   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_GT   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_EQ   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_IS   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_ISNOT -- ^ Reserved Keyword
-     | AlexRawToken_EXPR_BINOP_PLUS -- ^ Reserved Keyword
-     | AlexRawToken_EXPR_UNOP_MINUS -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_PLUS  -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_MINUS -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_UNOP_MINUS  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_CONCAT -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_OR   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_AND  -- ^ Reserved Keyword
@@ -449,6 +463,7 @@ data AlexRawToken
      | AlexRawToken_COLON           -- ^ Punctuation __:__
      | AlexRawToken_SLASH           -- ^ Punctuation __:__
      | AlexRawToken_HYPHEN          -- ^ Punctuation __-__
+     | AlexRawToken_OR              -- ^ Punctuation __-__
 
      | TokenEOF -- ^ [EOF](https://en.wikipedia.org/wiki/End-of-file)
  

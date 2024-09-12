@@ -1,5 +1,5 @@
 {
-{-# OPTIONS -Werror=missing-fields #-}
+{- _OPTIONS -Werror=missing-fields #-}
 
 module PhpParser( parseProgram ) where
 
@@ -74,6 +74,7 @@ import Data.Map ( fromList )
 ':'    { AlexTokenTag AlexRawToken_COLON  _ }
 '\\'   { AlexTokenTag AlexRawToken_SLASH  _ }
 '-'    { AlexTokenTag AlexRawToken_HYPHEN _ }
+'|'    { AlexTokenTag AlexRawToken_OR     _ }
 
 -- *********************
 -- *                   *
@@ -118,6 +119,7 @@ import Data.Map ( fromList )
 'Expr_Cast_String'      { AlexTokenTag AlexRawToken_EXPR_CAST3      _ }
 'Expr_New'              { AlexTokenTag AlexRawToken_EXPR_NEW        _ }
 'Expr_Exit'             { AlexTokenTag AlexRawToken_EXPR_EXIT       _ }
+'Expr_Include'          { AlexTokenTag AlexRawToken_EXPR_IMPORT     _ }
 'Expr_Ternary'          { AlexTokenTag AlexRawToken_EXPR_TERNARY    _ }
 'Expr_Variable'         { AlexTokenTag AlexRawToken_EXPR_VAR        _ }
 'Expr_FuncCall'         { AlexTokenTag AlexRawToken_EXPR_CALL       _ }
@@ -127,6 +129,7 @@ import Data.Map ( fromList )
 'Stmt_Expression'       { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'Scalar_Int'            { AlexTokenTag AlexRawToken_SCALAR_INT      _ }
 'Scalar_InterpolatedString' { AlexTokenTag AlexRawToken_SCALAR_FSTRING _ }
+'Scalar_MagicConst_File' { AlexTokenTag AlexRawToken_SCALAR_FILE    _ }
 'Identifier'            { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
 'Stmt_Return'           { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
 'Stmt_Property'         { AlexTokenTag AlexRawToken_STMT_PROPERTY   _ }
@@ -144,9 +147,11 @@ import Data.Map ( fromList )
 'Expr_Isset'            { AlexTokenTag AlexRawToken_EXPR_ISSET      _ }
 'Expr_ConstFetch'       { AlexTokenTag AlexRawToken_EXPR_CONST_GET  _ }
 'Expr_PropertyFetch'    { AlexTokenTag AlexRawToken_EXPR_PROP_GET   _ }
+'Expr_StaticPropertyFetch' { AlexTokenTag AlexRawToken_EXPR_PROP_GET2  _ }
 'Expr_BooleanNot'       { AlexTokenTag AlexRawToken_EXPR_UNOP_NOT   _ }
 'Expr_UnaryMinus'       { AlexTokenTag AlexRawToken_EXPR_UNOP_MINUS _ }
 'Expr_BinaryOp_Plus'    { AlexTokenTag AlexRawToken_EXPR_BINOP_PLUS _ }
+'Expr_BinaryOp_Minus'   { AlexTokenTag AlexRawToken_EXPR_BINOP_MINUS _ }
 'Expr_BinaryOp_Concat'  { AlexTokenTag AlexRawToken_EXPR_BINOP_CONCAT _ }
 'Expr_BinaryOp_BooleanOr' { AlexTokenTag AlexRawToken_EXPR_BINOP_OR _ }
 'Expr_BinaryOp_BooleanAnd' { AlexTokenTag AlexRawToken_EXPR_BINOP_AND _ }
@@ -191,6 +196,8 @@ tokenID:
 ID      { tokIDValue $1 } |
 'array' { "array"       } |
 'value' { "value"       } |
+'Name'  { "Name"        } |
+'name'  { "name"        } |
 'null'  { "null"        }
 
 
@@ -380,21 +387,33 @@ numbered_class_attr: INT ':' class_attr { $3 }
 class_attr: method { Nothing } | data_member { Nothing }
 
 dec_var:
-ID loc
+tokenID loc
 '('
-    'name' ':' ID loc '(' 'name' ':' ID ')'
-    ID ':' 'Expr_ConstFetch' loc '(' 'name' ':' 'Name' loc '(' 'name' ':' ID ')' ')'
+    'name' ':' ID loc '(' 'name' ':' tokenID ')'
+    ID ':' ornull(exp)
 ')'
 {
-    Nothing
+    Token.Named
+    {
+        Token.content = $11,
+        Token.location = $2
+    }
 }
+
+flag:
+ID             { Nothing } |
+ID '(' INT ')' { Nothing }
+
+flags:
+flag { Nothing } |
+flag '|' flags { Nothing }
 
 data_member:
 'Stmt_Property' loc
 '('
     ID ':' 'array' '(' ')'
-    ID ':' ID '(' INT ')'
-    'type' ':' ID
+    ID ':' flags
+    'type' ':' type
     ID ':' 'array' '(' INT ':' dec_var ')'
 ')'
 {
@@ -438,11 +457,11 @@ method:
 'Stmt_ClassMethod' loc
 '('
     ID ':' 'array' '(' ')'
-    ID ':' ID '(' INT ')'
+    ID ':' flags
     ID ':' ID
     'name' ':' identifier
     ID ':' params
-    'returnType' ':' ID
+    'returnType' ':' tokenID
     'stmts' ':' 'array' '(' listof(numbered_stmt) ')' 
 ')'
 {
@@ -542,15 +561,15 @@ var_simple:
     }
 }
 
--- *************
--- *           *
--- * var_field *
--- *           *
--- *************
-var_field:
+-- **************
+-- *            *
+-- * var_field1 *
+-- *            *
+-- **************
+var_field1:
 'Expr_PropertyFetch' loc
 '('
-    'var' ':' exp_var
+    'var' ':' exp
     'name' ':' identifier
 ')'
 {
@@ -561,6 +580,43 @@ var_field:
         Ast.varFieldLocation = $2
     }
 }
+
+-- **************
+-- *            *
+-- * var_field2 *
+-- *            *
+-- **************
+var_field2:
+'Expr_StaticPropertyFetch' loc
+'('
+    tokenID ':' tokenID loc '(' 'name' ':' tokenID ')'
+    tokenID ':' tokenID loc '(' 'name' ':' tokenID ')'
+')'
+{
+    Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = $11,
+            Token.location = $7
+        },
+        Ast.varFieldName = Token.FieldName $ Token.Named
+        {
+            Token.content = $20,
+            Token.location = $16
+        },
+        Ast.varFieldLocation = $2
+    }
+}
+
+-- *************
+-- *           *
+-- * var_field *
+-- *           *
+-- *************
+var_field:
+var_field1 { $1 } |
+var_field2 { $1 }
 
 -- *****************
 -- *               *
@@ -897,8 +953,39 @@ unop_operator loc
 ')'
 {
     $6
-} 
+}
 
+import_type:
+ID '(' INT ')' { Nothing }
+
+-- **************
+-- *            *
+-- * exp_import *
+-- *            *
+-- **************
+exp_import:
+'Expr_Include' loc
+'('
+    'expr' ':' exp
+    'type' ':' import_type
+')'
+{
+    $6
+}
+
+-- ************
+-- *          *
+-- * exp_file *
+-- *          *
+-- ************
+exp_file: 'Scalar_MagicConst_File' loc '(' ')'
+{
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+    {
+        Token.content = "__FILE__",
+        Token.location = $2
+    }
+}
 
 -- *******
 -- *     *
@@ -915,10 +1002,12 @@ exp_exit    { $1 } |
 exp_cast    { $1 } |
 exp_call    { Ast.ExpCall $1 } |
 exp_binop   { $1 } |
+exp_file    { $1 } |
 exp_unop    { $1 } |
 exp_isset   { $1 } |
 exp_empty   { $1 } |
 exp_array   { $1 } |
+exp_import  { $1 } |
 exp_lambda  { $1 } |
 exp_ternary { $1 } |
 exp_fstring { $1 } |
@@ -972,7 +1061,7 @@ exp_lambda:
     ID ':' ID
     ID ':' params
     'uses' ':' 'array' '(' ')'
-    'returnType' ':' ID
+    'returnType' ':' tokenID
     'stmts' ':' stmts
 ')'
 {
@@ -1021,7 +1110,7 @@ exp_str: STR
 -- *          *
 -- ************
 exp_bool:
-'Expr_ConstFetch' loc '(' 'name' ':' 'Name' loc '(' 'name' ':' ID ')' ')'
+'Expr_ConstFetch' loc '(' 'name' ':' 'Name' loc '(' 'name' ':' tokenID ')' ')'
 {
     Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool
     {
@@ -1040,6 +1129,8 @@ exp_var: var { Ast.ExpVar (Ast.ExpVarContent $1) }
 operator:
 'Expr_BinaryOp_Smaller'      { Nothing } |
 'Expr_BinaryOp_Equal'        { Nothing } |
+'Expr_BinaryOp_Plus'         { Nothing } |
+'Expr_BinaryOp_Minus'        { Nothing } |
 'Expr_BinaryOp_Greater'      { Nothing } |
 'Expr_BinaryOp_Concat'       { Nothing } |
 'Expr_BinaryOp_Identical'    { Nothing } |
