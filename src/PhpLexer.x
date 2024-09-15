@@ -89,16 +89,21 @@ import Location
 @KW_STMT_IF         = "Stmt_If"
 @KW_STMT_ELSE       = "Stmt_Else"
 @KW_STMT_ELIF       = "Stmt_ElseIf"
+@KW_STMT_WHILE      = "Stmt_While"
+@KW_STMT_CATCH      = "Stmt_Catch"
+@KW_STMT_TRY_CATCH  = "Stmt_TryCatch"
 @KW_USE_ITEM        = "UseItem"
 @KW_STMT_FOR        = "Stmt_For"
 @KW_STMT_NOP        = "Stmt_Nop"
 @KW_STMT_SWITCH     = "Stmt_Switch"
 @KW_STMT_CASE       = "Stmt_Case"
 @KW_STMT_FOREACH    = "Stmt_Foreach"
+@KW_STMT_GLOBAL     = "Stmt_Global"
 @KW_STMT_USE        = "Stmt_Use"
 @KW_STMT_ECHO       = "Stmt_Echo"
 @KW_STMT_UNSET      = "Stmt_Unset"
 @KW_EXPR_VAR        = "Expr_Variable"
+@KW_EXPR_INSTOF     = "Expr_Instanceof"
 @KW_EXPR_NEW        = "Expr_New"
 @KW_EXPR_EXIT       = "Expr_Exit"
 @KW_EXPR_IMPORT     = "Expr_Include"
@@ -109,6 +114,7 @@ import Location
 @KW_EXPR_CAST3      = "Expr_Cast_String"
 @KW_EXPR_CAST4      = "Expr_Cast_Bool"
 @KW_EXPR_ASSIGN     = "Expr_Assign"
+@KW_EXPR_ASSIGN2    = "Expr_AssignOp_Plus"
 @KW_EXPR_ISSET      = "Expr_Isset"
 @KW_EXPR_ARRAY      = "Expr_Array"
 @KW_EXPR_EMPTY      = "Expr_Empty"
@@ -134,14 +140,20 @@ import Location
 @KW_EXPR_PROP_GET   = "Expr_PropertyFetch"
 @KW_EXPR_PROP_GET2  = "Expr_StaticPropertyFetch"
 @KW_EXPR_BINOP_LT   = "Expr_BinaryOp_Smaller"
+@KW_EXPR_BINOP_CO   = "Expr_BinaryOp_Coalesce"
 @KW_EXPR_BINOP_GT   = "Expr_BinaryOp_Greater"
+@KW_EXPR_BINOP_GEQ  = "Expr_BinaryOp_GreaterOrEqual"
 @KW_EXPR_BINOP_EQ   = "Expr_BinaryOp_Equal"
+@KW_EXPR_BINOP_NEQ  = "Expr_BinaryOp_NotEqual"
 @KW_EXPR_BINOP_IS   = "Expr_BinaryOp_Identical"
 @KW_EXPR_BINOP_ISNOT = "Expr_BinaryOp_NotIdentical"
 @KW_EXPR_UNOP_NOT   = "Expr_BooleanNot"
+@KW_EXPR_BINOP_MUL  = "Expr_BinaryOp_Mul"
+@KW_EXPR_BINOP_DIV  = "Expr_BinaryOp_Div"
 @KW_EXPR_BINOP_PLUS = "Expr_BinaryOp_Plus"
 @KW_EXPR_BINOP_MINUS = "Expr_BinaryOp_Minus"
 @KW_EXPR_UNOP_MINUS = "Expr_UnaryMinus"
+@KW_EXPR_POST_INC   = "Expr_PostInc"
 @KW_EXPR_BINOP_CONCAT = "Expr_BinaryOp_Concat"
 @KW_EXPR_BINOP_OR   = "Expr_BinaryOp_BooleanOr"
 @KW_EXPR_BINOP_AND  = "Expr_BinaryOp_BooleanAnd"
@@ -240,17 +252,22 @@ tokens :-
 @KW_PARAM           { lex' AlexRawToken_PARAM           }
 @KW_STMT_IF         { lex' AlexRawToken_STMT_IF         }
 @KW_STMT_ELSE       { lex' AlexRawToken_STMT_ELSE       }
+@KW_STMT_CATCH      { lex' AlexRawToken_STMT_CATCH      }
+@KW_STMT_WHILE      { lex' AlexRawToken_STMT_WHILE      }
 @KW_STMT_ELIF       { lex' AlexRawToken_STMT_ELIF       }
+@KW_STMT_TRY_CATCH  { lex' AlexRawToken_STMT_TRY_CATCH  }
 @KW_USE_ITEM        { lex' AlexRawToken_USE_ITEM        }
 @KW_STMT_FOR        { lex' AlexRawToken_STMT_FOR        }
 @KW_STMT_NOP        { lex' AlexRawToken_STMT_NOP        }
 @KW_STMT_SWITCH     { lex' AlexRawToken_STMT_SWITCH     }
 @KW_STMT_CASE       { lex' AlexRawToken_STMT_CASE       }
 @KW_STMT_FOREACH    { lex' AlexRawToken_STMT_FOREACH    }
+@KW_STMT_GLOBAL     { lex' AlexRawToken_STMT_GLOBAL     }
 @KW_STMT_USE        { lex' AlexRawToken_STMT_USE        }
 @KW_STMT_ECHO       { lex' AlexRawToken_STMT_ECHO       }
 @KW_STMT_UNSET      { lex' AlexRawToken_STMT_UNSET      }
 @KW_EXPR_VAR        { lex' AlexRawToken_EXPR_VAR        }
+@KW_EXPR_INSTOF     { lex' AlexRawToken_EXPR_INSTOF     }
 @KW_EXPR_NEW        { lex' AlexRawToken_EXPR_NEW        }
 @KW_EXPR_EXIT       { lex' AlexRawToken_EXPR_EXIT       }
 @KW_EXPR_IMPORT     { lex' AlexRawToken_EXPR_IMPORT     }
@@ -261,6 +278,7 @@ tokens :-
 @KW_EXPR_CAST3      { lex' AlexRawToken_EXPR_CAST3      }
 @KW_EXPR_CAST2      { lex' AlexRawToken_EXPR_CAST2      }
 @KW_EXPR_ASSIGN     { lex' AlexRawToken_EXPR_ASSIGN     }
+@KW_EXPR_ASSIGN2    { lex' AlexRawToken_EXPR_ASSIGN2    }
 @KW_EXPR_ISSET      { lex' AlexRawToken_EXPR_ISSET      }
 @KW_EXPR_ARRAY      { lex' AlexRawToken_EXPR_ARRAY      }
 @KW_EXPR_EMPTY      { lex' AlexRawToken_EXPR_EMPTY      }
@@ -286,13 +304,19 @@ tokens :-
 @KW_EXPR_PROP_GET   { lex' AlexRawToken_EXPR_PROP_GET   }
 @KW_EXPR_PROP_GET2  { lex' AlexRawToken_EXPR_PROP_GET2  }
 @KW_EXPR_BINOP_LT   { lex' AlexRawToken_EXPR_BINOP_LT   }
+@KW_EXPR_BINOP_CO   { lex' AlexRawToken_EXPR_BINOP_CO   }
 @KW_EXPR_BINOP_GT   { lex' AlexRawToken_EXPR_BINOP_GT   }
+@KW_EXPR_BINOP_GEQ  { lex' AlexRawToken_EXPR_BINOP_GEQ  }
 @KW_EXPR_BINOP_EQ   { lex' AlexRawToken_EXPR_BINOP_EQ   }
+@KW_EXPR_BINOP_NEQ  { lex' AlexRawToken_EXPR_BINOP_NEQ  }
 @KW_EXPR_BINOP_IS   { lex' AlexRawToken_EXPR_BINOP_IS   }
 @KW_EXPR_BINOP_ISNOT { lex' AlexRawToken_EXPR_BINOP_ISNOT }
+@KW_EXPR_BINOP_MUL  { lex' AlexRawToken_EXPR_BINOP_MUL  }
+@KW_EXPR_BINOP_DIV  { lex' AlexRawToken_EXPR_BINOP_DIV  }
 @KW_EXPR_BINOP_PLUS { lex' AlexRawToken_EXPR_BINOP_PLUS }
 @KW_EXPR_BINOP_MINUS { lex' AlexRawToken_EXPR_BINOP_MINUS }
 @KW_EXPR_UNOP_MINUS { lex' AlexRawToken_EXPR_UNOP_MINUS }
+@KW_EXPR_POST_INC   { lex' AlexRawToken_EXPR_POST_INC   }
 @KW_EXPR_BINOP_CONCAT { lex' AlexRawToken_EXPR_BINOP_CONCAT }
 @KW_EXPR_BINOP_OR   { lex' AlexRawToken_EXPR_BINOP_OR   }
 @KW_EXPR_BINOP_AND  { lex' AlexRawToken_EXPR_BINOP_AND  }
@@ -400,18 +424,23 @@ data AlexRawToken
      | AlexRawToken_ARRAY           -- ^ Reserved Keyword
      | AlexRawToken_PARAM           -- ^ Reserved Keyword
      | AlexRawToken_STMT_IF         -- ^ Reserved Keyword
+     | AlexRawToken_STMT_CATCH      -- ^ Reserved Keyword
      | AlexRawToken_STMT_ELSE       -- ^ Reserved Keyword
+     | AlexRawToken_STMT_WHILE      -- ^ Reserved Keyword
      | AlexRawToken_STMT_ELIF       -- ^ Reserved Keyword
+     | AlexRawToken_STMT_TRY_CATCH  -- ^ Reserved Keyword
      | AlexRawToken_USE_ITEM        -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
      | AlexRawToken_STMT_NOP        -- ^ Reserved Keyword
      | AlexRawToken_STMT_SWITCH     -- ^ Reserved Keyword
      | AlexRawToken_STMT_CASE       -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOREACH    -- ^ Reserved Keyword
+     | AlexRawToken_STMT_GLOBAL     -- ^ Reserved Keyword
      | AlexRawToken_STMT_USE        -- ^ Reserved Keyword
      | AlexRawToken_STMT_ECHO       -- ^ Reserved Keyword
      | AlexRawToken_STMT_UNSET      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_VAR        -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_INSTOF     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_NEW        -- ^ Reserved Keyword
      | AlexRawToken_EXPR_EXIT       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_IMPORT     -- ^ Reserved Keyword
@@ -422,6 +451,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_CAST3      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST2      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_ASSIGN2    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ISSET      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ARRAY      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_EMPTY      -- ^ Reserved Keyword
@@ -449,12 +479,18 @@ data AlexRawToken
      | AlexRawToken_EXPR_PROP_GET2  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_LT   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_GT   -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_GEQ  -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_CO   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_EQ   -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_NEQ  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_IS   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_ISNOT -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_MUL   -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_DIV   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_PLUS  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_MINUS -- ^ Reserved Keyword
      | AlexRawToken_EXPR_UNOP_MINUS  -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_POST_INC    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_CONCAT -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_OR   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_AND  -- ^ Reserved Keyword
