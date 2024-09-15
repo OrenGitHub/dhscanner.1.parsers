@@ -21,7 +21,7 @@ import qualified Token
 import Data.Maybe
 import Data.Either
 import Data.List ( map, foldl' )
-import Data.Map ( fromList )
+import Data.Map ( empty, fromList )
 
 }
 
@@ -489,7 +489,7 @@ identifier: 'Identifier' loc '(' 'name' ':' tokenID ')'
 
 numbered_class_attr: INT ':' class_attr { $3 }
 
-class_attr: method { Nothing } | data_member { Nothing }
+class_attr: method { $1 } | data_member { $1 }
 
 dec_var:
 tokenID loc
@@ -522,7 +522,12 @@ data_member:
     ID ':' 'array' '(' INT ':' dec_var ')'
 ')'
 {
-    Nothing
+    Ast.StmtDecvar $ Ast.DecVarContent
+    {
+        Ast.decVarName = Token.VarName $21,
+        Ast.decVarNominalType = Token.NominalTy (Token.Named "any" $2),
+        Ast.decVarInitValue = Nothing
+    }
 }
 
 type:
@@ -570,12 +575,21 @@ method:
     'stmts' ':' 'array' '(' listof(numbered_stmt) ')' 
 ')'
 {
-    Nothing
+    Ast.StmtMethod $ Ast.StmtMethodContent
+    {
+        Ast.stmtMethodReturnType = Token.NominalTy (Token.Named "any" $2),
+        Ast.stmtMethodName = Token.MethdName $17,
+        Ast.stmtMethodParams = [],
+        Ast.stmtMethodBody = $28,
+        Ast.stmtMethodLocation = $2,
+        Ast.hostingClassName = Token.ClassName (Token.Named "not_a_real_class_name" $2),
+        Ast.hostingClassSupers = []
+    }
 }
 
-
 stmt_class:
-'Stmt_Class' loc '('
+'Stmt_Class' loc
+'('
     tokenID ':' 'array' '(' ')'
     ID ':' INT
     'name' ':' identifier
@@ -584,11 +598,12 @@ stmt_class:
     'stmts' ':' 'array' '(' listof(numbered_class_attr) ')' 
 ')'
 {
-    Ast.StmtImport $ Ast.StmtImportContent
+    Ast.StmtClass $ Ast.StmtClassContent
     {
-        Ast.stmtImportName = $4,
-        Ast.stmtImportAlias = $4,
-        Ast.stmtImportLocation = $2
+        Ast.stmtClassName = Token.ClassName $14,
+        Ast.stmtClassSupers = [],
+        Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
+        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $14) $27
     }
 } 
 
@@ -1561,6 +1576,18 @@ enumerateParams (i,(p:ps)) =
         tail = (enumerateParams (i+1,ps))
     in
         head:tail
+
+-- *************
+-- *           *
+-- * methodify *
+-- *           *
+-- *************
+methodify :: Token.ClassName -> [ Ast.Stmt ] -> [(Token.MethdName, Ast.StmtMethodContent)]
+methodify c stmts = catMaybes $ Data.List.map (methodify' c) stmts
+
+methodify' :: Token.ClassName -> Ast.Stmt -> Maybe (Token.MethdName, Ast.StmtMethodContent)
+methodify' c (Ast.StmtMethod m) = Just (Ast.stmtMethodName m, m { Ast.hostingClassName = c } )
+methodify' _ _ = Nothing
 
 -- ***********
 -- *         *
