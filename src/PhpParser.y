@@ -1191,7 +1191,7 @@ array_item:
     ID ':' ID
 ')'
 {
-    Nothing
+    $9
 }
 
 numbered_array_item: INT ':' array_item { $3 }
@@ -1210,10 +1210,15 @@ exp_array:
     ID ':' array_items
 ')'
 {
-    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
-    {
-        Token.constIntValue = 3333,
-        Token.constIntLocation = $2
+    Ast.ExpCall $ Ast.ExpCallContent
+    { 
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "arrayify",
+            Token.location = $2
+        },
+        Ast.args = $6,
+        Ast.expCallLocation = $2
     }
 }
 
