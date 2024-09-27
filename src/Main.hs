@@ -13,6 +13,7 @@ import GHC.Generics
 
 -- project imports
 import qualified JsParser
+import qualified TsParser
 import qualified PyParser
 import qualified RbParser
 import qualified PhpParser
@@ -42,6 +43,7 @@ mkYesod "App" [parseRoutes|
 /from/py/to/dhscanner/ast FromPyR POST
 /from/rb/to/dhscanner/ast FromRbR POST
 /from/js/to/dhscanner/ast FromJsR POST
+/from/ts/to/dhscanner/ast FromTsR POST
 /healthcheck HealthcheckR GET
 |]
 
@@ -75,6 +77,13 @@ postFromJsR :: Handler Value
 postFromJsR = do
     src <- requireCheckJsonBody :: Handler SourceFile
     case JsParser.parseProgram (filename src) (content src) of
+        Left errorMsg -> returnJson (Error "FAILED" errorMsg)
+        Right ast -> returnJson ast
+
+postFromTsR :: Handler Value
+postFromTsR = do
+    src <- requireCheckJsonBody :: Handler SourceFile
+    case TsParser.parseProgram (filename src) (content src) of
         Left errorMsg -> returnJson (Error "FAILED" errorMsg)
         Right ast -> returnJson ast
 

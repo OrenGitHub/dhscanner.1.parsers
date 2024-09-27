@@ -37,6 +37,8 @@ executable parser
     other-modules:
         JsLexer,
         JsParser,
+        TsLexer,
+        TsParser,
         PyLexer,
         PyParser,
         RbLexer,
