@@ -485,6 +485,7 @@ import Data.Map ( fromList )
 -- ****************************
 
 INT    { AlexTokenTag (AlexRawToken_INT  i) _ }
+STR    { AlexTokenTag (AlexRawToken_STR  s) _ }
 ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
 
 -- *************************
@@ -499,8 +500,10 @@ ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
 -- * parametrized lists *
 -- *                    *
 -- **********************
-listof(a):      a { [$1] } | a listof(a) { $1:$2 }
-commalistof(a): a { [$1] } | a 'CommaToken' loc '(' ')' commalistof(a) { $1:$6 }
+listof(a):          a { [$1] } | a listof(a)                                       { $1:$2 }
+commalistof(a):     a { [$1] } | a 'CommaToken'     loc '(' ')' commalistof(a)     { $1:$6 }
+barlistof(a):       a { [$1] } | a 'BarToken'       loc '(' ')' barlistof(a)       { $1:$6 }
+ampersandlistof(a): a { [$1] } | a 'AmpersandToken' loc '(' ')' ampersandlistof(a) { $1:$6 }
 
 -- ******************
 -- *                *
@@ -536,10 +539,45 @@ identifier:
     }
 }
 
-importKeyword: 'ImportKeyword' loc '(' ')' { Nothing }
-fromKeyword:   'FromKeyword'   loc '(' ')' { Nothing }
-asKeyword:     'AsKeyword'     loc '(' ')' { Nothing }
-asteriskToken: 'AsteriskToken' loc '(' ')' { Nothing }
+importKeyword:       'ImportKeyword'       loc '(' ')' { Nothing }
+interfaceKeyword:    'InterfaceKeyword'    loc '(' ')' { Nothing }
+nullKeyword:         'NullKeyword'         loc '(' ')' { Nothing }
+ifKeyword:           'IfKeyword'           loc '(' ')' { Nothing }
+functionKeyword:     'FunctionKeyword'     loc '(' ')' { Nothing }
+inKeyword:           'InKeyword'           loc '(' ')' { Nothing }
+anyKeyword:          'AnyKeyword'          loc '(' ')' { Nothing }
+commaToken:          'CommaToken'          loc '(' ')' { Nothing }
+booleanKeyword:      'BooleanKeyword'      loc '(' ')' { Nothing }
+newKeyword:          'NewKeyword'          loc '(' ')' { Nothing }
+unknownKeyword:      'UnknownKeyword'      loc '(' ')' { Nothing }
+deleteKeyword:       'DeleteKeyword'       loc '(' ')' { Nothing }
+typeOfKeyword:       'TypeOfKeyword'       loc '(' ')' { Nothing }
+returnKeyword:       'ReturnKeyword'       loc '(' ')' { Nothing }
+exclamationToken:    'ExclamationToken'    loc '(' ')' { Nothing }
+undefinedKeyword:    'UndefinedKeyword'    loc '(' ')' { Nothing }
+templateHead:        'TemplateHead'        loc '(' ')' { Nothing }
+templateMiddle:      'TemplateMiddle'      loc '(' ')' { Nothing }
+lastTemplateToken:   'LastTemplateToken'   loc '(' ')' { Nothing }
+dotToken:            'DotToken'            loc '(' ')' { Nothing }
+barBarToken:         'BarBarToken'         loc '(' ')' { Nothing }
+stringKeyword:       'StringKeyword'       loc '(' ')' { Nothing }
+voidKeyword:         'VoidKeyword'         loc '(' ')' { Nothing }
+fromKeyword:         'FromKeyword'         loc '(' ')' { Nothing }
+extendsKeyword:      'ExtendsKeyword'      loc '(' ')' { Nothing }
+questionToken:       'QuestionToken'       loc '(' ')' { Nothing }
+openParenToken:      'OpenParenToken'      loc '(' ')' { Nothing }
+openBracketToken:    'OpenBracketToken'    loc '(' ')' { Nothing }
+closeBracketToken:   'CloseBracketToken'   loc '(' ')' { Nothing }
+closeParenToken:     'CloseParenToken'     loc '(' ')' { Nothing }
+asKeyword:           'AsKeyword'           loc '(' ')' { Nothing }
+asteriskToken:       'AsteriskToken'       loc '(' ')' { Nothing }
+colonToken:          'ColonToken'          loc '(' ')' { Nothing }
+firstAssignment:     'FirstAssignment'     loc '(' ')' { Nothing }
+firstBinaryOperator: 'FirstBinaryOperator' loc '(' ')' { Nothing }
+greaterThanToken:    'GreaterThanToken'    loc '(' ')' { Nothing }
+ampAmpToken:         'AmpersandAmpersandToken' loc '(' ')' { Nothing }
+eqEqEqToken:         'EqualsEqualsEqualsToken' loc '(' ')' { Nothing }
+exclamationEqEqToken: 'ExclamationEqualsEqualsToken' loc '(' ')' { Nothing }
 
 importee: asteriskToken { Nothing }
 
@@ -591,11 +629,20 @@ namespaceImport:
 }
 
 stringLiteral:
-'StringLiteral' loc '(' ')'
+'StringLiteral' loc '(' STR ')'
 {
-    "MOMO"
+    Token.ConstStr
+    {
+        Token.constStrValue = tokSTRValue $4,
+        Token.constStrLocation = $2
+    }
 }
 
+-- ***************
+-- *             *
+-- * stmt import *
+-- *             *
+-- ***************
 stmt_import:
 'ImportDeclaration' loc
 '('
@@ -605,7 +652,7 @@ stmt_import:
     stringLiteral
 ')'
 {
-    Ast.StmtImport $ Ast.StmtImportContent
+    Just $ Ast.StmtImport $ Ast.StmtImportContent
     {
         Ast.stmtImportName = "Zuchmir",
         Ast.stmtImportAlias = "Moish",
@@ -613,8 +660,595 @@ stmt_import:
     }
 }
 
+literalType:
+'LiteralType' loc '(' stringLiteral ')' { Nothing } |
+'LiteralType' loc '(' nullKeyword   ')' { Nothing }
+
+typeLiteral:
+'TypeLiteral' loc
+'('
+    optional(listof(stmt_property))
+')'
+{
+    Nothing
+}
+
+internal_type:
+booleanKeyword   { Nothing } |
+anyKeyword       { Nothing } |
+unknownKeyword   { Nothing } |
+undefinedKeyword { Nothing } |
+stringKeyword    { Nothing } |
+voidKeyword      { Nothing } |
+identifier       { Nothing } |
+typeReference    { Nothing } |
+literalType      { Nothing } |
+typeLiteral      { Nothing }
+
+generics:
+firstBinaryOperator
+commalistof(type)
+greaterThanToken
+{
+    Nothing
+}
+
+typeReference: 'TypeReference' loc '(' type ')'
+{
+    Nothing
+}
+
+type_hint: colonToken type
+{
+    Nothing
+}
+
+-- ***************
+-- *             *
+-- * stmt decvar *
+-- *             *
+-- ***************
+stmt_decvar:
+'VariableDeclarationList' loc
+'('
+    'VariableDeclaration' loc '(' identifier optional(type_hint) firstAssignment exp ')'
+')'
+{
+    Nothing
+}
+
+expressionWithTypeArguments:
+'ExpressionWithTypeArguments' loc
+'('
+    type
+')'
+{
+    Nothing
+}
+
+indexedAccessType:
+'IndexedAccessType' loc
+'('
+    type
+    openBracketToken
+    internal_type
+    closeBracketToken
+')'
+{
+    Nothing
+}
+
+union_type:
+'UnionType' loc
+'('
+    barlistof(type)
+')'
+{
+    Nothing
+}
+
+intersection_type:
+'IntersectionType' loc
+'('
+    ampersandlistof(type)
+')'
+{
+    Nothing
+}
+
+parenthesized_type:
+'ParenthesizedType' loc
+'('
+    openParenToken
+    type
+    closeParenToken
+')'
+{
+    Nothing
+}
+
+type_operator:
+'TypeOperator' loc
+'('
+    type
+')'
+{
+    Nothing
+}
+
+type:
+expressionWithTypeArguments      { Nothing } |
+indexedAccessType                { Nothing } |
+union_type                       { Nothing } |
+intersection_type                { Nothing } |
+parenthesized_type               { Nothing } |
+type_operator                    { Nothing } |
+internal_type optional(generics) { Nothing }
+
+extends:
+'HeritageClause' loc
+'('
+    extendsKeyword
+    commalistof(type)
+')'
+{
+}
+
+-- ******************
+-- *                *
+-- * stmt interface *
+-- *                *
+-- ******************
+stmt_interface:
+'InterfaceDeclaration' loc
+'('
+    interfaceKeyword
+    identifier
+    optional(extends)
+    listof(stmt)
+')'
+{
+    Nothing
+}
+
+-- **************
+-- *            *
+-- * stmt class *
+-- *            *
+-- **************
+stmt_class:
+stmt_interface { $1 }
+
+-- ***************
+-- *             *
+-- * data member *
+-- *             *
+-- ***************
+stmt_property:
+'PropertySignature' loc
+'('
+    identifier optional(questionToken) optional(type_hint) optional(commaToken)
+')'
+{
+    Nothing
+}
+
+body:
+'Block' loc
+'('
+    listof(stmt)
+')'
+{
+    Nothing
+}
+
+param:
+'Parameter' loc
+'('
+    identifier
+    optional(type_hint)
+')'
+{
+    Nothing
+}
+
+-- *****************
+-- *               *
+-- * stmt function *
+-- *               *
+-- *****************
+stmt_function:
+'FunctionDeclaration' loc
+'('
+    functionKeyword
+    identifier
+    openParenToken
+    optional(commalistof(param))
+    closeParenToken
+    optional(type_hint)
+    optional(body)
+')'
+{
+    Nothing
+}
+
+-- ***********
+-- *         *
+-- * stmt if *
+-- *         *
+-- ***********
+stmt_if:
+'IfStatement' loc
+'('
+    ifKeyword
+    openParenToken
+    exp
+    closeParenToken
+    body
+')'
+{
+    Nothing
+}
+
+-- ************
+-- *          *
+-- * stmt exp *
+-- *          *
+-- ************
+stmt_exp:
+'ExpressionStatement' loc
+'('
+    exp
+')'
+{
+    Nothing
+}
+
+-- ***************
+-- *             *
+-- * stmt return *
+-- *             *
+-- ***************
+stmt_return:
+'ReturnStatement' loc
+'('
+    returnKeyword
+    optional(exp)
+')'
+{
+    Nothing
+}
+
+-- ********
+-- *      *
+-- * stmt *
+-- *      *
+-- ********
 stmt:
-stmt_import { $1 }
+stmt_if          { $1 } |
+stmt_exp         { $1 } |
+stmt_import      { $1 } |
+stmt_function    { $1 } |
+stmt_property    { $1 } |
+stmt_class       { $1 } |
+stmt_return      { $1 } |
+stmt_decvar      { $1 }
+
+-- ******************
+-- *                *
+-- * exp arrow func *
+-- *                *
+-- ******************
+exp_arrow_func:
+'ArrowFunction' loc '(' ')' { Nothing }
+
+-- ************
+-- *          *
+-- * exp call *
+-- *          *
+-- ************
+exp_call:
+'CallExpression' loc
+'('
+    exp
+    openParenToken
+    optional(commalistof(exp))
+    closeParenToken
+')'
+{
+    Nothing
+}
+
+-- ***********
+-- *         *
+-- * exp str *
+-- *         *
+-- ***********
+exp_str: stringLiteral { Nothing }
+
+operator:
+inKeyword            { Nothing } |
+firstAssignment      { Nothing } |
+barBarToken          { Nothing } |
+eqEqEqToken          { Nothing } |
+ampAmpToken          { Nothing } |
+exclamationEqEqToken { Nothing }
+
+-- *************
+-- *           *
+-- * exp binop *
+-- *           *
+-- *************
+exp_binop:
+'BinaryExpression' loc
+'('
+    exp
+    operator
+    exp
+')'
+{
+    Nothing
+}
+
+var_field:
+'PropertyAccessExpression' loc
+'('
+    exp
+    dotToken
+    identifier
+')'
+{
+    Nothing
+}
+
+var_subscript:
+'ElementAccessExpression' loc
+'('
+    exp
+    openBracketToken
+    exp
+    closeBracketToken
+')'
+{
+    Nothing
+}
+
+var_simple: identifier { Nothing }
+
+var:
+var_simple    { $1 } |
+var_field     { $1 } |
+var_subscript { $1 }
+
+-- ***********
+-- *         *
+-- * exp var *
+-- *         *
+-- ***********
+exp_var: var { $1 }
+
+-- ***********
+-- *         *
+-- * exp var *
+-- *         *
+-- ***********
+exp_meta:
+'MetaProperty' loc
+'('
+    'ImportKeyword' loc '(' ')' dotToken identifier
+')'
+{
+    Nothing
+}
+
+template_span:
+'TemplateSpan' loc '(' exp templateMiddle    ')' { Nothing } |
+'TemplateSpan' loc '(' exp lastTemplateToken ')' { Nothing }
+
+-- ***********
+-- *         *
+-- * fstring *
+-- *         *
+-- ***********
+fstring:
+'TemplateExpression' loc
+'('
+    templateHead
+    listof(template_span)
+')'
+{
+    Nothing
+}
+
+unary_operator:
+exclamationToken { Nothing }
+
+-- ************
+-- *          *
+-- * exp unop *
+-- *          *
+-- ************
+exp_unop:
+'PrefixUnaryExpression' loc
+'('
+    unary_operator
+    exp
+')'
+{
+    Nothing
+}
+
+-- *************
+-- *           *
+-- * exp paren *
+-- *           *
+-- *************
+exp_paren:
+'ParenthesizedExpression' loc
+'('
+    openParenToken
+    exp
+    closeParenToken
+')'
+{
+    Nothing
+}
+
+-- **************
+-- *            *
+-- * exp typeof *
+-- *            *
+-- **************
+exp_typeof:
+'TypeOfExpression' loc
+'('
+    typeOfKeyword
+    exp
+')'
+{
+    Nothing
+}
+
+-- ***************
+-- *             *
+-- * exp ternary *
+-- *             *
+-- ***************
+exp_ternary:
+'ConditionalExpression' loc
+'('
+    exp
+    questionToken
+    exp
+    colonToken
+    exp
+')'
+{
+    Nothing
+}
+
+-- **********************
+-- *                    *
+-- * exp object literal *
+-- *                    *
+-- **********************
+exp_objliteral:
+'ObjectLiteralExpression' loc
+'('
+')'
+{
+    Nothing
+}
+
+-- **************
+-- *            *
+-- * exp delete *
+-- *            *
+-- **************
+exp_delete:
+'DeleteExpression' loc
+'('
+    deleteKeyword
+    exp
+')'
+{
+    Nothing
+}
+
+-- **********
+-- *        *
+-- * exp as *
+-- *        *
+-- **********
+exp_as:
+'AsExpression' loc
+'('
+    exp
+    asKeyword
+    type
+')'
+{
+    Nothing
+}
+
+exp_true:
+'TrueKeyword' loc '(' ')'
+{
+    Nothing
+}
+
+exp_false:
+'FalseKeyword' loc '(' ')'
+{
+    Nothing
+}
+
+-- ************
+-- *          *
+-- * exp bool *
+-- *          *
+-- ************
+exp_bool:
+exp_true  { Nothing } |
+exp_false { Nothing }
+
+-- ************
+-- *          *
+-- * exp null *
+-- *          *
+-- ************
+exp_null: nullKeyword { $1 }
+
+-- ***********
+-- *         *
+-- * exp new *
+-- *         *
+-- ***********
+exp_new:
+'NewExpression' loc
+'('
+    newKeyword
+    type
+    openParenToken
+    optional(commalistof(exp))
+    closeParenToken
+')'
+{
+    Nothing
+}
+
+-- *************
+-- *           *
+-- * exp regex *
+-- *           *
+-- *************
+exp_regex:
+'RegularExpressionLiteral' loc '(' ')' { Nothing }
+
+-- *******
+-- *     *
+-- * exp *
+-- *     *
+-- *******
+exp:
+exp_str        { $1 } |
+exp_new        { $1 } |
+exp_bool       { $1 } |
+exp_null       { $1 } |
+fstring        { $1 } |
+exp_objliteral { $1 } |
+exp_call       { $1 } |
+exp_meta       { $1 } |
+exp_ternary    { $1 } |
+exp_var        { $1 } |
+exp_as         { $1 } |
+exp_paren      { $1 } |
+exp_unop       { $1 } |
+exp_delete     { $1 } |
+exp_typeof     { $1 } |
+exp_binop      { $1 } |
+exp_regex      { $1 } |
+exp_arrow_func { $1 }
 
 loc:
 '[' INT ':' INT '-' INT ':' INT ']'
