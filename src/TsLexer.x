@@ -981,8 +981,9 @@ data AlexTokenTag
 -- *************
 data AlexRawToken
 
-     = AlexRawToken_INT Int         -- ^ locations and numbers
-     | AlexRawToken_ID String       -- ^ including constant strings
+     = AlexRawToken_INT Int -- ^ locations and numbers
+     | AlexRawToken_ID String -- ^ including constant strings
+     | AlexRawToken_STR String -- ^ including constant strings
 
      -- ***************
      -- *             *
@@ -1488,6 +1489,14 @@ location = tokenLoc
 -- ***************
 tokIntValue :: AlexTokenTag -> Int
 tokIntValue t = case (tokenRaw t) of { AlexRawToken_INT i -> i; _ -> 0; }
+
+-- ***************
+-- *             *
+-- * tokSTRValue *
+-- *             *
+-- ***************
+tokSTRValue :: AlexTokenTag -> String
+tokSTRValue t = case (tokenRaw t) of { AlexRawToken_STR s -> s; _ -> ""; }
 
 -- **************
 -- *            *
