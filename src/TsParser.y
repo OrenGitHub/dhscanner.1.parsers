@@ -541,7 +541,7 @@ identifier:
 
 importKeyword:       'ImportKeyword'       loc '(' ')' { Nothing }
 interfaceKeyword:    'InterfaceKeyword'    loc '(' ')' { Nothing }
-nullKeyword:         'NullKeyword'         loc '(' ')' { Nothing }
+nullKeyword:         'NullKeyword'         loc '(' ')' { $2 }
 ifKeyword:           'IfKeyword'           loc '(' ')' { Nothing }
 functionKeyword:     'FunctionKeyword'     loc '(' ')' { Nothing }
 inKeyword:           'InKeyword'           loc '(' ')' { Nothing }
@@ -916,7 +916,11 @@ stmt_return:
     optional(exp)
 ')'
 {
-    Nothing
+    Just $ Ast.StmtReturn $ Ast.StmtReturnContent
+    {
+        Ast.stmtReturnValue = Nothing,
+        Ast.stmtReturnLocation = $2
+    }
 }
 
 -- ********
@@ -940,7 +944,14 @@ stmt_decvar      { $1 }
 -- *                *
 -- ******************
 exp_arrow_func:
-'ArrowFunction' loc '(' ')' { Nothing }
+'ArrowFunction' loc '(' ')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 999,
+        Token.constIntLocation = $2
+    }
+}
 
 -- ************
 -- *          *
@@ -956,7 +967,12 @@ exp_call:
     closeParenToken
 ')'
 {
-    Nothing
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = $4,
+        Ast.args = case $6 of { Nothing -> []; Just exps -> exps },
+        Ast.expCallLocation = $2
+    }
 }
 
 -- ***********
@@ -964,7 +980,11 @@ exp_call:
 -- * exp str *
 -- *         *
 -- ***********
-exp_str: stringLiteral { Nothing }
+exp_str:
+stringLiteral
+{
+    Ast.ExpStr $ Ast.ExpStrContent $1
+}
 
 operator:
 inKeyword            { Nothing } |
@@ -987,7 +1007,13 @@ exp_binop:
     exp
 ')'
 {
-    Nothing
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $4,
+        Ast.expBinopRight = $6,
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $2
+    }
 }
 
 var_field:
@@ -998,7 +1024,12 @@ var_field:
     identifier
 ')'
 {
-    Nothing
+    Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = $4,
+        Ast.varFieldName = Token.FieldName $6,
+        Ast.varFieldLocation = $2
+    }
 }
 
 var_subscript:
@@ -1010,10 +1041,19 @@ var_subscript:
     closeBracketToken
 ')'
 {
-    Nothing
+    Ast.VarSubscript $ Ast.VarSubscriptContent
+    {
+        Ast.varSubscriptLhs = $4,
+        Ast.varSubscriptIdx = $6,
+        Ast.varSubscriptLocation = $2
+    }
 }
 
-var_simple: identifier { Nothing }
+var_simple:
+identifier
+{
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $1
+}
 
 var:
 var_simple    { $1 } |
@@ -1025,7 +1065,11 @@ var_subscript { $1 }
 -- * exp var *
 -- *         *
 -- ***********
-exp_var: var { $1 }
+exp_var:
+var
+{
+    Ast.ExpVar $ Ast.ExpVarContent $1
+}
 
 -- ***********
 -- *         *
@@ -1038,12 +1082,16 @@ exp_meta:
     'ImportKeyword' loc '(' ')' dotToken identifier
 ')'
 {
-    Nothing
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+    {
+        Token.content = "meta",
+        Token.location = $2
+    }
 }
 
 template_span:
-'TemplateSpan' loc '(' exp templateMiddle    ')' { Nothing } |
-'TemplateSpan' loc '(' exp lastTemplateToken ')' { Nothing }
+'TemplateSpan' loc '(' exp templateMiddle    ')' { $4 } |
+'TemplateSpan' loc '(' exp lastTemplateToken ')' { $4 }
 
 -- ***********
 -- *         *
@@ -1057,7 +1105,16 @@ fstring:
     listof(template_span)
 ')'
 {
-    Nothing
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "fstring",
+            Token.location = $2
+        },
+        Ast.args = [],
+        Ast.expCallLocation = $2
+    }
 }
 
 unary_operator:
@@ -1075,7 +1132,7 @@ exp_unop:
     exp
 ')'
 {
-    Nothing
+    $5
 }
 
 -- *************
@@ -1091,7 +1148,7 @@ exp_paren:
     closeParenToken
 ')'
 {
-    Nothing
+    $5
 }
 
 -- **************
@@ -1106,7 +1163,16 @@ exp_typeof:
     exp
 ')'
 {
-    Nothing
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "typeof",
+            Token.location = $2
+        },
+        Ast.args = [],
+        Ast.expCallLocation = $2
+    }
 }
 
 -- ***************
@@ -1124,7 +1190,16 @@ exp_ternary:
     exp
 ')'
 {
-    Nothing
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "ternary",
+            Token.location = $2
+        },
+        Ast.args = [],
+        Ast.expCallLocation = $2
+    }
 }
 
 -- **********************
@@ -1137,7 +1212,11 @@ exp_objliteral:
 '('
 ')'
 {
-    Nothing
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 888,
+        Token.constIntLocation = $2
+    }
 }
 
 -- **************
@@ -1152,7 +1231,16 @@ exp_delete:
     exp
 ')'
 {
-    Nothing
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "delete",
+            Token.location = $2
+        },
+        Ast.args = [],
+        Ast.expCallLocation = $2
+    }
 }
 
 -- **********
@@ -1168,19 +1256,37 @@ exp_as:
     type
 ')'
 {
-    Nothing
+    $4
 }
 
+-- ************
+-- *          *
+-- * exp bool *
+-- *          *
+-- ************
 exp_true:
 'TrueKeyword' loc '(' ')'
 {
-    Nothing
+    Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool
+    {
+        Token.constBoolValue = True,
+        Token.constBoolLocation = $2
+    }
 }
 
+-- ************
+-- *          *
+-- * exp bool *
+-- *          *
+-- ************
 exp_false:
 'FalseKeyword' loc '(' ')'
 {
-    Nothing
+    Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool
+    {
+        Token.constBoolValue = False,
+        Token.constBoolLocation = $2
+    }
 }
 
 -- ************
@@ -1189,15 +1295,23 @@ exp_false:
 -- *          *
 -- ************
 exp_bool:
-exp_true  { Nothing } |
-exp_false { Nothing }
+exp_true  { $1 } |
+exp_false { $1 }
 
 -- ************
 -- *          *
 -- * exp null *
 -- *          *
 -- ************
-exp_null: nullKeyword { $1 }
+exp_null:
+nullKeyword
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 888,
+        Token.constIntLocation = $1
+    }
+}
 
 -- ***********
 -- *         *
@@ -1214,7 +1328,16 @@ exp_new:
     closeParenToken
 ')'
 {
-    Nothing
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "new",
+            Token.location = $2
+        },
+        Ast.args = case $7 of { Nothing -> []; Just exps -> exps },
+        Ast.expCallLocation = $2
+    }
 }
 
 -- *************
@@ -1223,7 +1346,14 @@ exp_new:
 -- *           *
 -- *************
 exp_regex:
-'RegularExpressionLiteral' loc '(' ')' { Nothing }
+'RegularExpressionLiteral' loc '(' ')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 888,
+        Token.constIntLocation = $2
+    }
+}
 
 -- *******
 -- *     *
