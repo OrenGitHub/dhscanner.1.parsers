@@ -21,7 +21,7 @@ import qualified Token
 import Data.Maybe
 import Data.Either
 import Data.List ( map )
-import Data.Map ( fromList )
+import Data.Map ( empty, fromList )
 
 }
 
@@ -522,7 +522,7 @@ program: listof(stmt)
     Ast.Root
     {
         Ast.filename = "DDD",
-        stmts = []
+        stmts = $1
     }
 }
 
@@ -652,7 +652,7 @@ stmt_import:
     stringLiteral
 ')'
 {
-    Just $ Ast.StmtImport $ Ast.StmtImportContent
+    Ast.StmtImport $ Ast.StmtImportContent
     {
         Ast.stmtImportName = "Zuchmir",
         Ast.stmtImportAlias = "Moish",
@@ -714,7 +714,12 @@ stmt_decvar:
     'VariableDeclaration' loc '(' identifier optional(type_hint) firstAssignment exp ')'
 ')'
 {
-    Nothing
+    Ast.StmtDecvar $ Ast.DecVarContent
+    {
+        Ast.decVarName = Token.VarName $7,
+        Ast.decVarNominalType = Token.NominalTy $7,
+        Ast.decVarInitValue = Just $10
+    }
 }
 
 expressionWithTypeArguments:
@@ -808,7 +813,13 @@ stmt_interface:
     listof(stmt)
 ')'
 {
-    Nothing
+    Ast.StmtClass $ Ast.StmtClassContent
+    {
+        Ast.stmtClassName = Token.ClassName $5,
+        Ast.stmtClassSupers = [],
+        Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
+        Ast.stmtClassMethods = Ast.Methods Data.Map.empty
+    }
 }
 
 -- **************
@@ -830,7 +841,12 @@ stmt_property:
     identifier optional(questionToken) optional(type_hint) optional(commaToken)
 ')'
 {
-    Nothing
+    Ast.StmtDecvar $ Ast.DecVarContent
+    {
+        Ast.decVarName = Token.VarName $4,
+        Ast.decVarNominalType = Token.NominalTy $4,
+        Ast.decVarInitValue = Nothing
+    }
 }
 
 body:
@@ -839,7 +855,7 @@ body:
     listof(stmt)
 ')'
 {
-    Nothing
+    $4
 }
 
 param:
@@ -849,7 +865,16 @@ param:
     optional(type_hint)
 ')'
 {
-    Nothing
+    Ast.Param
+    {
+        Ast.paramName = Token.ParamName $4,
+        Ast.paramNominalType = Token.NominalTy $ Token.Named
+        {
+            Token.content = "any",
+            Token.location = $2
+        },
+        Ast.paramSerialIdx = 156
+    }
 }
 
 -- *****************
@@ -869,7 +894,19 @@ stmt_function:
     optional(body)
 ')'
 {
-    Nothing
+    Ast.StmtFunc $ Ast.StmtFuncContent
+    {
+        Ast.stmtFuncReturnType = Token.NominalTy $ Token.Named
+        {
+            Token.content = "any",
+            Token.location = $2
+        },
+        Ast.stmtFuncName = Token.FuncName $5,
+        Ast.stmtFuncParams = case $7 of { Nothing -> []; Just params -> params },
+        Ast.stmtFuncBody = case $10 of { Nothing -> []; Just stmts -> stmts },
+        Ast.stmtFuncAnnotations = [],
+        Ast.stmtFuncLocation = $2
+    }
 }
 
 -- ***********
@@ -887,7 +924,13 @@ stmt_if:
     body
 ')'
 {
-    Nothing
+    Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = $6,
+        Ast.stmtIfBody = [],
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $2
+    }
 }
 
 -- ************
@@ -901,7 +944,7 @@ stmt_exp:
     exp
 ')'
 {
-    Nothing
+    Ast.StmtExp $4
 }
 
 -- ***************
@@ -916,7 +959,7 @@ stmt_return:
     optional(exp)
 ')'
 {
-    Just $ Ast.StmtReturn $ Ast.StmtReturnContent
+    Ast.StmtReturn $ Ast.StmtReturnContent
     {
         Ast.stmtReturnValue = Nothing,
         Ast.stmtReturnLocation = $2
@@ -1112,7 +1155,7 @@ fstring:
             Token.content = "fstring",
             Token.location = $2
         },
-        Ast.args = [],
+        Ast.args = $5,
         Ast.expCallLocation = $2
     }
 }
