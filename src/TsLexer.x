@@ -473,9 +473,9 @@ import Location
 @LETTER = [A-Za-z_]
 @LETTER_OR_DIGIT = @LETTER | @DIGIT
 @ID = (@LETTER)(@LETTER_OR_DIGIT*)
-@STR_START = MoisheZuchmirIsHere
-@STR_END = MoisheZuchmirJustLeft
-@STR = (@STR_START)(.*)(@STR_END)
+$quote = [\'\"]
+$non_quote = $printable # $quote
+@STR = ($quote)($non_quote*)($quote)
 
 -- ***************
 -- *             *
