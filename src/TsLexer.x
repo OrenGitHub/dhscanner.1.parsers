@@ -473,9 +473,9 @@ import Location
 @LETTER = [A-Za-z_]
 @LETTER_OR_DIGIT = @LETTER | @DIGIT
 @ID = (@LETTER)(@LETTER_OR_DIGIT*)
-$quote = [\'\"]
-$non_quote = $printable # $quote
-@STR = ($quote)($non_quote*)($quote)
+@QUOTE = [\'\"]
+@NOQUOTE = [^\'\"]*
+@STR = (@QUOTE)(@NOQUOTE)(@QUOTE)
 
 -- ***************
 -- *             *
@@ -923,8 +923,9 @@ tokens :-
 -- *                          *
 -- ****************************
 
-@ID        { lex  AlexRawToken_ID                 }
-@INT       { lex (AlexRawToken_INT . round. read) }
+@ID  { lex  AlexRawToken_ID                 }
+@INT { lex (AlexRawToken_INT . round. read) }
+@STR { lex  AlexRawToken_STR                }
 
 {
 
