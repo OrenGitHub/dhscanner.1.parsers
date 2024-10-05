@@ -2,5 +2,5 @@ FROM ubuntu
 RUN apt-get update -y
 RUN apt-get install wget -y
 RUN wget https://github.com/OrenGitHub/dhscanner/releases/download/v0.0.1/parsers.elf.aarch64
-RUN chmod +x parsers.aarch64
-CMD ["./parsers.aarch64"]
+RUN chmod +x parsers.elf.aarch64
+CMD ["./parsers.elf.aarch64"]
