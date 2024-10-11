@@ -144,6 +144,7 @@ import Location
 @KW_EXPR_BINOP_GT   = "Expr_BinaryOp_Greater"
 @KW_EXPR_BINOP_GEQ  = "Expr_BinaryOp_GreaterOrEqual"
 @KW_EXPR_BINOP_EQ   = "Expr_BinaryOp_Equal"
+@KW_EXPR_BINOP_LOR  = "Expr_BinaryOp_LogicalOr"
 @KW_EXPR_BINOP_NEQ  = "Expr_BinaryOp_NotEqual"
 @KW_EXPR_BINOP_IS   = "Expr_BinaryOp_Identical"
 @KW_EXPR_BINOP_ISNOT = "Expr_BinaryOp_NotIdentical"
@@ -319,6 +320,7 @@ tokens :-
 @KW_EXPR_POST_INC   { lex' AlexRawToken_EXPR_POST_INC   }
 @KW_EXPR_BINOP_CONCAT { lex' AlexRawToken_EXPR_BINOP_CONCAT }
 @KW_EXPR_BINOP_OR   { lex' AlexRawToken_EXPR_BINOP_OR   }
+@KW_EXPR_BINOP_LOR  { lex' AlexRawToken_EXPR_BINOP_LOR  }
 @KW_EXPR_BINOP_AND  { lex' AlexRawToken_EXPR_BINOP_AND  }
 @KW_EXPR_UNOP_NOT   { lex' AlexRawToken_EXPR_UNOP_NOT   }
 
@@ -493,6 +495,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_POST_INC    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_CONCAT -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_OR   -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_LOR  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_AND  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_UNOP_NOT   -- ^ Reserved Keyword
 

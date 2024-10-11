@@ -163,6 +163,7 @@ import Data.Map ( empty, fromList )
 'Expr_BinaryOp_Minus'   { AlexTokenTag AlexRawToken_EXPR_BINOP_MINUS _ }
 'Expr_BinaryOp_Concat'  { AlexTokenTag AlexRawToken_EXPR_BINOP_CONCAT _ }
 'Expr_BinaryOp_BooleanOr' { AlexTokenTag AlexRawToken_EXPR_BINOP_OR _ }
+'Expr_BinaryOp_LogicalOr' { AlexTokenTag AlexRawToken_EXPR_BINOP_LOR _ }
 'Expr_BinaryOp_BooleanAnd' { AlexTokenTag AlexRawToken_EXPR_BINOP_AND _ }
 'Expr_BinaryOp_Smaller' { AlexTokenTag AlexRawToken_EXPR_BINOP_LT   _ }
 'Expr_BinaryOp_Equal'   { AlexTokenTag AlexRawToken_EXPR_BINOP_EQ   _ }
@@ -219,6 +220,7 @@ ID      { tokIDValue $1 } |
 -- * parametrized lists *
 -- *                    *
 -- **********************
+optional(a): { Nothing } | a { Just $1 }
 listof(a): a { [$1] } | a listof(a) { $1:$2 }
 ornull(a): 'null' { Nothing } | a { Just $1 }
 
@@ -539,6 +541,9 @@ param_default_value:
 tokenID { Nothing } |
 exp     { Nothing }
 
+param_hooks:
+ID ':' 'array' '(' ')' { Nothing }
+
 param:
 'Param' loc
 '('
@@ -549,6 +554,7 @@ param:
     ID ':' ID
     'var' ':' 'Expr_Variable' loc '(' 'name' ':' tokenID ')'
     ID ':' param_default_value
+    optional(param_hooks)
 ')'
 {
     Ast.Param
@@ -901,7 +907,7 @@ exp_not:
 exp_exit:
 'Expr_Exit' loc
 '('
-    'expr' ':' 'null'
+    'expr' ':' ornull(exp)
 ')'
 {
     Ast.ExpCall $ Ast.ExpCallContent
@@ -1315,6 +1321,7 @@ operator:
 'Expr_BinaryOp_Identical'    { Nothing } |
 'Expr_BinaryOp_NotIdentical' { Nothing } |
 'Expr_BinaryOp_BooleanOr'    { Nothing } |
+'Expr_BinaryOp_LogicalOr'    { Nothing } |
 'Expr_BinaryOp_BooleanAnd'   { Nothing }
 
 -- *************
