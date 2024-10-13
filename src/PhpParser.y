@@ -116,6 +116,7 @@ import Data.Map ( empty, fromList )
 'Stmt_Echo'             { AlexTokenTag AlexRawToken_STMT_ECHO       _ }
 'Stmt_Unset'            { AlexTokenTag AlexRawToken_STMT_UNSET      _ }
 'Expr_Closure'          { AlexTokenTag AlexRawToken_EXPR_LAMBDA     _ }
+'Expr_ErrorSuppress'    { AlexTokenTag AlexRawToken_ERROR_SUPPRESS  _ }
 'ClosureUse'            { AlexTokenTag AlexRawToken_CLOSURE_USE     _ }
 'Expr_Instanceof'       { AlexTokenTag AlexRawToken_EXPR_INSTOF     _ }
 'Expr_Cast_Double'      { AlexTokenTag AlexRawToken_EXPR_CAST       _ }
@@ -148,6 +149,7 @@ import Data.Map ( empty, fromList )
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'Expr_Assign'           { AlexTokenTag AlexRawToken_EXPR_ASSIGN     _ }
 'Expr_AssignOp_Plus'    { AlexTokenTag AlexRawToken_EXPR_ASSIGN2    _ }
+'Expr_AssignOp_Concat'  { AlexTokenTag AlexRawToken_EXPR_ASSIGN3    _ }
 'Expr_Array'            { AlexTokenTag AlexRawToken_EXPR_ARRAY      _ }
 'Expr_Empty'            { AlexTokenTag AlexRawToken_EXPR_EMPTY      _ }
 'ArrayItem'             { AlexTokenTag AlexRawToken_EXPR_ARRAY3     _ }
@@ -159,6 +161,7 @@ import Data.Map ( empty, fromList )
 'Expr_BooleanNot'       { AlexTokenTag AlexRawToken_EXPR_UNOP_NOT   _ }
 'Expr_UnaryMinus'       { AlexTokenTag AlexRawToken_EXPR_UNOP_MINUS _ }
 'Expr_PostInc'          { AlexTokenTag AlexRawToken_EXPR_POST_INC   _ }
+'Expr_PostDec'          { AlexTokenTag AlexRawToken_EXPR_POST_DEC   _ }
 'Expr_BinaryOp_Mul'     { AlexTokenTag AlexRawToken_EXPR_BINOP_MUL  _ }
 'Expr_BinaryOp_Div'     { AlexTokenTag AlexRawToken_EXPR_BINOP_DIV  _ }
 'Expr_BinaryOp_Plus'    { AlexTokenTag AlexRawToken_EXPR_BINOP_PLUS _ }
@@ -214,6 +217,7 @@ ID      { tokIDValue $1 } |
 'value' { "value"       } |
 'Name'  { "Name"        } |
 'name'  { "name"        } |
+'type'  { "type"        } |
 'args'  { "args"        } |
 'null'  { "null"        }
 
@@ -438,7 +442,6 @@ stmt_foreach   { $1 } |
 stmt_exp       { $1 } |
 stmt_echo      { $1 } |
 stmt_unset     { $1 } |
-stmt_assign    { $1 } |
 stmt_catch     { $1 } |
 stmt_global    { $1 } |
 stmt_switch    { $1 } |
@@ -525,6 +528,7 @@ data_member:
     ID ':' flags
     'type' ':' type
     ID ':' 'array' '(' INT ':' dec_var ')'
+    optional(hooks)
 ')'
 {
     Ast.StmtDecvar $ Ast.DecVarContent
@@ -544,7 +548,7 @@ param_default_value:
 tokenID { Nothing } |
 exp     { Nothing }
 
-param_hooks:
+hooks:
 ID ':' 'array' '(' ')' { Nothing }
 
 param:
@@ -557,7 +561,7 @@ param:
     ID ':' ID
     'var' ':' 'Expr_Variable' loc '(' 'name' ':' tokenID ')'
     ID ':' param_default_value
-    optional(param_hooks)
+    optional(hooks)
 ')'
 {
     Ast.Param
@@ -738,6 +742,27 @@ var_field2:
     }
 }
 
+-- **************
+-- *            *
+-- * var_field3 *
+-- *            *
+-- **************
+var_field3:
+'Expr_PropertyFetch' loc
+'('
+    'var' ':' exp
+    'name' ':' exp
+')'
+{
+    Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = $6,
+        Ast.varFieldName = Token.FieldName (Token.Named "popo" $2),
+        Ast.varFieldLocation = $2
+    }
+}
+
+
 -- *************
 -- *           *
 -- * var_field *
@@ -745,7 +770,8 @@ var_field2:
 -- *************
 var_field:
 var_field1 { $1 } |
-var_field2 { $1 }
+var_field2 { $1 } |
+var_field3 { $1 }
 
 -- *****************
 -- *               *
@@ -778,30 +804,9 @@ var_field     { $1 } |
 var_subscript { $1 }
 
 assign_op:
-'Expr_Assign'        { Nothing } |
-'Expr_AssignOp_Plus' { Nothing }
-
--- ***************
--- *             *
--- * stmt_assign *
--- *             *
--- ***************
-stmt_assign:
-'Stmt_Expression' loc
-'('
-    'expr' ':' assign_op loc
-    '('
-        'var' ':' var
-        'expr' ':' exp
-    ')'
-')'
-{
-    Ast.StmtAssign $ Ast.StmtAssignContent
-    {
-        Ast.stmtAssignLhs = $11,
-        Ast.stmtAssignRhs = $14
-    }
-}
+'Expr_Assign'          { Nothing } |
+'Expr_AssignOp_Plus'   { Nothing } |
+'Expr_AssignOp_Concat' { Nothing }
 
 -- *************
 -- *           *
@@ -1078,7 +1083,8 @@ exp_fstring:
 
 unop_operator:
 'Expr_UnaryMinus' { Nothing } |
-'Expr_PostInc'    { Nothing }
+'Expr_PostInc'    { Nothing } |
+'Expr_PostDec'    { Nothing }
 
 -- ************
 -- *          *
@@ -1164,6 +1170,39 @@ exp_instof:
     $6
 }
 
+-- ****************
+-- *              *
+-- * err_suppress *
+-- *              *
+-- ****************
+err_suppress:
+'Expr_ErrorSuppress' loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+}
+
+-- **************
+-- *            *
+-- * exp_assign *
+-- *            *
+-- **************
+exp_assign:
+assign_op loc
+'('
+    'var' ':' var
+    'expr' ':' exp
+')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 999,
+        Token.constIntLocation = $2
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1185,7 +1224,9 @@ exp_unop    { $1 } |
 exp_isset   { $1 } |
 exp_empty   { $1 } |
 exp_array   { $1 } |
+exp_assign  { $1 } |
 exp_import  { $1 } |
+err_suppress  { $1 } |
 exp_lambda  { $1 } |
 exp_ternary { $1 } |
 exp_fstring { $1 } |

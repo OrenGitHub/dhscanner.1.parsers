@@ -110,12 +110,14 @@ import Location
 @KW_EXPR_TERNARY    = "Expr_Ternary"
 @KW_EXPR_LAMBDA     = "Expr_Closure"
 @KW_CLOSURE_USE     = "ClosureUse"
+@KW_ERROR_SUPPRESS  = "Expr_ErrorSuppress"
 @KW_EXPR_CAST       = "Expr_Cast_Double"
 @KW_EXPR_CAST2      = "Expr_Cast_Int"
 @KW_EXPR_CAST3      = "Expr_Cast_String"
 @KW_EXPR_CAST4      = "Expr_Cast_Bool"
 @KW_EXPR_ASSIGN     = "Expr_Assign"
 @KW_EXPR_ASSIGN2    = "Expr_AssignOp_Plus"
+@KW_EXPR_ASSIGN3    = "Expr_AssignOp_Concat"
 @KW_EXPR_ISSET      = "Expr_Isset"
 @KW_EXPR_ARRAY      = "Expr_Array"
 @KW_EXPR_EMPTY      = "Expr_Empty"
@@ -157,6 +159,7 @@ import Location
 @KW_EXPR_BINOP_MINUS = "Expr_BinaryOp_Minus"
 @KW_EXPR_UNOP_MINUS = "Expr_UnaryMinus"
 @KW_EXPR_POST_INC   = "Expr_PostInc"
+@KW_EXPR_POST_DEC   = "Expr_PostDec"
 @KW_EXPR_BINOP_CONCAT = "Expr_BinaryOp_Concat"
 @KW_EXPR_BINOP_OR   = "Expr_BinaryOp_BooleanOr"
 @KW_EXPR_BINOP_AND  = "Expr_BinaryOp_BooleanAnd"
@@ -279,12 +282,14 @@ tokens :-
 @KW_EXPR_TERNARY    { lex' AlexRawToken_EXPR_TERNARY    }
 @KW_EXPR_LAMBDA     { lex' AlexRawToken_EXPR_LAMBDA     }
 @KW_CLOSURE_USE     { lex' AlexRawToken_CLOSURE_USE     }
+@KW_ERROR_SUPPRESS  { lex' AlexRawToken_ERROR_SUPPRESS  }
 @KW_EXPR_CAST       { lex' AlexRawToken_EXPR_CAST       }
 @KW_EXPR_CAST4      { lex' AlexRawToken_EXPR_CAST4      }
 @KW_EXPR_CAST3      { lex' AlexRawToken_EXPR_CAST3      }
 @KW_EXPR_CAST2      { lex' AlexRawToken_EXPR_CAST2      }
 @KW_EXPR_ASSIGN     { lex' AlexRawToken_EXPR_ASSIGN     }
 @KW_EXPR_ASSIGN2    { lex' AlexRawToken_EXPR_ASSIGN2    }
+@KW_EXPR_ASSIGN3    { lex' AlexRawToken_EXPR_ASSIGN3    }
 @KW_EXPR_ISSET      { lex' AlexRawToken_EXPR_ISSET      }
 @KW_EXPR_ARRAY      { lex' AlexRawToken_EXPR_ARRAY      }
 @KW_EXPR_EMPTY      { lex' AlexRawToken_EXPR_EMPTY      }
@@ -324,6 +329,7 @@ tokens :-
 @KW_EXPR_BINOP_MINUS { lex' AlexRawToken_EXPR_BINOP_MINUS }
 @KW_EXPR_UNOP_MINUS { lex' AlexRawToken_EXPR_UNOP_MINUS }
 @KW_EXPR_POST_INC   { lex' AlexRawToken_EXPR_POST_INC   }
+@KW_EXPR_POST_DEC   { lex' AlexRawToken_EXPR_POST_DEC   }
 @KW_EXPR_BINOP_CONCAT { lex' AlexRawToken_EXPR_BINOP_CONCAT }
 @KW_EXPR_BINOP_OR   { lex' AlexRawToken_EXPR_BINOP_OR   }
 @KW_EXPR_BINOP_LOR  { lex' AlexRawToken_EXPR_BINOP_LOR  }
@@ -457,11 +463,13 @@ data AlexRawToken
      | AlexRawToken_EXPR_TERNARY    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_LAMBDA     -- ^ Reserved Keyword
      | AlexRawToken_CLOSURE_USE     -- ^ Reserved Keyword
+     | AlexRawToken_ERROR_SUPPRESS  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST4      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST3      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST2      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_ASSIGN3    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN2    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ISSET      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ARRAY      -- ^ Reserved Keyword
@@ -503,6 +511,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_BINOP_MINUS -- ^ Reserved Keyword
      | AlexRawToken_EXPR_UNOP_MINUS  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_POST_INC    -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_POST_DEC    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_CONCAT -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_OR   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_LOR  -- ^ Reserved Keyword
