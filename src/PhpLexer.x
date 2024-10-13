@@ -109,6 +109,7 @@ import Location
 @KW_EXPR_IMPORT     = "Expr_Include"
 @KW_EXPR_TERNARY    = "Expr_Ternary"
 @KW_EXPR_LAMBDA     = "Expr_Closure"
+@KW_CLOSURE_USE     = "ClosureUse"
 @KW_EXPR_CAST       = "Expr_Cast_Double"
 @KW_EXPR_CAST2      = "Expr_Cast_Int"
 @KW_EXPR_CAST3      = "Expr_Cast_String"
@@ -125,6 +126,7 @@ import Location
 @KW_EXPR_MCALL      = "Expr_MethodCall"
 @KW_STMT_EXPR       = "Stmt_Expression"
 @KW_SCALAR_INT      = "Scalar_Int"
+@KW_SCALAR_FLOAT    = "Scalar_Float"
 @KW_SCALAR_FSTRING  = "Scalar_InterpolatedString"
 @KW_SCALAR_FILE     = "Scalar_MagicConst_File"
 @KW_IDENTIFIER      = "Identifier"
@@ -166,13 +168,15 @@ import Location
 -- ************
 @DIGIT = 0-9
 @INT   = @DIGIT+
+@DOT   = \.
+@FLOAT = (@DIGIT+)(@DOT)(@DIGIT+)
 
 -- ***************
 -- *             *
 -- * identifiers *
 -- *             *
 -- ***************
-@LETTER = [A-Za-z_]
+@LETTER = [A-Za-z_\\]
 @LETTER_OR_DIGIT = @LETTER | @DIGIT
 @ID = @LETTER(@LETTER_OR_DIGIT*)
 
@@ -274,6 +278,7 @@ tokens :-
 @KW_EXPR_IMPORT     { lex' AlexRawToken_EXPR_IMPORT     }
 @KW_EXPR_TERNARY    { lex' AlexRawToken_EXPR_TERNARY    }
 @KW_EXPR_LAMBDA     { lex' AlexRawToken_EXPR_LAMBDA     }
+@KW_CLOSURE_USE     { lex' AlexRawToken_CLOSURE_USE     }
 @KW_EXPR_CAST       { lex' AlexRawToken_EXPR_CAST       }
 @KW_EXPR_CAST4      { lex' AlexRawToken_EXPR_CAST4      }
 @KW_EXPR_CAST3      { lex' AlexRawToken_EXPR_CAST3      }
@@ -290,6 +295,7 @@ tokens :-
 @KW_EXPR_SCALL      { lex' AlexRawToken_EXPR_SCALL      }
 @KW_STMT_EXPR       { lex' AlexRawToken_STMT_EXPR       }
 @KW_SCALAR_INT      { lex' AlexRawToken_SCALAR_INT      }
+@KW_SCALAR_FLOAT    { lex' AlexRawToken_SCALAR_FLOAT    }
 @KW_SCALAR_FSTRING  { lex' AlexRawToken_SCALAR_FSTRING  }
 @KW_SCALAR_FILE     { lex' AlexRawToken_SCALAR_FILE     }
 @KW_IDENTIFIER      { lex' AlexRawToken_IDENTIFIER      }
@@ -338,9 +344,10 @@ tokens :-
 -- *                          *
 -- ****************************
 
-@ID        { lex  AlexRawToken_ID                 }
-@INT       { lex (AlexRawToken_INT . round. read) }
-@STR       { lex AlexRawToken_STR                 }
+@ID        { lex  AlexRawToken_ID                    }
+@INT       { lex (AlexRawToken_INT . round . read)   }
+@FLOAT     { lex (AlexRawToken_FLOAT . round . read) }
+@STR       { lex AlexRawToken_STR                    }
 
 {
 
@@ -399,6 +406,7 @@ data AlexRawToken
 
      = AlexRawToken_INT Int         -- ^ locations and numbers
      | AlexRawToken_ID String       -- ^ including consant strings
+     | AlexRawToken_FLOAT Int       -- ^ including consant strings
      | AlexRawToken_STR String      -- ^ constant strings
       
      | AlexRawToken_LPAREN          -- ^ Parentheses __(__
@@ -448,6 +456,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_IMPORT     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_TERNARY    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_LAMBDA     -- ^ Reserved Keyword
+     | AlexRawToken_CLOSURE_USE     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST4      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST3      -- ^ Reserved Keyword
@@ -464,6 +473,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_SCALL      -- ^ Reserved Keyword
      | AlexRawToken_STMT_EXPR       -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_INT      -- ^ Reserved Keyword
+     | AlexRawToken_SCALAR_FLOAT    -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_FSTRING  -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_FILE     -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_STR      -- ^ Reserved Keyword

@@ -28,10 +28,10 @@ data SourceFile
 
 data Healthy = Healthy Bool deriving ( Generic )
 
-data Error = Error String String deriving ( Generic )
+data Error = Error String String String deriving ( Generic )
 
 -- | indicate a parse error 
-instance ToJSON Error where toJSON (Error status message) = object [ "status" .= status, "message" .= message ]
+instance ToJSON Error where toJSON (Error status message _filename) = object [ "status" .= status, "message" .= message, "filename" .= _filename ]
 
 -- | This is just for the health check ...
 instance ToJSON Healthy where toJSON (Healthy status) = object [ "healthy" .= status ]
@@ -56,35 +56,35 @@ postFromPhpR :: Handler Value
 postFromPhpR = do
     src <- requireCheckJsonBody :: Handler SourceFile
     case PhpParser.parseProgram (filename src) (content src) of
-        Left errorMsg -> returnJson (Error "FAILED" errorMsg)
+        Left errorMsg -> returnJson (Error "FAILED" errorMsg (filename src))
         Right ast -> returnJson ast
 
 postFromPyR :: Handler Value
 postFromPyR = do
     src <- requireCheckJsonBody :: Handler SourceFile
     case PyParser.parseProgram (filename src) (content src) of
-        Left errorMsg -> returnJson (Error "FAILED" errorMsg)
+        Left errorMsg -> returnJson (Error "FAILED" errorMsg (filename src))
         Right ast -> returnJson ast
 
 postFromRbR :: Handler Value
 postFromRbR = do
     src <- requireCheckJsonBody :: Handler SourceFile
     case RbParser.parseProgram (filename src) (content src) of
-        Left errorMsg -> returnJson (Error "FAILED" errorMsg)
+        Left errorMsg -> returnJson (Error "FAILED" errorMsg (filename src))
         Right ast -> returnJson ast
 
 postFromJsR :: Handler Value
 postFromJsR = do
     src <- requireCheckJsonBody :: Handler SourceFile
     case JsParser.parseProgram (filename src) (content src) of
-        Left errorMsg -> returnJson (Error "FAILED" errorMsg)
+        Left errorMsg -> returnJson (Error "FAILED" errorMsg (filename src))
         Right ast -> returnJson ast
 
 postFromTsR :: Handler Value
 postFromTsR = do
     src <- requireCheckJsonBody :: Handler SourceFile
     case TsParser.parseProgram (filename src) (content src) of
-        Left errorMsg -> returnJson (Error "FAILED" errorMsg)
+        Left errorMsg -> returnJson (Error "FAILED" errorMsg (filename src))
         Right ast -> returnJson ast
 
 main :: IO ()

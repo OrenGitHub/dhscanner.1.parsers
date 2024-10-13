@@ -116,6 +116,7 @@ import Data.Map ( empty, fromList )
 'Stmt_Echo'             { AlexTokenTag AlexRawToken_STMT_ECHO       _ }
 'Stmt_Unset'            { AlexTokenTag AlexRawToken_STMT_UNSET      _ }
 'Expr_Closure'          { AlexTokenTag AlexRawToken_EXPR_LAMBDA     _ }
+'ClosureUse'            { AlexTokenTag AlexRawToken_CLOSURE_USE     _ }
 'Expr_Instanceof'       { AlexTokenTag AlexRawToken_EXPR_INSTOF     _ }
 'Expr_Cast_Double'      { AlexTokenTag AlexRawToken_EXPR_CAST       _ }
 'Expr_Cast_Int'         { AlexTokenTag AlexRawToken_EXPR_CAST2      _ }
@@ -132,6 +133,7 @@ import Data.Map ( empty, fromList )
 'Stmt_Use'              { AlexTokenTag AlexRawToken_STMT_USE        _ }
 'Stmt_Expression'       { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'Scalar_Int'            { AlexTokenTag AlexRawToken_SCALAR_INT      _ }
+'Scalar_Float'          { AlexTokenTag AlexRawToken_SCALAR_FLOAT    _ }
 'Scalar_InterpolatedString' { AlexTokenTag AlexRawToken_SCALAR_FSTRING _ }
 'Scalar_MagicConst_File' { AlexTokenTag AlexRawToken_SCALAR_FILE    _ }
 'Identifier'            { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
@@ -180,9 +182,10 @@ import Data.Map ( empty, fromList )
 -- *                          *
 -- ****************************
 
-INT    { AlexTokenTag (AlexRawToken_INT  i) _ }
-ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
-STR    { AlexTokenTag (AlexRawToken_STR  s) _ }
+INT    { AlexTokenTag (AlexRawToken_INT    i) _ }
+FLOAT  { AlexTokenTag (AlexRawToken_FLOAT  f) _ }
+ID     { AlexTokenTag (AlexRawToken_ID    id) _ }
+STR    { AlexTokenTag (AlexRawToken_STR    s) _ }
 
 -- *************************
 -- *                       *
@@ -1168,6 +1171,7 @@ exp_instof:
 -- *******
 exp:
 exp_int     { $1 } |
+exp_float   { $1 } |
 exp_str     { $1 } |
 exp_new     { $1 } |
 exp_not     { $1 } |
@@ -1228,6 +1232,18 @@ exp_array:
     }
 }
 
+closure_use:
+'ClosureUse' loc
+'('
+    'var' ':' var
+    ID ':' ID
+')'
+{
+    Nothing
+}
+
+numbered_closure_use: INT ':' closure_use { Nothing }
+
 -- **************
 -- *            *
 -- * exp_lambda *
@@ -1240,7 +1256,7 @@ exp_lambda:
     ID ':' ID
     ID ':' ID
     ID ':' params
-    'uses' ':' 'array' '(' ')'
+    'uses' ':' 'array' '(' optional(listof(numbered_closure_use)) ')'
     'returnType' ':' tokenID
     'stmts' ':' stmts
 ')'
@@ -1248,7 +1264,7 @@ exp_lambda:
     Ast.ExpLambda $ Ast.ExpLambdaContent
     {
         Ast.expLambdaParams = $17,
-        Ast.expLambdaBody = $28,
+        Ast.expLambdaBody = $29,
         Ast.expLambdaLocation = $2
     }
 }
@@ -1263,6 +1279,20 @@ exp_int: 'Scalar_Int' loc '(' 'value' ':' INT ')'
     Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
     {
         Token.constIntValue = tokIntValue $6,
+        Token.constIntLocation = $2
+    }
+}
+
+-- *************
+-- *           *
+-- * exp_float *
+-- *           *
+-- *************
+exp_float: 'Scalar_Float' loc '(' 'value' ':' FLOAT ')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 4444,
         Token.constIntLocation = $2
     }
 }
