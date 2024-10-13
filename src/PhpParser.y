@@ -154,6 +154,7 @@ import Data.Map ( empty, fromList )
 'Expr_Empty'            { AlexTokenTag AlexRawToken_EXPR_EMPTY      _ }
 'ArrayItem'             { AlexTokenTag AlexRawToken_EXPR_ARRAY3     _ }
 'Expr_ArrayDimFetch'    { AlexTokenTag AlexRawToken_EXPR_ARRAY2     _ }
+'Expr_ClassConstFetch'  { AlexTokenTag AlexRawToken_EXPR_FETCH      _ }
 'Expr_Isset'            { AlexTokenTag AlexRawToken_EXPR_ISSET      _ }
 'Expr_ConstFetch'       { AlexTokenTag AlexRawToken_EXPR_CONST_GET  _ }
 'Expr_PropertyFetch'    { AlexTokenTag AlexRawToken_EXPR_PROP_GET   _ }
@@ -625,7 +626,9 @@ stmt_class:
 -- * stmt_call *
 -- *           *
 -- *************
-stmt_exp: 'Stmt_Expression' loc '(' 'expr' ':' exp ')' { Ast.StmtExp $6 }
+stmt_exp:
+'Stmt_Expression' loc '(' 'expr' ':' exp ')' { Ast.StmtExp $6 } |
+exp { Ast.StmtExp $1 }
 
 -- *************
 -- *           *
@@ -762,6 +765,32 @@ var_field3:
     }
 }
 
+-- **************
+-- *            *
+-- * var_field4 *
+-- *            *
+-- **************
+var_field4:
+'Expr_ClassConstFetch' loc
+'('
+    ID ':' 'Name' loc '(' 'name' ':' tokenID ')'
+    'name' ':' identifier 
+')'
+{
+    Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = $11,
+            Token.location = $7
+        },
+        Ast.varFieldName = Token.FieldName $15,
+        Ast.varFieldLocation = $2
+    }
+}
+
+
+
 
 -- *************
 -- *           *
@@ -771,7 +800,8 @@ var_field3:
 var_field:
 var_field1 { $1 } |
 var_field2 { $1 } |
-var_field3 { $1 }
+var_field3 { $1 } |
+var_field4 { $1 }
 
 -- *****************
 -- *               *
@@ -1558,12 +1588,16 @@ numbered_arg: INT ':' arg { $3 }
 -- *******
 arg: 'Arg' loc '(' 'name' ':' tokenID 'value' ':' exp ID ':' ID ID ':' ID ')' { $9 }
 
+stmt_for_loop:
+exp { $1 } |
+exps { head $1 } 
+
 -- ************
 -- *          *
 -- * stmt_for *
 -- *          *
 -- ************
-stmt_for: 'Stmt_For' loc '(' 'init' ':' stmts 'cond' ':' exps 'loop' ':' exp 'stmts' ':' stmts ')'
+stmt_for: 'Stmt_For' loc '(' 'init' ':' stmts 'cond' ':' exps 'loop' ':' stmt_for_loop 'stmts' ':' stmts ')'
 {
     Ast.StmtWhile $ Ast.StmtWhileContent
     {

@@ -123,6 +123,7 @@ import Location
 @KW_EXPR_EMPTY      = "Expr_Empty"
 @KW_EXPR_ARRAY3     = "ArrayItem"
 @KW_EXPR_ARRAY2     = "Expr_ArrayDimFetch"
+@KW_EXPR_FETCH      = "Expr_ClassConstFetch"
 @KW_EXPR_CALL       = "Expr_FuncCall"
 @KW_EXPR_SCALL      = "Expr_StaticCall"
 @KW_EXPR_MCALL      = "Expr_MethodCall"
@@ -292,6 +293,7 @@ tokens :-
 @KW_EXPR_ASSIGN3    { lex' AlexRawToken_EXPR_ASSIGN3    }
 @KW_EXPR_ISSET      { lex' AlexRawToken_EXPR_ISSET      }
 @KW_EXPR_ARRAY      { lex' AlexRawToken_EXPR_ARRAY      }
+@KW_EXPR_FETCH      { lex' AlexRawToken_EXPR_FETCH      }
 @KW_EXPR_EMPTY      { lex' AlexRawToken_EXPR_EMPTY      }
 @KW_EXPR_ARRAY2     { lex' AlexRawToken_EXPR_ARRAY2     }
 @KW_EXPR_ARRAY3     { lex' AlexRawToken_EXPR_ARRAY3     }
@@ -473,6 +475,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_ASSIGN2    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ISSET      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ARRAY      -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_FETCH      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_EMPTY      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ARRAY2     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ARRAY3     -- ^ Reserved Keyword
