@@ -137,9 +137,11 @@ import Data.Map ( empty, fromList )
 'Scalar_Float'          { AlexTokenTag AlexRawToken_SCALAR_FLOAT    _ }
 'Scalar_InterpolatedString' { AlexTokenTag AlexRawToken_SCALAR_FSTRING _ }
 'Scalar_MagicConst_File' { AlexTokenTag AlexRawToken_SCALAR_FILE    _ }
+'Scalar_MagicConst_Dir' { AlexTokenTag AlexRawToken_SCALAR_DIR      _ }
 'Identifier'            { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
 'Stmt_Return'           { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
 'Stmt_Property'         { AlexTokenTag AlexRawToken_STMT_PROPERTY   _ }
+'Stmt_Interface'        { AlexTokenTag AlexRawToken_STMT_INTERFACE  _ }
 'Stmt_ClassMethod'      { AlexTokenTag AlexRawToken_STMT_CLASSMETH  _ }
 'returnType'            { AlexTokenTag AlexRawToken_RETURN_TYPE     _ }
 'Stmt_Class'            { AlexTokenTag AlexRawToken_STMT_CLASS      _ }
@@ -148,9 +150,11 @@ import Data.Map ( empty, fromList )
 'Stmt_Global'           { AlexTokenTag AlexRawToken_STMT_GLOBAL     _ }
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'Expr_Assign'           { AlexTokenTag AlexRawToken_EXPR_ASSIGN     _ }
+'Expr_AssignOp_Div'     { AlexTokenTag AlexRawToken_EXPR_ASSIGN4    _ }
 'Expr_AssignOp_Plus'    { AlexTokenTag AlexRawToken_EXPR_ASSIGN2    _ }
 'Expr_AssignOp_Concat'  { AlexTokenTag AlexRawToken_EXPR_ASSIGN3    _ }
 'Expr_Array'            { AlexTokenTag AlexRawToken_EXPR_ARRAY      _ }
+'Expr_List'             { AlexTokenTag AlexRawToken_EXPR_LIST       _ }
 'Expr_Empty'            { AlexTokenTag AlexRawToken_EXPR_EMPTY      _ }
 'ArrayItem'             { AlexTokenTag AlexRawToken_EXPR_ARRAY3     _ }
 'Expr_ArrayDimFetch'    { AlexTokenTag AlexRawToken_EXPR_ARRAY2     _ }
@@ -447,6 +451,7 @@ stmt_catch     { $1 } |
 stmt_global    { $1 } |
 stmt_switch    { $1 } |
 stmt_class     { $1 } |
+stmt_interface { $1 } |
 stmt_cont      { $1 } |
 stmt_break     { $1 } |
 stmt_trycatch  { $1 } |
@@ -586,7 +591,7 @@ method:
     'name' ':' identifier
     ID ':' params
     'returnType' ':' tokenID
-    'stmts' ':' 'array' '(' listof(numbered_stmt) ')' 
+    'stmts' ':' ornull(stmts)
 ')'
 {
     Ast.StmtMethod $ Ast.StmtMethodContent
@@ -594,12 +599,30 @@ method:
         Ast.stmtMethodReturnType = Token.NominalTy (Token.Named "any" $2),
         Ast.stmtMethodName = Token.MethdName $17,
         Ast.stmtMethodParams = [],
-        Ast.stmtMethodBody = $28,
+        Ast.stmtMethodBody = case $26 of { Nothing -> []; Just _stmts -> _stmts },
         Ast.stmtMethodLocation = $2,
         Ast.hostingClassName = Token.ClassName (Token.Named "not_a_real_class_name" $2),
         Ast.hostingClassSupers = []
     }
 }
+
+stmt_interface:
+'Stmt_Interface' loc
+'('
+    tokenID ':' 'array' '(' ')'
+    'name' ':' identifier
+    ID ':' 'array' '(' ')'
+    'stmts' ':' 'array' '(' listof(numbered_class_attr) ')' 
+')'
+{
+    Ast.StmtClass $ Ast.StmtClassContent
+    {
+        Ast.stmtClassName = Token.ClassName $11,
+        Ast.stmtClassSupers = [],
+        Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
+        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $11) $21
+    }
+} 
 
 stmt_class:
 'Stmt_Class' loc
@@ -830,11 +853,13 @@ var_subscript:
 -- *******
 var:
 var_simple    { $1 } |
+var_list      { $1 } |
 var_field     { $1 } |
 var_subscript { $1 }
 
 assign_op:
 'Expr_Assign'          { Nothing } |
+'Expr_AssignOp_Div'    { Nothing } |
 'Expr_AssignOp_Plus'   { Nothing } |
 'Expr_AssignOp_Concat' { Nothing }
 
@@ -1187,6 +1212,20 @@ exp_file: 'Scalar_MagicConst_File' loc '(' ')'
 
 -- ************
 -- *          *
+-- * exp_file *
+-- *          *
+-- ************
+exp_dir: 'Scalar_MagicConst_Dir' loc '(' ')'
+{
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+    {
+        Token.content = "__DIR__",
+        Token.location = $2
+    }
+}
+
+-- ************
+-- *          *
 -- * exp_inst *
 -- *          *
 -- ************
@@ -1249,6 +1288,7 @@ exp_exit    { $1 } |
 exp_cast    { $1 } |
 exp_call    { Ast.ExpCall $1 } |
 exp_binop   { $1 } |
+exp_dir     { $1 } |
 exp_file    { $1 } |
 exp_unop    { $1 } |
 exp_isset   { $1 } |
@@ -1300,6 +1340,38 @@ exp_array:
         },
         Ast.args = $6,
         Ast.expCallLocation = $2
+    }
+}
+
+-- ************
+-- *          *
+-- * exp_list *
+-- *          *
+-- ************
+var_list:
+'Expr_List' loc
+'('
+    ID ':' array_items
+')'
+{
+    Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = Ast.ExpCall $ Ast.ExpCallContent
+        { 
+            Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+            {
+                Token.content = "arrayify",
+                Token.location = $2
+            },
+            Ast.args = $6,
+            Ast.expCallLocation = $2
+        },
+        Ast.varFieldName = Token.FieldName $ Token.Named
+        {
+            Token.content = "arrayify",
+            Token.location = $2
+        },
+        Ast.varFieldLocation = $2
     }
 }
 

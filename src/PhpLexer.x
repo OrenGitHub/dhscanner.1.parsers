@@ -117,8 +117,10 @@ import Location
 @KW_EXPR_CAST4      = "Expr_Cast_Bool"
 @KW_EXPR_ASSIGN     = "Expr_Assign"
 @KW_EXPR_ASSIGN2    = "Expr_AssignOp_Plus"
+@KW_EXPR_ASSIGN4    = "Expr_AssignOp_Div"
 @KW_EXPR_ASSIGN3    = "Expr_AssignOp_Concat"
 @KW_EXPR_ISSET      = "Expr_Isset"
+@KW_EXPR_LIST       = "Expr_List"
 @KW_EXPR_ARRAY      = "Expr_Array"
 @KW_EXPR_EMPTY      = "Expr_Empty"
 @KW_EXPR_ARRAY3     = "ArrayItem"
@@ -132,10 +134,12 @@ import Location
 @KW_SCALAR_FLOAT    = "Scalar_Float"
 @KW_SCALAR_FSTRING  = "Scalar_InterpolatedString"
 @KW_SCALAR_FILE     = "Scalar_MagicConst_File"
+@KW_SCALAR_DIR      = "Scalar_MagicConst_Dir"
 @KW_IDENTIFIER      = "Identifier"
 @KW_RETURN_TYPE     = "returnType"
 @KW_STMT_RETURN     = "Stmt_Return"
 @KW_STMT_CLASS      = "Stmt_Class"
+@KW_STMT_INTERFACE  = "Stmt_Interface"
 @KW_STMT_CONT       = "Stmt_Continue"
 @KW_STMT_BREAK      = "Stmt_Break"
 @KW_STMT_PROPERTY   = "Stmt_Property"
@@ -289,10 +293,12 @@ tokens :-
 @KW_EXPR_CAST3      { lex' AlexRawToken_EXPR_CAST3      }
 @KW_EXPR_CAST2      { lex' AlexRawToken_EXPR_CAST2      }
 @KW_EXPR_ASSIGN     { lex' AlexRawToken_EXPR_ASSIGN     }
+@KW_EXPR_ASSIGN4    { lex' AlexRawToken_EXPR_ASSIGN4    }
 @KW_EXPR_ASSIGN2    { lex' AlexRawToken_EXPR_ASSIGN2    }
 @KW_EXPR_ASSIGN3    { lex' AlexRawToken_EXPR_ASSIGN3    }
 @KW_EXPR_ISSET      { lex' AlexRawToken_EXPR_ISSET      }
 @KW_EXPR_ARRAY      { lex' AlexRawToken_EXPR_ARRAY      }
+@KW_EXPR_LIST       { lex' AlexRawToken_EXPR_LIST       }
 @KW_EXPR_FETCH      { lex' AlexRawToken_EXPR_FETCH      }
 @KW_EXPR_EMPTY      { lex' AlexRawToken_EXPR_EMPTY      }
 @KW_EXPR_ARRAY2     { lex' AlexRawToken_EXPR_ARRAY2     }
@@ -305,10 +311,12 @@ tokens :-
 @KW_SCALAR_FLOAT    { lex' AlexRawToken_SCALAR_FLOAT    }
 @KW_SCALAR_FSTRING  { lex' AlexRawToken_SCALAR_FSTRING  }
 @KW_SCALAR_FILE     { lex' AlexRawToken_SCALAR_FILE     }
+@KW_SCALAR_DIR      { lex' AlexRawToken_SCALAR_DIR      }
 @KW_IDENTIFIER      { lex' AlexRawToken_IDENTIFIER      }
 @KW_RETURN_TYPE     { lex' AlexRawToken_RETURN_TYPE     }
 @KW_STMT_RETURN     { lex' AlexRawToken_STMT_RETURN     }
 @KW_STMT_CLASS      { lex' AlexRawToken_STMT_CLASS      }
+@KW_STMT_INTERFACE  { lex' AlexRawToken_STMT_INTERFACE  }
 @KW_STMT_CONT       { lex' AlexRawToken_STMT_CONT       }
 @KW_STMT_BREAK      { lex' AlexRawToken_STMT_BREAK      }
 @KW_STMT_PROPERTY   { lex' AlexRawToken_STMT_PROPERTY   }
@@ -471,9 +479,11 @@ data AlexRawToken
      | AlexRawToken_EXPR_CAST3      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST2      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_ASSIGN4    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN3    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN2    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ISSET      -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_LIST       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ARRAY      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_FETCH      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_EMPTY      -- ^ Reserved Keyword
@@ -487,11 +497,13 @@ data AlexRawToken
      | AlexRawToken_SCALAR_FLOAT    -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_FSTRING  -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_FILE     -- ^ Reserved Keyword
+     | AlexRawToken_SCALAR_DIR      -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_STR      -- ^ Reserved Keyword
      | AlexRawToken_IDENTIFIER      -- ^ Reserved Keyword
      | AlexRawToken_STMT_RETURN     -- ^ Reserved Keyword
      | AlexRawToken_RETURN_TYPE     -- ^ Reserved Keyword
      | AlexRawToken_STMT_CLASS      -- ^ Reserved Keyword
+     | AlexRawToken_STMT_INTERFACE  -- ^ Reserved Keyword
      | AlexRawToken_STMT_CONT       -- ^ Reserved Keyword
      | AlexRawToken_STMT_BREAK      -- ^ Reserved Keyword
      | AlexRawToken_STMT_PROPERTY   -- ^ Reserved Keyword
