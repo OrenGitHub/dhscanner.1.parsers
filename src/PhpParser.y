@@ -152,6 +152,7 @@ import Data.Map ( empty, fromList )
 'Expr_Assign'           { AlexTokenTag AlexRawToken_EXPR_ASSIGN     _ }
 'Expr_AssignOp_Div'     { AlexTokenTag AlexRawToken_EXPR_ASSIGN4    _ }
 'Expr_AssignOp_Plus'    { AlexTokenTag AlexRawToken_EXPR_ASSIGN2    _ }
+'Expr_AssignOp_Minus'   { AlexTokenTag AlexRawToken_EXPR_ASSIGN5    _ }
 'Expr_AssignOp_Concat'  { AlexTokenTag AlexRawToken_EXPR_ASSIGN3    _ }
 'Expr_Array'            { AlexTokenTag AlexRawToken_EXPR_ARRAY      _ }
 'Expr_List'             { AlexTokenTag AlexRawToken_EXPR_LIST       _ }
@@ -168,6 +169,7 @@ import Data.Map ( empty, fromList )
 'Expr_PostInc'          { AlexTokenTag AlexRawToken_EXPR_POST_INC   _ }
 'Expr_PostDec'          { AlexTokenTag AlexRawToken_EXPR_POST_DEC   _ }
 'Expr_BinaryOp_Mul'     { AlexTokenTag AlexRawToken_EXPR_BINOP_MUL  _ }
+'Expr_BinaryOp_BitwiseOr' { AlexTokenTag AlexRawToken_EXPR_BINOP_OR2  _ }
 'Expr_BinaryOp_Div'     { AlexTokenTag AlexRawToken_EXPR_BINOP_DIV  _ }
 'Expr_BinaryOp_Plus'    { AlexTokenTag AlexRawToken_EXPR_BINOP_PLUS _ }
 'Expr_BinaryOp_Minus'   { AlexTokenTag AlexRawToken_EXPR_BINOP_MINUS _ }
@@ -861,6 +863,7 @@ assign_op:
 'Expr_Assign'          { Nothing } |
 'Expr_AssignOp_Div'    { Nothing } |
 'Expr_AssignOp_Plus'   { Nothing } |
+'Expr_AssignOp_Minus'  { Nothing } |
 'Expr_AssignOp_Concat' { Nothing }
 
 -- *************
@@ -1426,12 +1429,16 @@ exp_int: 'Scalar_Int' loc '(' 'value' ':' INT ')'
     }
 }
 
+float_value:
+FLOAT { Nothing } |
+INT   { Nothing }
+
 -- *************
 -- *           *
 -- * exp_float *
 -- *           *
 -- *************
-exp_float: 'Scalar_Float' loc '(' 'value' ':' FLOAT ')'
+exp_float: 'Scalar_Float' loc '(' 'value' ':' float_value ')'
 {
     Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
     {
@@ -1494,6 +1501,7 @@ operator:
 'Expr_BinaryOp_Identical'    { Nothing } |
 'Expr_BinaryOp_NotIdentical' { Nothing } |
 'Expr_BinaryOp_BooleanOr'    { Nothing } |
+'Expr_BinaryOp_BitwiseOr'    { Nothing } |
 'Expr_BinaryOp_LogicalOr'    { Nothing } |
 'Expr_BinaryOp_BooleanAnd'   { Nothing }
 

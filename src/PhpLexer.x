@@ -117,6 +117,7 @@ import Location
 @KW_EXPR_CAST4      = "Expr_Cast_Bool"
 @KW_EXPR_ASSIGN     = "Expr_Assign"
 @KW_EXPR_ASSIGN2    = "Expr_AssignOp_Plus"
+@KW_EXPR_ASSIGN5    = "Expr_AssignOp_Minus"
 @KW_EXPR_ASSIGN4    = "Expr_AssignOp_Div"
 @KW_EXPR_ASSIGN3    = "Expr_AssignOp_Concat"
 @KW_EXPR_ISSET      = "Expr_Isset"
@@ -167,6 +168,7 @@ import Location
 @KW_EXPR_POST_DEC   = "Expr_PostDec"
 @KW_EXPR_BINOP_CONCAT = "Expr_BinaryOp_Concat"
 @KW_EXPR_BINOP_OR   = "Expr_BinaryOp_BooleanOr"
+@KW_EXPR_BINOP_OR2  = "Expr_BinaryOp_BitwiseOr"
 @KW_EXPR_BINOP_AND  = "Expr_BinaryOp_BooleanAnd"
 
 -- ************
@@ -293,6 +295,7 @@ tokens :-
 @KW_EXPR_CAST3      { lex' AlexRawToken_EXPR_CAST3      }
 @KW_EXPR_CAST2      { lex' AlexRawToken_EXPR_CAST2      }
 @KW_EXPR_ASSIGN     { lex' AlexRawToken_EXPR_ASSIGN     }
+@KW_EXPR_ASSIGN5    { lex' AlexRawToken_EXPR_ASSIGN5    }
 @KW_EXPR_ASSIGN4    { lex' AlexRawToken_EXPR_ASSIGN4    }
 @KW_EXPR_ASSIGN2    { lex' AlexRawToken_EXPR_ASSIGN2    }
 @KW_EXPR_ASSIGN3    { lex' AlexRawToken_EXPR_ASSIGN3    }
@@ -342,6 +345,7 @@ tokens :-
 @KW_EXPR_POST_DEC   { lex' AlexRawToken_EXPR_POST_DEC   }
 @KW_EXPR_BINOP_CONCAT { lex' AlexRawToken_EXPR_BINOP_CONCAT }
 @KW_EXPR_BINOP_OR   { lex' AlexRawToken_EXPR_BINOP_OR   }
+@KW_EXPR_BINOP_OR2  { lex' AlexRawToken_EXPR_BINOP_OR2  }
 @KW_EXPR_BINOP_LOR  { lex' AlexRawToken_EXPR_BINOP_LOR  }
 @KW_EXPR_BINOP_AND  { lex' AlexRawToken_EXPR_BINOP_AND  }
 @KW_EXPR_UNOP_NOT   { lex' AlexRawToken_EXPR_UNOP_NOT   }
@@ -479,6 +483,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_CAST3      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST2      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_ASSIGN5    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN4    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN3    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN2    -- ^ Reserved Keyword
@@ -529,6 +534,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_POST_DEC    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_CONCAT -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_OR   -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_OR2  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_LOR  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_AND  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_UNOP_NOT   -- ^ Reserved Keyword
