@@ -77,8 +77,7 @@ postFailed errorMsg _filename = do
     returnJson (Error "FAILED" errorMsg _filename)
 
 postSucceeded :: Ast.Root -> Handler Value
-postSucceeded ast = do
-    returnJson ast
+postSucceeded = returnJson
 
 post :: (FilePath -> String -> Either String Ast.Root) -> Handler Value
 post parseProgram = do
