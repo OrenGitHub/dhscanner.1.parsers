@@ -10,6 +10,10 @@ import Yesod
 import Prelude
 import Data.Aeson()
 import GHC.Generics
+import Data.Text
+
+-- project imports
+import qualified Ast
 
 -- project imports
 import qualified JsParser
@@ -53,39 +57,35 @@ getHealthcheckR :: Handler Value
 getHealthcheckR = returnJson $ Healthy True
 
 postFromPhpR :: Handler Value
-postFromPhpR = do
-    src <- requireCheckJsonBody :: Handler SourceFile
-    case PhpParser.parseProgram (filename src) (content src) of
-        Left errorMsg -> returnJson (Error "FAILED" errorMsg (filename src))
-        Right ast -> returnJson ast
+postFromPhpR = post PhpParser.parseProgram
 
 postFromPyR :: Handler Value
-postFromPyR = do
-    src <- requireCheckJsonBody :: Handler SourceFile
-    case PyParser.parseProgram (filename src) (content src) of
-        Left errorMsg -> returnJson (Error "FAILED" errorMsg (filename src))
-        Right ast -> returnJson ast
+postFromPyR = post PyParser.parseProgram
 
 postFromRbR :: Handler Value
-postFromRbR = do
-    src <- requireCheckJsonBody :: Handler SourceFile
-    case RbParser.parseProgram (filename src) (content src) of
-        Left errorMsg -> returnJson (Error "FAILED" errorMsg (filename src))
-        Right ast -> returnJson ast
+postFromRbR = post RbParser.parseProgram
 
 postFromJsR :: Handler Value
-postFromJsR = do
-    src <- requireCheckJsonBody :: Handler SourceFile
-    case JsParser.parseProgram (filename src) (content src) of
-        Left errorMsg -> returnJson (Error "FAILED" errorMsg (filename src))
-        Right ast -> returnJson ast
+postFromJsR = post JsParser.parseProgram
 
 postFromTsR :: Handler Value
-postFromTsR = do
+postFromTsR = post TsParser.parseProgram
+
+postFailed :: String -> String -> Handler Value
+postFailed errorMsg _filename = do
+    $(logOther " INFO ") (Data.Text.pack errorMsg)
+    returnJson (Error "FAILED" errorMsg _filename)
+
+postSucceeded :: Ast.Root -> Handler Value
+postSucceeded ast = do
+    returnJson ast
+
+post :: (FilePath -> String -> Either String Ast.Root) -> Handler Value
+post parseProgram = do
     src <- requireCheckJsonBody :: Handler SourceFile
-    case TsParser.parseProgram (filename src) (content src) of
-        Left errorMsg -> returnJson (Error "FAILED" errorMsg (filename src))
-        Right ast -> returnJson ast
+    case parseProgram (filename src) (content src) of
+        Left errorMsg -> postFailed errorMsg (filename src)
+        Right ast -> postSucceeded ast
 
 main :: IO ()
 main = warp 3000 App

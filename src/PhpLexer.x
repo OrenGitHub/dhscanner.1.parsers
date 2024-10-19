@@ -368,6 +368,7 @@ tokens :-
 @INT       { lex (AlexRawToken_INT . round . read)   }
 @FLOAT     { lex (AlexRawToken_FLOAT . round . read) }
 @STR       { lex AlexRawToken_STR                    }
+.          { lexicalError                            }
 
 {
 
@@ -595,11 +596,14 @@ lex f ((AlexPn _ l c),_,_,str) i = do
 lex' :: AlexRawToken -> AlexInput -> Int -> Alex AlexTokenTag
 lex' = lex . const
 
+lexicalError :: AlexInput -> Int -> Alex AlexTokenTag
+lexicalError ((AlexPn _ l c),_,_,str) i = alexEOF
+
 -- **************
 -- * alexError' *
 -- **************
 alexError' :: Location -> Alex a
-alexError' location = alexError $ "ERROR[" ++ show location ++ "]\n"
+alexError' location = alexError $ "ParseError[ " ++ show location ++ " ]"
 
 -- ************
 -- *          *
