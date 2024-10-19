@@ -603,7 +603,7 @@ lexicalError ((AlexPn _ l c),_,_,str) i = alexEOF
 -- * alexError' *
 -- **************
 alexError' :: Location -> Alex a
-alexError' location = alexError $ "ParseError[ " ++ show location ++ " ]"
+alexError' location = alexError $ "Error[ " ++ show location ++ " ]"
 
 -- ************
 -- *          *

@@ -73,7 +73,7 @@ postFromTsR = post TsParser.parseProgram
 
 postFailed :: String -> String -> Handler Value
 postFailed errorMsg _filename = do
-    $(logOther " INFO ") (Data.Text.pack errorMsg)
+    $logInfoS "(Parser)" (Data.Text.pack errorMsg)
     returnJson (Error "FAILED" errorMsg _filename)
 
 postSucceeded :: Ast.Root -> Handler Value
