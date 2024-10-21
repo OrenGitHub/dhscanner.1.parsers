@@ -90,6 +90,7 @@ import Location
 @KW_STMT_ELSE       = "Stmt_Else"
 @KW_STMT_ELIF       = "Stmt_ElseIf"
 @KW_STMT_WHILE      = "Stmt_While"
+@KW_STMT_DO         = "Stmt_Do"
 @KW_STMT_CATCH      = "Stmt_Catch"
 @KW_STMT_TRY_CATCH  = "Stmt_TryCatch"
 @KW_USE_ITEM        = "UseItem"
@@ -143,6 +144,8 @@ import Location
 @KW_STMT_INTERFACE  = "Stmt_Interface"
 @KW_STMT_CONT       = "Stmt_Continue"
 @KW_STMT_BREAK      = "Stmt_Break"
+@KW_STMT_STATIC     = "Stmt_Static"
+@KW_STATIC_VAR      = "StaticVar"
 @KW_STMT_PROPERTY   = "Stmt_Property"
 @KW_STMT_CLASSMETH  = "Stmt_ClassMethod"
 @KW_STMT_FUNCTION   = "Stmt_Function"
@@ -150,6 +153,7 @@ import Location
 @KW_EXPR_PROP_GET   = "Expr_PropertyFetch"
 @KW_EXPR_PROP_GET2  = "Expr_StaticPropertyFetch"
 @KW_EXPR_BINOP_LT   = "Expr_BinaryOp_Smaller"
+@KW_EXPR_BINOP_LEQ  = "Expr_BinaryOp_SmallerOrEqual"
 @KW_EXPR_BINOP_CO   = "Expr_BinaryOp_Coalesce"
 @KW_EXPR_BINOP_GT   = "Expr_BinaryOp_Greater"
 @KW_EXPR_BINOP_GEQ  = "Expr_BinaryOp_GreaterOrEqual"
@@ -165,6 +169,7 @@ import Location
 @KW_EXPR_BINOP_MINUS = "Expr_BinaryOp_Minus"
 @KW_EXPR_UNOP_MINUS = "Expr_UnaryMinus"
 @KW_EXPR_POST_INC   = "Expr_PostInc"
+@KW_EXPR_PRINT      = "Expr_Print"
 @KW_EXPR_POST_DEC   = "Expr_PostDec"
 @KW_EXPR_BINOP_CONCAT = "Expr_BinaryOp_Concat"
 @KW_EXPR_BINOP_OR   = "Expr_BinaryOp_BooleanOr"
@@ -268,6 +273,7 @@ tokens :-
 @KW_STMT_IF         { lex' AlexRawToken_STMT_IF         }
 @KW_STMT_ELSE       { lex' AlexRawToken_STMT_ELSE       }
 @KW_STMT_CATCH      { lex' AlexRawToken_STMT_CATCH      }
+@KW_STMT_DO         { lex' AlexRawToken_STMT_DO         }
 @KW_STMT_WHILE      { lex' AlexRawToken_STMT_WHILE      }
 @KW_STMT_ELIF       { lex' AlexRawToken_STMT_ELIF       }
 @KW_STMT_TRY_CATCH  { lex' AlexRawToken_STMT_TRY_CATCH  }
@@ -322,6 +328,8 @@ tokens :-
 @KW_STMT_INTERFACE  { lex' AlexRawToken_STMT_INTERFACE  }
 @KW_STMT_CONT       { lex' AlexRawToken_STMT_CONT       }
 @KW_STMT_BREAK      { lex' AlexRawToken_STMT_BREAK      }
+@KW_STMT_STATIC     { lex' AlexRawToken_STMT_STATIC     }
+@KW_STATIC_VAR      { lex' AlexRawToken_STATIC_VAR      }
 @KW_STMT_PROPERTY   { lex' AlexRawToken_STMT_PROPERTY   }
 @KW_STMT_CLASSMETH  { lex' AlexRawToken_STMT_CLASSMETH  }
 @KW_STMT_FUNCTION   { lex' AlexRawToken_STMT_FUNCTION   }
@@ -329,6 +337,7 @@ tokens :-
 @KW_EXPR_PROP_GET   { lex' AlexRawToken_EXPR_PROP_GET   }
 @KW_EXPR_PROP_GET2  { lex' AlexRawToken_EXPR_PROP_GET2  }
 @KW_EXPR_BINOP_LT   { lex' AlexRawToken_EXPR_BINOP_LT   }
+@KW_EXPR_BINOP_LEQ  { lex' AlexRawToken_EXPR_BINOP_LEQ  }
 @KW_EXPR_BINOP_CO   { lex' AlexRawToken_EXPR_BINOP_CO   }
 @KW_EXPR_BINOP_GT   { lex' AlexRawToken_EXPR_BINOP_GT   }
 @KW_EXPR_BINOP_GEQ  { lex' AlexRawToken_EXPR_BINOP_GEQ  }
@@ -342,6 +351,7 @@ tokens :-
 @KW_EXPR_BINOP_MINUS { lex' AlexRawToken_EXPR_BINOP_MINUS }
 @KW_EXPR_UNOP_MINUS { lex' AlexRawToken_EXPR_UNOP_MINUS }
 @KW_EXPR_POST_INC   { lex' AlexRawToken_EXPR_POST_INC   }
+@KW_EXPR_PRINT      { lex' AlexRawToken_EXPR_PRINT      }
 @KW_EXPR_POST_DEC   { lex' AlexRawToken_EXPR_POST_DEC   }
 @KW_EXPR_BINOP_CONCAT { lex' AlexRawToken_EXPR_BINOP_CONCAT }
 @KW_EXPR_BINOP_OR   { lex' AlexRawToken_EXPR_BINOP_OR   }
@@ -457,6 +467,7 @@ data AlexRawToken
      | AlexRawToken_STMT_IF         -- ^ Reserved Keyword
      | AlexRawToken_STMT_CATCH      -- ^ Reserved Keyword
      | AlexRawToken_STMT_ELSE       -- ^ Reserved Keyword
+     | AlexRawToken_STMT_DO         -- ^ Reserved Keyword
      | AlexRawToken_STMT_WHILE      -- ^ Reserved Keyword
      | AlexRawToken_STMT_ELIF       -- ^ Reserved Keyword
      | AlexRawToken_STMT_TRY_CATCH  -- ^ Reserved Keyword
@@ -512,6 +523,8 @@ data AlexRawToken
      | AlexRawToken_STMT_INTERFACE  -- ^ Reserved Keyword
      | AlexRawToken_STMT_CONT       -- ^ Reserved Keyword
      | AlexRawToken_STMT_BREAK      -- ^ Reserved Keyword
+     | AlexRawToken_STMT_STATIC     -- ^ Reserved Keyword
+     | AlexRawToken_STATIC_VAR      -- ^ Reserved Keyword
      | AlexRawToken_STMT_PROPERTY   -- ^ Reserved Keyword
      | AlexRawToken_STMT_CLASSMETH  -- ^ Reserved Keyword
      | AlexRawToken_STMT_FUNCTION   -- ^ Reserved Keyword
@@ -519,6 +532,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_PROP_GET   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_PROP_GET2  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_LT   -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_BINOP_LEQ  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_GT   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_GEQ  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_CO   -- ^ Reserved Keyword
@@ -532,6 +546,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_BINOP_MINUS -- ^ Reserved Keyword
      | AlexRawToken_EXPR_UNOP_MINUS  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_POST_INC    -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_PRINT       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_POST_DEC    -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_CONCAT -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_OR   -- ^ Reserved Keyword
@@ -597,7 +612,7 @@ lex' :: AlexRawToken -> AlexInput -> Int -> Alex AlexTokenTag
 lex' = lex . const
 
 lexicalError :: AlexInput -> Int -> Alex AlexTokenTag
-lexicalError ((AlexPn _ l c),_,_,str) i = alexEOF
+lexicalError ((AlexPn _ l c),_,_,str) i = alexEOF 
 
 -- **************
 -- * alexError' *

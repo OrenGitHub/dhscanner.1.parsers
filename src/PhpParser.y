@@ -105,6 +105,7 @@ import Data.Map ( empty, fromList )
 'Stmt_If'               { AlexTokenTag AlexRawToken_STMT_IF         _ }
 'Stmt_Else'             { AlexTokenTag AlexRawToken_STMT_ELSE       _ }
 'Stmt_Catch'            { AlexTokenTag AlexRawToken_STMT_CATCH      _ }
+'Stmt_Do'               { AlexTokenTag AlexRawToken_STMT_DO         _ }
 'Stmt_While'            { AlexTokenTag AlexRawToken_STMT_WHILE      _ }
 'Stmt_ElseIf'           { AlexTokenTag AlexRawToken_STMT_ELIF       _ }
 'Stmt_TryCatch'         { AlexTokenTag AlexRawToken_STMT_TRY_CATCH  _ }
@@ -147,6 +148,8 @@ import Data.Map ( empty, fromList )
 'Stmt_Class'            { AlexTokenTag AlexRawToken_STMT_CLASS      _ }
 'Stmt_Continue'         { AlexTokenTag AlexRawToken_STMT_CONT       _ }
 'Stmt_Break'            { AlexTokenTag AlexRawToken_STMT_BREAK      _ }
+'Stmt_Static'           { AlexTokenTag AlexRawToken_STMT_STATIC     _ }
+'StaticVar'             { AlexTokenTag AlexRawToken_STATIC_VAR      _ }
 'Stmt_Global'           { AlexTokenTag AlexRawToken_STMT_GLOBAL     _ }
 'Stmt_Function'         { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'Expr_Assign'           { AlexTokenTag AlexRawToken_EXPR_ASSIGN     _ }
@@ -167,6 +170,7 @@ import Data.Map ( empty, fromList )
 'Expr_BooleanNot'       { AlexTokenTag AlexRawToken_EXPR_UNOP_NOT   _ }
 'Expr_UnaryMinus'       { AlexTokenTag AlexRawToken_EXPR_UNOP_MINUS _ }
 'Expr_PostInc'          { AlexTokenTag AlexRawToken_EXPR_POST_INC   _ }
+'Expr_Print'            { AlexTokenTag AlexRawToken_EXPR_PRINT      _ }
 'Expr_PostDec'          { AlexTokenTag AlexRawToken_EXPR_POST_DEC   _ }
 'Expr_BinaryOp_Mul'     { AlexTokenTag AlexRawToken_EXPR_BINOP_MUL  _ }
 'Expr_BinaryOp_BitwiseOr' { AlexTokenTag AlexRawToken_EXPR_BINOP_OR2  _ }
@@ -178,6 +182,7 @@ import Data.Map ( empty, fromList )
 'Expr_BinaryOp_LogicalOr' { AlexTokenTag AlexRawToken_EXPR_BINOP_LOR _ }
 'Expr_BinaryOp_BooleanAnd' { AlexTokenTag AlexRawToken_EXPR_BINOP_AND _ }
 'Expr_BinaryOp_Smaller' { AlexTokenTag AlexRawToken_EXPR_BINOP_LT   _ }
+'Expr_BinaryOp_SmallerOrEqual' { AlexTokenTag AlexRawToken_EXPR_BINOP_LEQ _ }
 'Expr_BinaryOp_Equal'   { AlexTokenTag AlexRawToken_EXPR_BINOP_EQ   _ }
 'Expr_BinaryOp_NotEqual'  { AlexTokenTag AlexRawToken_EXPR_BINOP_NEQ   _ }
 'Expr_BinaryOp_Greater' { AlexTokenTag AlexRawToken_EXPR_BINOP_GT   _ }
@@ -237,6 +242,7 @@ ID      { tokIDValue $1 } |
 optional(a): { Nothing } | a { Just $1 }
 listof(a): a { [$1] } | a listof(a) { $1:$2 }
 ornull(a): 'null' { Nothing } | a { Just $1 }
+possibly_empty_arrayof(a): 'array' '(' ')' { [] } | 'array' '(' listof(a) ')' { $3 }
 
 -- *********
 -- *       *
@@ -407,6 +413,27 @@ stmt_while:
     }
 }
 
+-- ***********
+-- *         *
+-- * stmt_do *
+-- *         *
+-- ***********
+stmt_do:
+'Stmt_Do' loc
+'('
+    'stmts' ':' stmts
+    'cond' ':' exp
+')'
+{
+    Ast.StmtWhile $ Ast.StmtWhileContent
+    {
+        Ast.stmtWhileCond = $9,
+        Ast.stmtWhileBody = $6,
+        Ast.stmtWhileLocation = $2
+    }
+}
+
+
 catch_type: 'Name' loc '(' 'name' ':' tokenID ')' { Nothing }
 
 numbered_catch_type: INT ':' catch_type { Nothing }
@@ -434,6 +461,50 @@ stmt_catch:
     }
 }
 
+static_vardec:
+'StaticVar' loc
+'('
+    'var' ':' var
+    ID ':' exp
+')'
+{
+    Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = $6,
+        Ast.stmtAssignRhs = $9
+    }
+}
+
+stmt_static_single:
+static_vardec { $1 }
+
+numbered_stmt_static:
+INT ':' stmt_static_single { $3 }
+
+-- ***************
+-- *             *
+-- * stmt_static *
+-- *             *
+-- ***************
+stmt_static:
+'Stmt_Static' loc
+'('
+    ID ':' 'array' '(' listof(numbered_stmt_static) ')'
+')'
+{
+    Ast.StmtWhile $ Ast.StmtWhileContent
+    {
+        Ast.stmtWhileCond = Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+        {
+            Token.constIntValue = 1,
+            Token.constIntLocation = $2
+        },
+        Ast.stmtWhileBody = [],
+        Ast.stmtWhileLocation = $2
+    }
+}
+
+
 -- ********
 -- *      *
 -- * stmt *
@@ -444,6 +515,7 @@ stmt_if        { $1 } |
 stmt_use       { $1 } |
 stmt_for       { $1 } |
 stmt_while     { $1 } |
+stmt_do        { $1 } |
 stmt_nop       { $1 } |
 stmt_foreach   { $1 } |
 stmt_exp       { $1 } |
@@ -456,6 +528,7 @@ stmt_class     { $1 } |
 stmt_interface { $1 } |
 stmt_cont      { $1 } |
 stmt_break     { $1 } |
+stmt_static    { $1 } |
 stmt_trycatch  { $1 } |
 stmt_function  { $1 } |
 stmt_return    { $1 }
@@ -626,6 +699,12 @@ stmt_interface:
     }
 } 
 
+implements:
+'Name' loc '(' 'name' ':' tokenID ')' { Nothing }
+
+numbered_implements:
+INT ':' implements { Nothing }
+
 stmt_class:
 'Stmt_Class' loc
 '('
@@ -633,7 +712,7 @@ stmt_class:
     ID ':' INT
     'name' ':' identifier
     ID ':' tokenID
-    ID ':' 'array' '(' ')'
+    ID ':' possibly_empty_arrayof(numbered_implements)
     'stmts' ':' 'array' '(' listof(numbered_class_attr) ')' 
 ')'
 {
@@ -642,7 +721,7 @@ stmt_class:
         Ast.stmtClassName = Token.ClassName $14,
         Ast.stmtClassSupers = [],
         Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
-        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $14) $27
+        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $14) $25
     }
 } 
 
@@ -1275,6 +1354,21 @@ assign_op loc
     }
 }
 
+-- *************
+-- *           *
+-- * exp_print *
+-- *           *
+-- *************
+exp_print:
+'Expr_Print' loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+}
+
+
 -- *******
 -- *     *
 -- * exp *
@@ -1291,6 +1385,7 @@ exp_exit    { $1 } |
 exp_cast    { $1 } |
 exp_call    { Ast.ExpCall $1 } |
 exp_binop   { $1 } |
+exp_print   { $1 } |
 exp_dir     { $1 } |
 exp_file    { $1 } |
 exp_unop    { $1 } |
@@ -1488,6 +1583,7 @@ exp_var: var { Ast.ExpVar (Ast.ExpVarContent $1) }
 
 operator:
 'Expr_BinaryOp_Smaller'      { Nothing } |
+'Expr_BinaryOp_SmallerOrEqual' { Nothing } |
 'Expr_BinaryOp_Equal'        { Nothing } |
 'Expr_BinaryOp_NotEqual'     { Nothing } |
 'Expr_BinaryOp_Mul'          { Nothing } |
