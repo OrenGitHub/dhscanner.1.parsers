@@ -57,6 +57,8 @@ executable parser
         aeson,
         array,
         yesod,
+        yesod-core,
+        fast-logger,
         text
 
     hs-source-dirs:

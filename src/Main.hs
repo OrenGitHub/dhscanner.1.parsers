@@ -11,6 +11,8 @@ import Prelude
 import Data.Aeson()
 import GHC.Generics
 import Data.Text
+import Yesod.Core.Types
+import System.Log.FastLogger
 
 -- project imports
 import qualified Ast
@@ -51,7 +53,9 @@ mkYesod "App" [parseRoutes|
 /healthcheck HealthcheckR GET
 |]
 
-instance Yesod App where maximumContentLength = \_app -> (\_anyRouteReally -> Just 80000000)
+instance Yesod App where
+    makeLogger = \_app -> myLogger
+    maximumContentLength = \_app -> (\_anyRouteReally -> Just 80000000)
 
 getHealthcheckR :: Handler Value
 getHealthcheckR = returnJson $ Healthy True
@@ -85,6 +89,12 @@ post parseProgram = do
     case parseProgram (filename src) (content src) of
         Left errorMsg -> postFailed errorMsg (filename src)
         Right ast -> postSucceeded ast
+
+myLogger :: IO Logger
+myLogger = do
+    _loggerSet <- newStdoutLoggerSet defaultBufSize
+    formatter <- newTimeCache "[%d/%m/%Y ( %H:%M:%S )]"
+    return $ Logger _loggerSet formatter
 
 main :: IO ()
 main = warp 3000 App
