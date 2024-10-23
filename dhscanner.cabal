@@ -58,7 +58,14 @@ executable parser
         array,
         yesod,
         yesod-core,
+        http-types,
         fast-logger,
+        bytestring,
+        wai-logger,
+        wai-extra,
+        warp,
+        time,
+        wai,
         text
 
     hs-source-dirs:

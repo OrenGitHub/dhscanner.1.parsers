@@ -11,8 +11,17 @@ import Prelude
 import Data.Aeson()
 import GHC.Generics
 import Data.Text
+import Data.Time
 import Yesod.Core.Types
 import System.Log.FastLogger
+import Network.Wai.Handler.Warp
+-- import qualified Data.ByteString
+
+-- Wai stuff
+import qualified Network.Wai
+import qualified Network.Wai.Logger
+import qualified Network.HTTP.Types.Status
+import qualified Network.Wai.Middleware.RequestLogger as Wai
 
 -- project imports
 import qualified Ast
@@ -96,5 +105,30 @@ myLogger = do
     formatter <- newTimeCache "[%d/%m/%Y ( %H:%M:%S )]"
     return $ Logger _loggerSet formatter
 
+dateFormatter :: String -> String
+dateFormatter date = let
+    date' = parseTimeOrError True defaultTimeLocale "%d/%b/%Y:%T %Z" date :: UTCTime
+    in formatTime defaultTimeLocale "[%Y/%m/%d ( %H:%M:%S )]" date'
+
+unquote :: String -> String
+unquote s = let n = Prelude.length s in Prelude.take (n-2) (Prelude.drop 1 s)
+
+logify :: String -> Network.Wai.Request -> String
+logify date req = let
+    datePart = dateFormatter date
+    method = unquote (show (Network.Wai.requestMethod req))
+    url = unquote (show (Network.Wai.rawPathInfo req))
+    in datePart ++ " [Info#(Wai)] " ++ method ++ " " ++ url ++ "\n"
+
+formatter :: Network.Wai.Logger.ZonedDate -> Network.Wai.Request -> Network.HTTP.Types.Status.Status -> Maybe Integer -> LogStr
+formatter zonedDate req status responseSize = toLogStr (logify (unquote (show zonedDate)) req)
+-- formatter zonedDate req status responseSize = toLogStr (dateFormatter (unquote (show zonedDate)))
+
 main :: IO ()
-main = warp 3000 App
+-- main = warp 3000 App
+main = do
+    waiApp <- toWaiApp App
+    middleware <- Wai.mkRequestLogger (Wai.defaultRequestLoggerSettings { Wai.outputFormat = Wai.CustomOutputFormat formatter })
+    run 3000 $ middleware waiApp
+    -- run 3000 $ Network.Wai.Middleware.RequestLogger.logStdout waiApp
+
