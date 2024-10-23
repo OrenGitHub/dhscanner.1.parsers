@@ -15,7 +15,6 @@ import Data.Time
 import Yesod.Core.Types
 import System.Log.FastLogger
 import Network.Wai.Handler.Warp
--- import qualified Data.ByteString
 
 -- Wai stuff
 import qualified Network.Wai
@@ -108,7 +107,7 @@ myLogger = do
 dateFormatter :: String -> String
 dateFormatter date = let
     date' = parseTimeOrError True defaultTimeLocale "%d/%b/%Y:%T %Z" date :: UTCTime
-    in formatTime defaultTimeLocale "[%Y/%m/%d ( %H:%M:%S )]" date'
+    in formatTime defaultTimeLocale "[%d/%m/%Y ( %H:%M:%S )]" date'
 
 unquote :: String -> String
 unquote s = let n = Prelude.length s in Prelude.take (n-2) (Prelude.drop 1 s)
@@ -122,13 +121,14 @@ logify date req = let
 
 formatter :: Network.Wai.Logger.ZonedDate -> Network.Wai.Request -> Network.HTTP.Types.Status.Status -> Maybe Integer -> LogStr
 formatter zonedDate req status responseSize = toLogStr (logify (unquote (show zonedDate)) req)
--- formatter zonedDate req status responseSize = toLogStr (dateFormatter (unquote (show zonedDate)))
+
+loggerSettings :: Wai.RequestLoggerSettings
+loggerSettings = Wai.defaultRequestLoggerSettings { Wai.outputFormat = Wai.CustomOutputFormat formatter }
 
 main :: IO ()
--- main = warp 3000 App
 main = do
-    waiApp <- toWaiApp App
-    middleware <- Wai.mkRequestLogger (Wai.defaultRequestLoggerSettings { Wai.outputFormat = Wai.CustomOutputFormat formatter })
+    waiApp <- toWaiAppPlain App
+    myLoggingMiddleware <- Wai.mkRequestLogger loggerSettings
+    let middleware = myLoggingMiddleware . defaultMiddlewaresNoLogging
     run 3000 $ middleware waiApp
-    -- run 3000 $ Network.Wai.Middleware.RequestLogger.logStdout waiApp
 
