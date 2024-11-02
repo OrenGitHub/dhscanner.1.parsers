@@ -103,6 +103,7 @@ import Data.Map ( fromList, empty, map )
 'label'                 { AlexTokenTag AlexRawToken_LABEL           _ }
 'block'                 { AlexTokenTag AlexRawToken_BLOCK           _ }
 'block_var'             { AlexTokenTag AlexRawToken_BLOCK_VAR       _ }
+'blockarg'              { AlexTokenTag AlexRawToken_BLOCK_ARG       _ }
 'module'                { AlexTokenTag AlexRawToken_MODULE          _ }
 'method_add_block'      { AlexTokenTag AlexRawToken_BLOCK2          _ }
 'period'                { AlexTokenTag AlexRawToken_PERIOD          _ }
@@ -253,6 +254,7 @@ import Data.Map ( fromList, empty, map )
 
 '<'   { AlexTokenTag AlexRawToken_OP_LT       _ }
 '>'   { AlexTokenTag AlexRawToken_OP_GT       _ }
+'>='  { AlexTokenTag AlexRawToken_OP_GEQ      _ }
 '<<'  { AlexTokenTag AlexRawToken_OP_SHL      _ }
 '=='  { AlexTokenTag AlexRawToken_OP_EQ       _ }
 '+='  { AlexTokenTag AlexRawToken_OP_PLUSEQ   _ }
@@ -367,6 +369,7 @@ ID        { unquote (tokIDValue $1) } |
 'update'  { "update"                } |
 'params'  { "params"                } |
 'label'   { "label"                 } |
+'block'   { "block"                 } |
 'class'   { "class"                 }
 
 -- *******************
@@ -1179,6 +1182,7 @@ actual_op:
 '-'   { Ast.MINUS   } |
 '<'   { Ast.PLUS    } |
 '>'   { Ast.PLUS    } |
+'>='  { Ast.PLUS    } |
 '<<'  { Ast.PLUS    } |
 '='   { Ast.PLUS    } |
 '!~'  { Ast.PLUS    } |
@@ -2058,6 +2062,18 @@ rest_params:
     Nothing
 }
 
+block_param:
+'block' ':'
+'{'
+    'type' ':' 'blockarg' ','
+    'location' ':' location ','
+    'name' ':' identifier ','
+    'comments' ':' comments
+'}' ','
+{
+    Nothing
+}
+
 -- ************
 -- *          *
 -- * contents *
@@ -2070,6 +2086,7 @@ contents:
     optional(requireds)
     optional(optionals)
     optional(rest)
+    optional(block_param)
     'comments' ':' comments
 '}'
 {

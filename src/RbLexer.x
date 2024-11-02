@@ -84,6 +84,7 @@ import Location
 @KW_LABEL           = \"label\"
 @KW_BLOCK           = \"block\"
 @KW_BLOCK_VAR       = \"block_var\"
+@KW_BLOCK_ARG       = \"blockarg\"
 @KW_MODULE          = \"module\"
 @KW_BLOCK2          = \"method_add_block\"
 @KW_ASSOC           = \"assoc\"
@@ -238,6 +239,7 @@ import Location
 -- *************
 
 @KW_OP_LT       = \"\<\"
+@KW_OP_GEQ      = \"\>=\"
 @KW_OP_GT       = \"\>\"
 @KW_OP_SHL      = \"\<\<\"
 @KW_OP_EQ       = \"==\"
@@ -338,6 +340,7 @@ tokens :-
 @KW_LABEL           { lex' AlexRawToken_LABEL           }
 @KW_BLOCK           { lex' AlexRawToken_BLOCK           }
 @KW_BLOCK_VAR       { lex' AlexRawToken_BLOCK_VAR       }
+@KW_BLOCK_ARG       { lex' AlexRawToken_BLOCK_ARG       }
 @KW_MODULE          { lex' AlexRawToken_MODULE          }
 @KW_BLOCK2          { lex' AlexRawToken_BLOCK2          }
 @KW_ASSOC           { lex' AlexRawToken_ASSOC           }
@@ -493,6 +496,7 @@ tokens :-
 
 @KW_OP_LT       { lex' AlexRawToken_OP_LT       }
 @KW_OP_GT       { lex' AlexRawToken_OP_GT       }
+@KW_OP_GEQ      { lex' AlexRawToken_OP_GEQ      }
 @KW_OP_SHL      { lex' AlexRawToken_OP_SHL      }
 @KW_OP_EQ       { lex' AlexRawToken_OP_EQ       }
 @KW_OP_PLUSEQ   { lex' AlexRawToken_OP_PLUSEQ   }
@@ -624,6 +628,7 @@ data AlexRawToken
      | AlexRawToken_LABEL           -- ^ Reserved Keyword
      | AlexRawToken_BLOCK           -- ^ Reserved Keyword
      | AlexRawToken_BLOCK_VAR       -- ^ Reserved Keyword
+     | AlexRawToken_BLOCK_ARG       -- ^ Reserved Keyword
      | AlexRawToken_MODULE          -- ^ Reserved Keyword
      | AlexRawToken_BLOCK2          -- ^ Reserved Keyword
      | AlexRawToken_ASSOC           -- ^ Reserved Keyword
@@ -746,6 +751,7 @@ data AlexRawToken
 
      | AlexRawToken_OP_LT           -- ^ Reserved Keyword
      | AlexRawToken_OP_GT           -- ^ Reserved Keyword
+     | AlexRawToken_OP_GEQ          -- ^ Reserved Keyword
      | AlexRawToken_OP_SHL          -- ^ Reserved Keyword
      | AlexRawToken_OP_EQ           -- ^ Reserved Keyword
      | AlexRawToken_OP_PLUSEQ       -- ^ Reserved Keyword
@@ -865,7 +871,7 @@ lex' = lex . const
 -- * alexError' *
 -- **************
 alexError' :: Location -> Alex a
-alexError' location = alexError $ "ERROR[" ++ show location ++ "]\n"
+alexError' location = alexError $ "Error[ " ++ show location ++ " ]"
 
 -- ************
 -- *          *
