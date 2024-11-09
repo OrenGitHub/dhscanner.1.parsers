@@ -2145,7 +2145,7 @@ contents:
 
 -- **********
 -- *        *
--- * params *{"type":"label","location":[73,1247,73,1258],"value":"serializer:","comments":[]}
+-- * params *
 -- *        *
 -- **********
 params_type_1:
