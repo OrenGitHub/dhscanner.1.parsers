@@ -112,6 +112,7 @@ import Location
 @KW_CONSTANT2       = \"const_ref\"
 @KW_AREF_FIELD      = \"aref_field\"
 @KW_CONSTANT4       = \"const_path_ref\"
+@KW_CONSTANT5       = \"top_const_ref\"
 @KW_CONSTANT3       = \"const\"
 @KW_KEY             = \"key\"
 @KW_ARG             = "Arg"
@@ -368,6 +369,7 @@ tokens :-
 @KW_CONSTANT3       { lex' AlexRawToken_CONSTANT3       }
 @KW_AREF_FIELD      { lex' AlexRawToken_AREF_FIELD      }
 @KW_CONSTANT4       { lex' AlexRawToken_CONSTANT4       }
+@KW_CONSTANT5       { lex' AlexRawToken_CONSTANT5       }
 @KW_ARG             { lex' AlexRawToken_ARG             }
 @KW_KEY             { lex' AlexRawToken_KEY             }
 @KW_VAR             { lex' AlexRawToken_VAR             }
@@ -649,6 +651,7 @@ data AlexRawToken
      | AlexRawToken_CONSTANT2       -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT3       -- ^ Reserved Keyword
      | AlexRawToken_CONSTANT4       -- ^ Reserved Keyword
+     | AlexRawToken_CONSTANT5       -- ^ Reserved Keyword
      | AlexRawToken_AREF_FIELD      -- ^ Reserved Keyword
      | AlexRawToken_ARG             -- ^ Reserved Keyword
      | AlexRawToken_KEY             -- ^ Reserved Keyword

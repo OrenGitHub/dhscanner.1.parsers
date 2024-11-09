@@ -128,6 +128,7 @@ import Data.Map ( fromList, empty, map )
 'const_ref'             { AlexTokenTag AlexRawToken_CONSTANT2       _ }
 'aref_field'            { AlexTokenTag AlexRawToken_AREF_FIELD      _ }
 'const_path_ref'        { AlexTokenTag AlexRawToken_CONSTANT4       _ }
+'top_const_ref'         { AlexTokenTag AlexRawToken_CONSTANT5       _ }
 'const'                 { AlexTokenTag AlexRawToken_CONSTANT3       _ }
 'key'                   { AlexTokenTag AlexRawToken_KEY             _ }
 'var_field'             { AlexTokenTag AlexRawToken_VAR             _ }
@@ -358,6 +359,7 @@ ID        { unquote (tokIDValue $1) } |
 'args'    { "args"                  } |
 'value'   { "value"                 } |
 'object'  { "object"                } |
+'binary'  { "binary"                } |
 'message' { "message"               } |
 'contents' { "contents"             } |
 'name'    { "name"                  } |
@@ -551,6 +553,10 @@ var_subscript:
     }
 }
 
+var_parented_type:
+'const_path_ref' { Nothing } |
+'top_const_ref'  { Nothing }
+
 -- ****************
 -- *              *
 -- * var_parented *
@@ -558,17 +564,18 @@ var_subscript:
 -- ****************
 var_parented:
 '{'
-    'type' ':' 'const_path_ref' ','
+    'type' ':' var_parented_type ','
     'location' ':' location ','
-    'parent' ':' var ','
+    optional(parent)
     'constant' ':' identifier ','
     'comments' ':' '[' ']'
 '}'
 {
-    Ast.VarField $ Ast.VarFieldContent
+    let e' = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $13 
+    in Ast.VarField $ Ast.VarFieldContent
     {
-        Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $12,
-        Ast.varFieldName = Token.FieldName $16,
+        Ast.varFieldLhs = case $10 of { Just e -> e; Nothing -> e' },
+        Ast.varFieldName = Token.FieldName $13,
         Ast.varFieldLocation = $8
     }
 }
@@ -1097,6 +1104,24 @@ exp_int:
     }
 }
 
+-- **********
+-- *        *
+-- * exp_if *
+-- *        *
+-- **********
+exp_if:
+'{'
+    'type' ':' 'if_op' ','
+    'location' ':' location ','
+    'predicate' ':' exp ','
+    'truthy' ':' exp ','
+    'falsy' ':' exp ','
+    'comments' ':' comments
+'}'
+{
+    $12
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1104,6 +1129,7 @@ exp_int:
 -- *******
 exp:
 exp_str    { $1 } |
+exp_if     { $1 } |
 exp_int    { $1 } |
 backref    { $1 } |
 exp_regex  { $1 } |
@@ -1383,30 +1409,6 @@ stmt_assign_type_1 { $1 } |
 stmt_assign_type_2 { $1 } |
 stmt_assign_type_3 { $1 }
 
--- ***********
--- *         *
--- * stmt_if *
--- *         *
--- ***********
-stmt_if_type_2:
-'{'
-    'type' ':' 'if_op' ','
-    'location' ':' location ','
-    'predicate' ':' exp ','
-    'truthy' ':' exp ','
-    'falsy' ':' exp ','
-    'comments' ':' comments
-'}'
-{
-    Just $ Right $ Ast.StmtIf $ Ast.StmtIfContent
-    {
-        Ast.stmtIfCond = $12,
-        Ast.stmtIfBody = [],
-        Ast.stmtElseBody = [],
-        Ast.stmtIfLocation = $8
-    }
-}
-
 else_type:
 'else' { Nothing } |
 'elif' { Nothing }
@@ -1494,8 +1496,7 @@ stmt_if2:
 -- *         *
 -- ***********
 stmt_if:
-stmt_if_type_1 { $1 } |
-stmt_if_type_2 { $1 }
+stmt_if_type_1 { $1 }
 
 -- ************
 -- *          *
