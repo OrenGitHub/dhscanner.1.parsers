@@ -82,6 +82,7 @@ import Location
 @KW_DICT            = \"bare_assoc_hash\"
 @KW_DICT2           = \"hash\"
 @KW_LABEL           = \"label\"
+@KW_KEYWORDS        = \"keywords\"
 @KW_BLOCK           = \"block\"
 @KW_BLOCK_VAR       = \"block_var\"
 @KW_BLOCK_ARG       = \"blockarg\"
@@ -339,6 +340,7 @@ tokens :-
 @KW_DICT            { lex' AlexRawToken_DICT            }
 @KW_DICT2           { lex' AlexRawToken_DICT2           }
 @KW_LABEL           { lex' AlexRawToken_LABEL           }
+@KW_KEYWORDS        { lex' AlexRawToken_KEYWORDS        }
 @KW_BLOCK           { lex' AlexRawToken_BLOCK           }
 @KW_BLOCK_VAR       { lex' AlexRawToken_BLOCK_VAR       }
 @KW_BLOCK_ARG       { lex' AlexRawToken_BLOCK_ARG       }
@@ -628,6 +630,7 @@ data AlexRawToken
      | AlexRawToken_DICT            -- ^ Reserved Keyword
      | AlexRawToken_DICT2           -- ^ Reserved Keyword
      | AlexRawToken_LABEL           -- ^ Reserved Keyword
+     | AlexRawToken_KEYWORDS        -- ^ Reserved Keyword
      | AlexRawToken_BLOCK           -- ^ Reserved Keyword
      | AlexRawToken_BLOCK_VAR       -- ^ Reserved Keyword
      | AlexRawToken_BLOCK_ARG       -- ^ Reserved Keyword

@@ -101,6 +101,7 @@ import Data.Map ( fromList, empty, map )
 'assoc_splat'           { AlexTokenTag AlexRawToken_ASSOC2          _ }
 'void_stmt'             { AlexTokenTag AlexRawToken_STMT_VOID       _ }
 'label'                 { AlexTokenTag AlexRawToken_LABEL           _ }
+'keywords'              { AlexTokenTag AlexRawToken_KEYWORDS        _ }
 'block'                 { AlexTokenTag AlexRawToken_BLOCK           _ }
 'block_var'             { AlexTokenTag AlexRawToken_BLOCK_VAR       _ }
 'blockarg'              { AlexTokenTag AlexRawToken_BLOCK_ARG       _ }
@@ -298,6 +299,7 @@ ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
 -- **********************
 listof(a):      a { [$1] } | a          listof(a) { $1:$2 }
 commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
+ornull(a):      a { Just $1 } | 'null' { Nothing } 
 
 -- ******************
 -- *                *
@@ -1250,7 +1252,7 @@ arguments_type_1:
     'type' ':' 'args' ','
     'location' ':' location ','
     'parts' ':' '[' commalistof(exp) ']' ','
-    'comments' ':' '[' ']' 
+    'comments' ':' comments
 '}'
 {
     $13
@@ -1710,7 +1712,7 @@ exp_cmd:
 -- * exp_cmdcall *
 -- *             *
 -- ***************
-exp_cmdcall:
+exp_cmdcall_1:
 '{'
     'type' ':' 'command_call' ','
     'location' ':' location ','
@@ -1723,6 +1725,35 @@ exp_cmdcall:
 {
     $12
 }
+
+-- ***************
+-- *             *
+-- * exp_cmdcall *
+-- *             *
+-- ***************
+exp_cmdcall_2:
+'{'
+    'type' ':' 'command_call' ','
+    'location' ':' location ','
+    'receiver' ':' exp ','
+    'operator' ':' operator ','
+    'message' ':' identifier ','
+    'arguments' ':' args ','
+    'block' ':' block ','
+    'comments' ':' comments
+'}'
+{
+    $12
+}
+
+-- ***************
+-- *             *
+-- * exp_cmdcall *
+-- *             *
+-- ***************
+exp_cmdcall:
+exp_cmdcall_1 { $1 } |
+exp_cmdcall_2 { $1 }
 
 -- ***************
 -- *             *
@@ -2075,6 +2106,18 @@ block_param:
     Nothing
 }
 
+keyword:
+'{'
+    'type' ':' 'label' ','
+    'location' ':' location ','
+    'value' ':' tokenID ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+keywords: 'keywords' ':' '[' '[' commalistof(ornull(keyword)) ']' ']' ',' { Nothing }
+
 -- ************
 -- *          *
 -- * contents *
@@ -2085,6 +2128,7 @@ contents:
     'type' ':' 'params' ','
     'location' ':' location ','
     optional(requireds)
+    optional(keywords)
     optional(optionals)
     optional(rest)
     optional(block_param)
@@ -2093,7 +2137,7 @@ contents:
 {
     let
         params1 = case $10 of { Nothing -> [] ; Just ps -> ps }
-        params2 = case $11 of { Nothing -> [] ; Just ps -> ps }
+        params2 = case $12 of { Nothing -> [] ; Just ps -> ps }
         params3 = params1 ++ params2
     in
         Data.List.map paramify params3
@@ -2101,7 +2145,7 @@ contents:
 
 -- **********
 -- *        *
--- * params *
+-- * params *{"type":"label","location":[73,1247,73,1258],"value":"serializer:","comments":[]}
 -- *        *
 -- **********
 params_type_1:
