@@ -106,6 +106,7 @@ import Data.Map ( fromList )
 'Compare'                   { AlexTokenTag AlexRawToken_COMPARE         _ }
 'operand'                   { AlexTokenTag AlexRawToken_OPERAND         _ }
 'Return'                    { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
+'returns'                   { AlexTokenTag AlexRawToken_STMT_RETURN2    _ }
 'Yield'                     { AlexTokenTag AlexRawToken_STMT_YIELD      _ }
 'Raise'                     { AlexTokenTag AlexRawToken_STMT_RAISE      _ }
 'Try'                       { AlexTokenTag AlexRawToken_STMT_TRY        _ }
@@ -116,6 +117,9 @@ import Data.Map ( fromList )
 'context_expr'              { AlexTokenTag AlexRawToken_CTX_MANAGER     _ }
 'items'                     { AlexTokenTag AlexRawToken_ITEMS           _ }
 'List'                      { AlexTokenTag AlexRawToken_LIST            _ }
+'ListComp'                  { AlexTokenTag AlexRawToken_LIST_COMP       _ }
+'Tuple'                     { AlexTokenTag AlexRawToken_TUPLE           _ }
+'elt'                       { AlexTokenTag AlexRawToken_ELT             _ }
 'elts'                      { AlexTokenTag AlexRawToken_ELTS            _ }
 'False'                     { AlexTokenTag AlexRawToken_FALSE           _ }
 'True'                      { AlexTokenTag AlexRawToken_TRUE            _ }
@@ -125,11 +129,18 @@ import Data.Map ( fromList )
 'Not'                       { AlexTokenTag AlexRawToken_NOT             _ }
 'Add'                       { AlexTokenTag AlexRawToken_ADD             _ }
 'Div'                       { AlexTokenTag AlexRawToken_DIV             _ }
+'Sub'                       { AlexTokenTag AlexRawToken_SUB             _ }
 'USub'                      { AlexTokenTag AlexRawToken_USUB            _ }
 'Mult'                      { AlexTokenTag AlexRawToken_MULT            _ }
 'Eq'                        { AlexTokenTag AlexRawToken_EQ              _ }
 'Gt'                        { AlexTokenTag AlexRawToken_GT              _ }
+'GtE'                       { AlexTokenTag AlexRawToken_GE              _ }
+'LtE'                       { AlexTokenTag AlexRawToken_LE              _ }
+'Lt'                        { AlexTokenTag AlexRawToken_LT              _ }
+'In'                        { AlexTokenTag AlexRawToken_IN              _ }
+'Is'                        { AlexTokenTag AlexRawToken_IS              _ }
 'Or'                        { AlexTokenTag AlexRawToken_OR              _ }
+'And'                       { AlexTokenTag AlexRawToken_AND             _ }
 'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ }
 'kwonlyargs'                { AlexTokenTag AlexRawToken_ARGS4           _ }
 'posonlyargs'               { AlexTokenTag AlexRawToken_ARGS3           _ }
@@ -161,6 +172,8 @@ import Data.Map ( fromList )
 'asname'                    { AlexTokenTag AlexRawToken_ASNAME          _ }
 'orelse'                    { AlexTokenTag AlexRawToken_ORELSE          _ }
 'defaults'                  { AlexTokenTag AlexRawToken_DEFAULTS        _ }
+'comprehension'             { AlexTokenTag AlexRawToken_COMPREHENSION   _ }
+'generators'                { AlexTokenTag AlexRawToken_GENERATORS      _ }
 'kw_defaults'               { AlexTokenTag AlexRawToken_KW_DEFAULTS     _ }
 'target'                    { AlexTokenTag AlexRawToken_TARGET          _ }
 'targets'                   { AlexTokenTag AlexRawToken_TARGETS         _ }
@@ -175,6 +188,7 @@ import Data.Map ( fromList )
 'FormattedValue'            { AlexTokenTag AlexRawToken_FORMATTED_VAL   _ }
 'Load'                      { AlexTokenTag AlexRawToken_LOAD            _ }
 'Store'                     { AlexTokenTag AlexRawToken_STORE           _ }
+'is_async'                  { AlexTokenTag AlexRawToken_IS_ASYNC        _ }
 'simple'                    { AlexTokenTag AlexRawToken_SIMPLE          _ }
 'Assign'                    { AlexTokenTag AlexRawToken_ASSIGN          _ }
 'AugAssign'                 { AlexTokenTag AlexRawToken_ASSIGN2         _ }
@@ -210,10 +224,11 @@ import Data.Map ( fromList )
 -- **************
 
 'If'                        { AlexTokenTag AlexRawToken_STMT_IF         _ }
+'ifs'                       { AlexTokenTag AlexRawToken_STMT_IFS        _ }
 'While'                     { AlexTokenTag AlexRawToken_STMT_WHILE      _ }
 'IfExp'                     { AlexTokenTag AlexRawToken_EXPR_IF         _ }
-'AsyncFor'                  { AlexTokenTag AlexRawToken_FOR             _ }
 'For'                       { AlexTokenTag AlexRawToken_FOR             _ }
+'AsyncFor'                  { AlexTokenTag AlexRawToken_FOR             _ }
 'FunctionDef'               { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'AsyncFunctionDef'          { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
 'ClassDef'                  { AlexTokenTag AlexRawToken_STMT_CLASS      _ }
@@ -258,8 +273,21 @@ optional(a): { Nothing } | a { Just $1 }
 -- * parametrized lists *
 -- *                    *
 -- **********************
-listof(a):      a { [$1] } | a          listof(a) { $1:$2 }
 commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
+
+-- ****************************
+-- *                          *
+-- * possibly_empty_listof(a) *
+-- *                          *
+-- ****************************
+possibly_empty_listof(a): '[' ']' { [] } | '[' commalistof(a) ']' { $2 }
+
+-- **********************
+-- *                    *
+-- * nonempty_listof(a) *
+-- *                    *
+-- **********************
+nonempty_listof(a): '[' commalistof(a) ']' { $2 }
 
 -- *********************
 -- *                   *
@@ -306,9 +334,16 @@ op:
 'Add'  '(' ')' { Nothing } |
 'Div'  '(' ')' { Nothing } |
 'USub' '(' ')' { Nothing } |
+'Sub'  '(' ')' { Nothing } |
 'Mult' '(' ')' { Nothing } |
 'Eq'   '(' ')' { Nothing } |
 'Gt'   '(' ')' { Nothing } |
+'LtE'  '(' ')' { Nothing } |
+'GtE'  '(' ')' { Nothing } |
+'Lt'   '(' ')' { Nothing } |
+'In'   '(' ')' { Nothing } |
+'Is'   '(' ')' { Nothing } |
+'And'  '(' ')' { Nothing } |
 'Or'   '(' ')' { Nothing }
 
 -- ************
@@ -349,7 +384,7 @@ name
 var_field:
 'Attribute'
 '('
-    'value' '=' exp_var ','
+    'value' '=' exp','
     'attr' '=' ID ','
     'ctx' '=' ctx ','
     loc
@@ -684,7 +719,7 @@ exp_binop:
 exp_list:
 'List'
 '('
-    'elts' '=' '[' commalistof(exp) ']' ','
+    'elts' '=' possibly_empty_listof(exp) ','
     'ctx' '=' ctx ','
     loc
 ')'
@@ -698,12 +733,12 @@ exp_list:
                 Ast.varName = Token.VarName $ Token.Named
                 {
                     Token.content = "listify",
-                    Token.location = $13
+                    Token.location = $11
                 }
             }
         },
-        Ast.args = $6,
-        Ast.expCallLocation = $13
+        Ast.args = $5,
+        Ast.expCallLocation = $11
     }
 }
 
@@ -771,7 +806,13 @@ exp_if:
 -- * exps *
 -- *      *
 -- ********
-exps: '[' ']' { [] } | '[' commalistof(exp) ']' { $2 }
+exps: possibly_empty_listof(exp) { $1 }
+
+none: 'None' { Nothing }
+
+dict_keys:
+exps { $1 } |
+nonempty_listof(none) { [] }
 
 -- ************
 -- *          *
@@ -781,7 +822,7 @@ exps: '[' ']' { [] } | '[' commalistof(exp) ']' { $2 }
 exp_dict:
 'Dict'
 '('
-    'keys' '=' exps ','
+    'keys' '=' dict_keys ','
     'values' '=' exps ','
     loc
 ')'
@@ -818,6 +859,47 @@ exp_ellipsis:
     }
 }
 
+-- *************
+-- *           *
+-- * exp_tuple *
+-- *           *
+-- *************
+exp_tuple:
+'Tuple'
+'('
+    'elts' '=' nonempty_listof(exp) ','
+    'ctx' '=' ctx ','
+    loc
+')'
+{
+    case $5 of {
+        [] -> Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 888 $11;
+        (x:_) -> x
+    }
+}
+
+comprehension:
+'comprehension'
+'('
+    'target' '=' exp ','
+    'iter' '=' exp ','
+    'ifs' '=' possibly_empty_listof(exp) ','
+    'is_async' '=' INT
+')'
+{
+    Nothing
+}
+
+exp_listcomp:
+'ListComp'
+'('
+    'elt' '=' exp ','
+    'generators' '=' nonempty_listof(comprehension) ','
+    loc
+')'
+{
+    $5
+}
 
 -- *******
 -- *     *
@@ -834,11 +916,12 @@ exp_dict      { $1 } |
 exp_var       { $1 } |
 exp_bool      { $1 } |
 exp_list      { $1 } |
+exp_listcomp  { $1 } |
+exp_tuple     { $1 } |
 exp_unop      { $1 } |
 exp_slice     { $1 } |
 exp_relop     { $1 } |
 exp_binop     { $1 } |
-exp_field     { $1 } |
 exp_call      { Ast.ExpCall $1 } |
 exp_fstring   { $1 } |
 exp_ellipsis  { $1 }
@@ -1045,7 +1128,7 @@ stmt_class:
 'ClassDef'
 '('
     'name' '=' ID ','
-    'bases' '=' '[' name ']' ','
+    'bases' '=' possibly_empty_listof(name) ','
     'keywords' '=' '[' ']' ','
     'body' '=' stmts ','
     'decorator_list' '=' exps ','
@@ -1056,9 +1139,12 @@ stmt_class:
     Ast.StmtReturn $ Ast.StmtReturnContent
     {
         Ast.stmtReturnValue = Nothing,
-        Ast.stmtReturnLocation = $31
+        Ast.stmtReturnLocation = $29
     }
 }
+
+ann_assign_simple: 'simple' '=' INT ',' { Nothing }
+ann_assign_exp: 'value' '=' exp ',' { $3 }
 
 -- *******************
 -- *                 *
@@ -1069,15 +1155,16 @@ stmt_ann_assign:
 'AnnAssign'
 '('
     'target' '=' name ','
-    'annotation' '=' name ','
-    'simple' '=' INT ','
+    'annotation' '=' exp ','
+    optional(ann_assign_exp)
+    ann_assign_simple
     loc
 ')'
 {
     Ast.StmtReturn $ Ast.StmtReturnContent
     {
         Ast.stmtReturnValue = Nothing,
-        Ast.stmtReturnLocation = $15
+        Ast.stmtReturnLocation = $13
     }
 }
 
@@ -1096,7 +1183,7 @@ exception_name: 'name' '=' ID ',' { $3 }
 exception_handler:
 'ExceptHandler'
 '('
-    'type' '=' name ','
+    'type' '=' exp ','
     optional(exception_name)
     'body' '=' stmts ','
     loc
@@ -1141,9 +1228,9 @@ stmt_try:
 -- *          *
 -- ************
 stmt_for:
-'AsyncFor'
+'For'
 '('
-    'target' '=' var ','
+    'target' '=' exp ','
     'iter' '=' exp ','
     'body' '=' stmts ','
     'orelse' '=' stmts ','
@@ -1252,7 +1339,7 @@ stmt_import_from { $1 }
 -- * type_hint *
 -- *           *
 -- *************
-type_hint: 'annotation' '=' name ',' { $3 }
+type_hint: 'annotation' '=' exp ',' { $3 }
 
 -- *********
 -- *       *
@@ -1274,10 +1361,7 @@ param:
             Token.content = $5,
             Token.location = $8 { Location.colEnd = (Location.colStart $8) + (fromIntegral (length $5)) }
         },
-        Ast.paramNominalType = case $7 of {
-            Nothing -> Token.NominalTy $ Token.Named { Token.content = "any", Token.location = $8};
-            Just t -> Token.NominalTy t
-        },
+        Ast.paramNominalType = Token.NominalTy $ Token.Named "any" $8,
         Ast.paramSerialIdx = 156
     }
 }
@@ -1286,12 +1370,7 @@ defaults:
 '['                  ']' { Nothing } |
 '[' commalistof(exp) ']' { Nothing }
 
--- ****************************
--- *                          *
--- * possibly_empty_listof(a) *
--- *                          *
--- ****************************
-possibly_empty_listof(a): '[' ']' { [] } | '[' commalistof(a) ']' { $2 }
+kw_default: exp { Nothing } | none { Nothing }
 
 -- **********
 -- *        *
@@ -1303,8 +1382,8 @@ params:
 '('
     'posonlyargs' '=' '[' ']' ','
     'args' '=' possibly_empty_listof(param) ','
-    'kwonlyargs' '=' '[' ']' ','
-    'kw_defaults' '=' '[' ']' ','
+    'kwonlyargs' '=' possibly_empty_listof(param) ','
+    'kw_defaults' '=' possibly_empty_listof(kw_default) ','
     'defaults' '=' defaults
 ')'
 {
@@ -1314,6 +1393,8 @@ params:
 function_def:
 'FunctionDef'      { Nothing } |
 'AsyncFunctionDef' { Nothing }
+
+return_type_hint: 'returns' '=' exp ',' { Nothing }
 
 -- *****************
 -- *               *
@@ -1327,6 +1408,7 @@ function_def
     'args' '=' params ','
     'body' '=' stmts ','
     'decorator_list' '=' exps ','
+    optional(return_type_hint) 
     'type_params' '=' '[' ']' ','
     loc
 ')'
@@ -1336,17 +1418,17 @@ function_def
         Ast.stmtFuncReturnType = Token.NominalTy $ Token.Named
         {
             Token.content = "any",
-            Token.location = $24
+            Token.location = $25
         },
         Ast.stmtFuncName = Token.FuncName $ Token.Named
         {
             Token.content = unquote (tokIDValue $5),
-            Token.location = $24
+            Token.location = $25
         },
         Ast.stmtFuncParams = $9,
         Ast.stmtFuncBody = $13,
         Ast.stmtFuncAnnotations = $17,
-        Ast.stmtFuncLocation = $24
+        Ast.stmtFuncLocation = $25
     }
 }
 
@@ -1387,19 +1469,19 @@ name:
 stmt_assign:
 'Assign'
 '('
-    'targets' '=' '[' listof(name) ']' ','
+    'targets' '=' nonempty_listof(exp) ','
     'value' '=' exp ','
     loc
 ')'
 {
     Ast.StmtAssign $ Ast.StmtAssignContent
     {
-        Ast.stmtAssignLhs = case $6 of
+        Ast.stmtAssignLhs = case $5 of
         {
-            [] -> dummyVar $13;
-            (v:_) -> Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName v
+            [] -> Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "dummy" $11;
+            _ -> Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "dummy" $11
         },
-        Ast.stmtAssignRhs = $11
+        Ast.stmtAssignRhs = $9
     }
 }
 
