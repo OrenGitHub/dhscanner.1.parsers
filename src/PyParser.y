@@ -126,7 +126,9 @@ import Data.Map ( fromList )
 'Ellipsis'                  { AlexTokenTag AlexRawToken_ELLIPSIS        _ }
 'Constant'                  { AlexTokenTag AlexRawToken_EXPR_CONST      _ }
 'Continue'                  { AlexTokenTag AlexRawToken_STMT_CONTINUE   _ }
+'Pass'                      { AlexTokenTag AlexRawToken_STMT_PASS       _ }
 'Not'                       { AlexTokenTag AlexRawToken_NOT             _ }
+'NotEq'                     { AlexTokenTag AlexRawToken_NOTEQ           _ }
 'Add'                       { AlexTokenTag AlexRawToken_ADD             _ }
 'Div'                       { AlexTokenTag AlexRawToken_DIV             _ }
 'Sub'                       { AlexTokenTag AlexRawToken_SUB             _ }
@@ -139,6 +141,7 @@ import Data.Map ( fromList )
 'Lt'                        { AlexTokenTag AlexRawToken_LT              _ }
 'In'                        { AlexTokenTag AlexRawToken_IN              _ }
 'Is'                        { AlexTokenTag AlexRawToken_IS              _ }
+'IsNot'                     { AlexTokenTag AlexRawToken_ISNOT           _ }
 'Or'                        { AlexTokenTag AlexRawToken_OR              _ }
 'And'                       { AlexTokenTag AlexRawToken_AND             _ }
 'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ }
@@ -191,6 +194,7 @@ import Data.Map ( fromList )
 'is_async'                  { AlexTokenTag AlexRawToken_IS_ASYNC        _ }
 'simple'                    { AlexTokenTag AlexRawToken_SIMPLE          _ }
 'Assign'                    { AlexTokenTag AlexRawToken_ASSIGN          _ }
+'Assert'                    { AlexTokenTag AlexRawToken_ASSERT          _ }
 'AugAssign'                 { AlexTokenTag AlexRawToken_ASSIGN2         _ }
 'AnnAssign'                 { AlexTokenTag AlexRawToken_ASSIGN3         _ }
 'annotation'                { AlexTokenTag AlexRawToken_ANNOTATION      _ }
@@ -331,6 +335,7 @@ arg: exp { $1 }
 -- ******
 op:
 'Not'  '(' ')' { Nothing } |
+'NotEq' '(' ')' { Nothing } |
 'Add'  '(' ')' { Nothing } |
 'Div'  '(' ')' { Nothing } |
 'USub' '(' ')' { Nothing } |
@@ -343,6 +348,7 @@ op:
 'Lt'   '(' ')' { Nothing } |
 'In'   '(' ')' { Nothing } |
 'Is'   '(' ')' { Nothing } |
+'IsNot' '(' ')' { Nothing } |
 'And'  '(' ')' { Nothing } |
 'Or'   '(' ')' { Nothing }
 
@@ -1154,7 +1160,7 @@ ann_assign_exp: 'value' '=' exp ',' { $3 }
 stmt_ann_assign:
 'AnnAssign'
 '('
-    'target' '=' name ','
+    'target' '=' var ','
     'annotation' '=' exp ','
     optional(ann_assign_exp)
     ann_assign_simple
@@ -1197,7 +1203,7 @@ exception_handler:
 -- * exception_handlers *
 -- *                    *
 -- **********************
-exception_handlers: '[' commalistof(exception_handler) ']' { [] }
+exception_handlers: possibly_empty_listof(exception_handler) { $1 }
 
 -- ************
 -- *          *
@@ -1311,6 +1317,38 @@ stmt_continue:
     }
 }
 
+-- ***************
+-- *             *
+-- * stmt_assert *
+-- *             *
+-- ***************
+stmt_assert:
+'Assert'
+'('
+    'test' '=' exp ','
+    loc
+')'
+{
+    Ast.StmtContinue $ Ast.StmtContinueContent
+    {
+        Ast.stmtContinueLocation = $7
+    }
+}
+
+-- *************
+-- *           *
+-- * stmt_pass *
+-- *           *
+-- *************
+stmt_pass: 'Pass' '(' loc ')'
+{
+    Ast.StmtContinue $ Ast.StmtContinueContent
+    {
+        Ast.stmtContinueLocation = $3
+    }
+}
+
+
 -- ********
 -- *      *
 -- * stmt *
@@ -1328,7 +1366,9 @@ stmt_import      { $1 } |
 stmt_raise       { $1 } |
 stmt_return      { $1 } |
 stmt_assign      { $1 } |
+stmt_assert      { $1 } |
 stmt_function    { $1 } |
+stmt_pass        { $1 } |
 stmt_continue    { $1 } |
 stmt_aug_assign  { $1 } |
 stmt_ann_assign  { $1 } |
