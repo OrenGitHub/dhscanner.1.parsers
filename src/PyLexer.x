@@ -460,6 +460,7 @@ tokens :-
 
 @ID        { lex  AlexRawToken_ID                 }
 @INT       { lex (AlexRawToken_INT . round. read) }
+.          { lexicalError                         }
 
 {
 
@@ -819,11 +820,14 @@ lex f ((AlexPn _ l c),_,_,str) i = do
 lex' :: AlexRawToken -> AlexInput -> Int -> Alex AlexTokenTag
 lex' = lex . const
 
+lexicalError :: AlexInput -> Int -> Alex AlexTokenTag
+lexicalError ((AlexPn _ l c),_,_,str) i = alexEOF
+
 -- **************
 -- * alexError' *
 -- **************
 alexError' :: Location -> Alex a
-alexError' location = alexError $ "ERROR[" ++ show location ++ "]\n"
+alexError' location = alexError $ "Error[ " ++ show location ++ " ]"
 
 -- ************
 -- *          *
