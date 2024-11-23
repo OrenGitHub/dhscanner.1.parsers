@@ -148,6 +148,7 @@ import Data.Map ( fromList )
 'IsNot'                     { AlexTokenTag AlexRawToken_ISNOT           _ }
 'Or'                        { AlexTokenTag AlexRawToken_OR              _ }
 'And'                       { AlexTokenTag AlexRawToken_AND             _ }
+'BitAnd'                    { AlexTokenTag AlexRawToken_AND2            _ }
 'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ }
 'kwonlyargs'                { AlexTokenTag AlexRawToken_ARGS4           _ }
 'posonlyargs'               { AlexTokenTag AlexRawToken_ARGS3           _ }
@@ -356,6 +357,7 @@ op:
 'Is'   '(' ')' { Nothing } |
 'IsNot' '(' ')' { Nothing } |
 'And'  '(' ')' { Nothing } |
+'BitAnd' '(' ')' { Nothing } |
 'Or'   '(' ')' { Nothing }
 
 -- ************
@@ -1326,6 +1328,8 @@ stmt_exp:
     Ast.StmtExp $5
 }
 
+nonempty_raise_part: 'exc' '=' exp ',' { $3 }
+
 -- **************
 -- *            *
 -- * stmt_raise *
@@ -1334,14 +1338,14 @@ stmt_exp:
 stmt_raise:
 'Raise'
 '('
-    'exc' '=' exp ','
+    optional(nonempty_raise_part)
     loc
 ')'
 {
     Ast.StmtReturn $ Ast.StmtReturnContent
     {
-        Ast.stmtReturnValue = Just $5,
-        Ast.stmtReturnLocation = $7
+        Ast.stmtReturnValue = $3,
+        Ast.stmtReturnLocation = $4
     }
 }
 

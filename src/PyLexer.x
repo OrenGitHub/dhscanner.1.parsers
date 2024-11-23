@@ -79,6 +79,7 @@ import Location
 @KW_ISNOT           = IsNot
 @KW_OR              = Or
 @KW_AND             = And
+@KW_AND2            = BitAnd
 @KW_NOT             = Not
 @KW_NOTEQ           = NotEq
 @KW_NOTIN           = NotIn
@@ -301,6 +302,7 @@ tokens :-
 @KW_CTX             { lex' AlexRawToken_CTX             }
 @KW_OR              { lex' AlexRawToken_OR              }
 @KW_AND             { lex' AlexRawToken_AND             }
+@KW_AND2            { lex' AlexRawToken_AND2            }
 @KW_EQ              { lex' AlexRawToken_EQ              }
 @KW_GT              { lex' AlexRawToken_GT              }
 @KW_GE              { lex' AlexRawToken_GE              }
@@ -552,6 +554,7 @@ data AlexRawToken
      | AlexRawToken_CTX             -- ^ Reserved Keyword
      | AlexRawToken_OR              -- ^ Reserved Keyword
      | AlexRawToken_AND             -- ^ Reserved Keyword
+     | AlexRawToken_AND2            -- ^ Reserved Keyword
      | AlexRawToken_EQ              -- ^ Reserved Keyword
      | AlexRawToken_GT              -- ^ Reserved Keyword
      | AlexRawToken_GE              -- ^ Reserved Keyword
