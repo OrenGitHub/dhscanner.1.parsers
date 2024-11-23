@@ -109,6 +109,9 @@ import Data.Map ( fromList )
 'returns'                   { AlexTokenTag AlexRawToken_STMT_RETURN2    _ }
 'Yield'                     { AlexTokenTag AlexRawToken_STMT_YIELD      _ }
 'Raise'                     { AlexTokenTag AlexRawToken_STMT_RAISE      _ }
+'cause'                     { AlexTokenTag AlexRawToken_STMT_CAUSE      _ }
+'Del'                       { AlexTokenTag AlexRawToken_STMT_DEL        _ }
+'Delete'                    { AlexTokenTag AlexRawToken_STMT_DELETE     _ }
 'Try'                       { AlexTokenTag AlexRawToken_STMT_TRY        _ }
 'exc'                       { AlexTokenTag AlexRawToken_EXC             _ }
 'With'                      { AlexTokenTag AlexRawToken_WITH            _ }
@@ -147,13 +150,16 @@ import Data.Map ( fromList )
 'Is'                        { AlexTokenTag AlexRawToken_IS              _ }
 'IsNot'                     { AlexTokenTag AlexRawToken_ISNOT           _ }
 'Or'                        { AlexTokenTag AlexRawToken_OR              _ }
+'BitOr'                     { AlexTokenTag AlexRawToken_OR2             _ }
 'And'                       { AlexTokenTag AlexRawToken_AND             _ }
 'BitAnd'                    { AlexTokenTag AlexRawToken_AND2            _ }
+'RShift'                    { AlexTokenTag AlexRawToken_RSHIFT          _ }
 'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ }
 'kwonlyargs'                { AlexTokenTag AlexRawToken_ARGS4           _ }
 'posonlyargs'               { AlexTokenTag AlexRawToken_ARGS3           _ }
 'arguments'                 { AlexTokenTag AlexRawToken_ARGS2           _ }
 'arg'                       { AlexTokenTag AlexRawToken_ARG             _ }
+'vararg'                    { AlexTokenTag AlexRawToken_VARARG          _ }
 'args'                      { AlexTokenTag AlexRawToken_ARGS            _ }
 'attr'                      { AlexTokenTag AlexRawToken_ATTR            _ }
 'Attribute'                 { AlexTokenTag AlexRawToken_ATTR2           _ }
@@ -358,6 +364,8 @@ op:
 'IsNot' '(' ')' { Nothing } |
 'And'  '(' ')' { Nothing } |
 'BitAnd' '(' ')' { Nothing } |
+'RShift' '(' ')' { Nothing } |
+'BitOr' '(' ')' { Nothing } |
 'Or'   '(' ')' { Nothing }
 
 -- ************
@@ -424,7 +432,7 @@ var_field:
 var_subscript:
 'Subscript'
 '('
-    'value' '=' exp_var ','
+    'value' '=' exp ','
     'slice' '=' exp ','
     'ctx' '=' ctx ','
     loc
@@ -1181,7 +1189,7 @@ stmt_class:
 'ClassDef'
 '('
     'name' '=' ID ','
-    'bases' '=' possibly_empty_listof(name) ','
+    'bases' '=' possibly_empty_listof(var) ','
     'keywords' '=' '[' ']' ','
     'body' '=' stmts ','
     'decorator_list' '=' exps ','
@@ -1336,7 +1344,8 @@ stmt_exp:
     Ast.StmtExp $5
 }
 
-nonempty_raise_part: 'exc' '=' exp ',' { $3 }
+nonempty_raise_part: 'exc'   '=' exp ',' { $3 }
+nonempty_cause_part: 'cause' '=' exp ',' { $3 }
 
 -- **************
 -- *            *
@@ -1347,13 +1356,14 @@ stmt_raise:
 'Raise'
 '('
     optional(nonempty_raise_part)
+    optional(nonempty_cause_part)
     loc
 ')'
 {
     Ast.StmtReturn $ Ast.StmtReturnContent
     {
         Ast.stmtReturnValue = $3,
-        Ast.stmtReturnLocation = $4
+        Ast.stmtReturnLocation = $5
     }
 }
 
@@ -1422,6 +1432,24 @@ stmt_break:
     }
 }
 
+-- ***************
+-- *             *
+-- * stmt_delete *
+-- *             *
+-- ***************
+stmt_delete:
+'Delete'
+'('
+    'targets' '=' nonempty_listof(var) ','
+    loc
+')'
+{
+    Ast.StmtBreak $ Ast.StmtBreakContent
+    {
+        Ast.stmtBreakLocation = $7
+    }
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -1438,6 +1466,7 @@ stmt_while       { $1 } |
 stmt_break       { $1 } |
 stmt_import      { $1 } |
 stmt_raise       { $1 } |
+stmt_delete      { $1 } |
 stmt_return      { $1 } |
 stmt_assign      { $1 } |
 stmt_assert      { $1 } |
@@ -1486,6 +1515,8 @@ defaults:
 
 kw_default: exp { Nothing } | none { Nothing }
 
+vararg: 'vararg' '=' 'arg' '(' 'arg' '=' tokenID ',' loc ')' ',' { Nothing }
+
 -- **********
 -- *        *
 -- * params *
@@ -1496,6 +1527,7 @@ params:
 '('
     'posonlyargs' '=' '[' ']' ','
     'args' '=' possibly_empty_listof(param) ','
+    optional(vararg)
     'kwonlyargs' '=' possibly_empty_listof(param) ','
     'kw_defaults' '=' possibly_empty_listof(kw_default) ','
     'defaults' '=' defaults
@@ -1553,6 +1585,7 @@ function_def
 -- *******
 ctx:
 'Store' '(' ')' { Nothing } |
+'Del'   '(' ')' { Nothing } |
 'Load'  '(' ')' { Nothing }
 
 -- ********

@@ -78,8 +78,10 @@ import Location
 @KW_IS              = Is
 @KW_ISNOT           = IsNot
 @KW_OR              = Or
+@KW_OR2             = BitOr
 @KW_AND             = And
 @KW_AND2            = BitAnd
+@KW_RSHIFT          = RShift
 @KW_NOT             = Not
 @KW_NOTEQ           = NotEq
 @KW_NOTIN           = NotIn
@@ -92,7 +94,7 @@ import Location
 @KW_RAW             = \"raw\"
 @KW_LOC             = \"loc\"
 @KW_ARG             = arg
-@KW_VAR             = "var"
+@KW_VARARG          = vararg
 @KW_NULL            = null
 @KW_KIND            = \"kind\"
 @KW_TAIL            = \"tail\"
@@ -216,7 +218,10 @@ import Location
 @KW_STMT_BREAK    = Break
 @KW_STMT_PASS     = Pass
 @KW_STMT_YIELD    = Yield
+@KW_STMT_DEL      = Del
+@KW_STMT_DELETE   = Delete
 @KW_STMT_RAISE    = Raise
+@KW_STMT_CAUSE    = cause
 @KW_STMT_TRY      = Try
 
 -- *************
@@ -301,8 +306,10 @@ tokens :-
 @KW_ID              { lex' AlexRawToken_KWID            }
 @KW_CTX             { lex' AlexRawToken_CTX             }
 @KW_OR              { lex' AlexRawToken_OR              }
+@KW_OR2             { lex' AlexRawToken_OR2             }
 @KW_AND             { lex' AlexRawToken_AND             }
 @KW_AND2            { lex' AlexRawToken_AND2            }
+@KW_RSHIFT          { lex' AlexRawToken_RSHIFT          }
 @KW_EQ              { lex' AlexRawToken_EQ              }
 @KW_GT              { lex' AlexRawToken_GT              }
 @KW_GE              { lex' AlexRawToken_GE              }
@@ -323,7 +330,7 @@ tokens :-
 @KW_RAW             { lex' AlexRawToken_RAW             }
 @KW_LOC             { lex' AlexRawToken_LOC             }
 @KW_ARG             { lex' AlexRawToken_ARG             }
-@KW_VAR             { lex' AlexRawToken_VAR             }
+@KW_VARARG          { lex' AlexRawToken_VARARG          }
 @KW_NULL            { lex' AlexRawToken_NULL            }
 @KW_TAIL            { lex' AlexRawToken_TAIL            }
 @KW_KIND            { lex' AlexRawToken_KIND            }
@@ -444,7 +451,10 @@ tokens :-
 @KW_STMT_BREAK     { lex' AlexRawToken_STMT_BREAK     }
 @KW_STMT_PASS      { lex' AlexRawToken_STMT_PASS      }
 @KW_STMT_YIELD     { lex' AlexRawToken_STMT_YIELD     }
+@KW_STMT_DELETE    { lex' AlexRawToken_STMT_DELETE    }
+@KW_STMT_DEL       { lex' AlexRawToken_STMT_DEL       }
 @KW_STMT_RAISE     { lex' AlexRawToken_STMT_RAISE     }
+@KW_STMT_CAUSE     { lex' AlexRawToken_STMT_CAUSE     }
 @KW_STMT_TRY       { lex' AlexRawToken_STMT_TRY       }
 @KW_STMT_FUNCTION  { lex' AlexRawToken_STMT_FUNCTION  }
 @KW_STMT_CLASS     { lex' AlexRawToken_STMT_CLASS     }
@@ -553,8 +563,10 @@ data AlexRawToken
      | AlexRawToken_KWID            -- ^ Reserved Keyword
      | AlexRawToken_CTX             -- ^ Reserved Keyword
      | AlexRawToken_OR              -- ^ Reserved Keyword
+     | AlexRawToken_OR2             -- ^ Reserved Keyword
      | AlexRawToken_AND             -- ^ Reserved Keyword
      | AlexRawToken_AND2            -- ^ Reserved Keyword
+     | AlexRawToken_RSHIFT          -- ^ Reserved Keyword
      | AlexRawToken_EQ              -- ^ Reserved Keyword
      | AlexRawToken_GT              -- ^ Reserved Keyword
      | AlexRawToken_GE              -- ^ Reserved Keyword
@@ -575,7 +587,7 @@ data AlexRawToken
      | AlexRawToken_RAW             -- ^ Reserved Keyword
      | AlexRawToken_LOC             -- ^ Reserved Keyword
      | AlexRawToken_ARG             -- ^ Reserved Keyword
-     | AlexRawToken_VAR             -- ^ Reserved Keyword
+     | AlexRawToken_VARARG          -- ^ Reserved Keyword
      | AlexRawToken_TEST            -- ^ Reserved Keyword
      | AlexRawToken_NULL            -- ^ Reserved Keyword
      | AlexRawToken_TAIL            -- ^ Reserved Keyword
@@ -767,7 +779,10 @@ data AlexRawToken
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
      | AlexRawToken_STMT_BLOCK      -- ^ Reserved Keyword
      | AlexRawToken_STMT_YIELD      -- ^ Reserved Keyword
+     | AlexRawToken_STMT_DEL        -- ^ Reserved Keyword
+     | AlexRawToken_STMT_DELETE     -- ^ Reserved Keyword
      | AlexRawToken_STMT_RAISE      -- ^ Reserved Keyword
+     | AlexRawToken_STMT_CAUSE      -- ^ Reserved Keyword
      | AlexRawToken_STMT_RETURN     -- ^ Reserved Keyword
      | AlexRawToken_STMT_RETURN2    -- ^ Reserved Keyword
      | AlexRawToken_STMT_CONTINUE   -- ^ Reserved Keyword
