@@ -81,6 +81,7 @@ import Location
 @KW_AND             = And
 @KW_NOT             = Not
 @KW_NOTEQ           = NotEq
+@KW_NOTIN           = NotIn
 @KW_ADD             = Add
 @KW_DIV             = Div
 @KW_SUB             = Sub
@@ -147,6 +148,7 @@ import Location
 @KW_FORMATTED_VAL   = FormattedValue
 @KW_ASSIGN          = Assign
 @KW_ASSERT          = Assert
+@KW_LAMBDA          = Lambda
 @KW_SIMPLE          = simple
 @KW_ASSIGN2         = AugAssign
 @KW_ASSIGN3         = AnnAssign
@@ -157,7 +159,9 @@ import Location
 @KW_QUASIS          = \"quasis\"
 @KW_FALSE           = False
 @KW_LIST            = List
+@KW_SET             = Set
 @KW_LIST_COMP       = ListComp
+@KW_GENERATOR_EXP   = GeneratorExp
 @KW_TUPLE           = Tuple
 @KW_ELT             = elt
 @KW_ELTS            = elts
@@ -208,6 +212,7 @@ import Location
 @KW_STMT_RETURN   = Return
 @KW_STMT_RETURN2  = returns
 @KW_STMT_CONTINUE = Continue
+@KW_STMT_BREAK    = Break
 @KW_STMT_PASS     = Pass
 @KW_STMT_YIELD    = Yield
 @KW_STMT_RAISE    = Raise
@@ -238,11 +243,16 @@ import Location
 -- * identifiers *
 -- *             *
 -- ***************
-@LETTER = [^\']
-@LETTER_OR_DIGIT = @LETTER | @DIGIT
+@LETTER1 = [^\']
+@LETTER1_OR_DIGIT = @LETTER1 | @DIGIT
+@LETTER2 = [^\"]
+@LETTER2_OR_DIGIT = @LETTER2 | @DIGIT
 @SQUOTE = \'
+@DQUOTE = \"
 @BYTES = [b]
-@ID = (@BYTES?)(@SQUOTE)(@LETTER_OR_DIGIT+)(@SQUOTE)
+@ID1 = (@BYTES?)(@SQUOTE)(@LETTER1_OR_DIGIT*)(@SQUOTE)
+@ID2 = (@BYTES?)(@DQUOTE)(@LETTER2_OR_DIGIT+)(@DQUOTE)
+@ID = @ID1 | @ID2
 
 -- ***************
 -- *             *
@@ -301,6 +311,7 @@ tokens :-
 @KW_ISNOT           { lex' AlexRawToken_ISNOT           }
 @KW_NOT             { lex' AlexRawToken_NOT             }
 @KW_NOTEQ           { lex' AlexRawToken_NOTEQ           }
+@KW_NOTIN           { lex' AlexRawToken_NOTIN           }
 @KW_ADD             { lex' AlexRawToken_ADD             }
 @KW_DIV             { lex' AlexRawToken_DIV             }
 @KW_SUB             { lex' AlexRawToken_SUB             }
@@ -376,6 +387,7 @@ tokens :-
 @KW_FORMATTED_VAL   { lex' AlexRawToken_FORMATTED_VAL   }
 @KW_ASSIGN          { lex' AlexRawToken_ASSIGN          }
 @KW_ASSERT          { lex' AlexRawToken_ASSERT          }
+@KW_LAMBDA          { lex' AlexRawToken_LAMBDA          }
 @KW_SIMPLE          { lex' AlexRawToken_SIMPLE          }
 @KW_ASSIGN2         { lex' AlexRawToken_ASSIGN2         }
 @KW_ASSIGN3         { lex' AlexRawToken_ASSIGN3         }
@@ -386,7 +398,9 @@ tokens :-
 @KW_QUASIS          { lex' AlexRawToken_QUASIS          }
 @KW_FALSE           { lex' AlexRawToken_FALSE           }
 @KW_LIST            { lex' AlexRawToken_LIST            }
+@KW_SET             { lex' AlexRawToken_SET             }
 @KW_LIST_COMP       { lex' AlexRawToken_LIST_COMP       }
+@KW_GENERATOR_EXP   { lex' AlexRawToken_GENERATOR_EXP   }
 @KW_TUPLE           { lex' AlexRawToken_TUPLE           }
 @KW_ELT             { lex' AlexRawToken_ELT             }
 @KW_ELTS            { lex' AlexRawToken_ELTS            }
@@ -425,6 +439,7 @@ tokens :-
 @KW_STMT_RETURN    { lex' AlexRawToken_STMT_RETURN    }
 @KW_STMT_RETURN2   { lex' AlexRawToken_STMT_RETURN2   }
 @KW_STMT_CONTINUE  { lex' AlexRawToken_STMT_CONTINUE  }
+@KW_STMT_BREAK     { lex' AlexRawToken_STMT_BREAK     }
 @KW_STMT_PASS      { lex' AlexRawToken_STMT_PASS      }
 @KW_STMT_YIELD     { lex' AlexRawToken_STMT_YIELD     }
 @KW_STMT_RAISE     { lex' AlexRawToken_STMT_RAISE     }
@@ -547,6 +562,7 @@ data AlexRawToken
      | AlexRawToken_ISNOT           -- ^ Reserved Keyword
      | AlexRawToken_NOT             -- ^ Reserved Keyword
      | AlexRawToken_NOTEQ           -- ^ Reserved Keyword
+     | AlexRawToken_NOTIN           -- ^ Reserved Keyword
      | AlexRawToken_ADD             -- ^ Reserved Keyword
      | AlexRawToken_DIV             -- ^ Reserved Keyword
      | AlexRawToken_SUB             -- ^ Reserved Keyword
@@ -622,6 +638,7 @@ data AlexRawToken
      | AlexRawToken_FORMATTED_VAL   -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN          -- ^ Reserved Keyword
      | AlexRawToken_ASSERT          -- ^ Reserved Keyword
+     | AlexRawToken_LAMBDA          -- ^ Reserved Keyword
      | AlexRawToken_SIMPLE          -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN2         -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN3         -- ^ Reserved Keyword
@@ -634,7 +651,9 @@ data AlexRawToken
      | AlexRawToken_QUASIS          -- ^ Reserved Keyword
      | AlexRawToken_FALSE           -- ^ Reserved Keyword
      | AlexRawToken_LIST            -- ^ Reserved Keyword
+     | AlexRawToken_SET             -- ^ Reserved Keyword
      | AlexRawToken_LIST_COMP       -- ^ Reserved Keyword
+     | AlexRawToken_GENERATOR_EXP   -- ^ Reserved Keyword
      | AlexRawToken_TUPLE           -- ^ Reserved Keyword
      | AlexRawToken_ELT             -- ^ Reserved Keyword
      | AlexRawToken_ELTS            -- ^ Reserved Keyword
@@ -749,6 +768,7 @@ data AlexRawToken
      | AlexRawToken_STMT_RETURN     -- ^ Reserved Keyword
      | AlexRawToken_STMT_RETURN2    -- ^ Reserved Keyword
      | AlexRawToken_STMT_CONTINUE   -- ^ Reserved Keyword
+     | AlexRawToken_STMT_BREAK      -- ^ Reserved Keyword
      | AlexRawToken_STMT_PASS       -- ^ Reserved Keyword
      | AlexRawToken_STMT_TRY        -- ^ Reserved Keyword
      | AlexRawToken_STMT_EXP        -- ^ Reserved Keyword

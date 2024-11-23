@@ -117,7 +117,9 @@ import Data.Map ( fromList )
 'context_expr'              { AlexTokenTag AlexRawToken_CTX_MANAGER     _ }
 'items'                     { AlexTokenTag AlexRawToken_ITEMS           _ }
 'List'                      { AlexTokenTag AlexRawToken_LIST            _ }
+'Set'                       { AlexTokenTag AlexRawToken_SET             _ }
 'ListComp'                  { AlexTokenTag AlexRawToken_LIST_COMP       _ }
+'GeneratorExp'              { AlexTokenTag AlexRawToken_GENERATOR_EXP   _ }
 'Tuple'                     { AlexTokenTag AlexRawToken_TUPLE           _ }
 'elt'                       { AlexTokenTag AlexRawToken_ELT             _ }
 'elts'                      { AlexTokenTag AlexRawToken_ELTS            _ }
@@ -126,9 +128,11 @@ import Data.Map ( fromList )
 'Ellipsis'                  { AlexTokenTag AlexRawToken_ELLIPSIS        _ }
 'Constant'                  { AlexTokenTag AlexRawToken_EXPR_CONST      _ }
 'Continue'                  { AlexTokenTag AlexRawToken_STMT_CONTINUE   _ }
+'Break'                     { AlexTokenTag AlexRawToken_STMT_BREAK      _ }
 'Pass'                      { AlexTokenTag AlexRawToken_STMT_PASS       _ }
 'Not'                       { AlexTokenTag AlexRawToken_NOT             _ }
 'NotEq'                     { AlexTokenTag AlexRawToken_NOTEQ           _ }
+'NotIn'                     { AlexTokenTag AlexRawToken_NOTIN           _ }
 'Add'                       { AlexTokenTag AlexRawToken_ADD             _ }
 'Div'                       { AlexTokenTag AlexRawToken_DIV             _ }
 'Sub'                       { AlexTokenTag AlexRawToken_SUB             _ }
@@ -195,6 +199,7 @@ import Data.Map ( fromList )
 'simple'                    { AlexTokenTag AlexRawToken_SIMPLE          _ }
 'Assign'                    { AlexTokenTag AlexRawToken_ASSIGN          _ }
 'Assert'                    { AlexTokenTag AlexRawToken_ASSERT          _ }
+'Lambda'                    { AlexTokenTag AlexRawToken_LAMBDA          _ }
 'AugAssign'                 { AlexTokenTag AlexRawToken_ASSIGN2         _ }
 'AnnAssign'                 { AlexTokenTag AlexRawToken_ASSIGN3         _ }
 'annotation'                { AlexTokenTag AlexRawToken_ANNOTATION      _ }
@@ -336,6 +341,7 @@ arg: exp { $1 }
 op:
 'Not'  '(' ')' { Nothing } |
 'NotEq' '(' ')' { Nothing } |
+'NotIn' '(' ')' { Nothing } |
 'Add'  '(' ')' { Nothing } |
 'Div'  '(' ')' { Nothing } |
 'USub' '(' ')' { Nothing } |
@@ -907,6 +913,42 @@ exp_listcomp:
     $5
 }
 
+generator:
+'GeneratorExp'
+'('
+    'elt' '=' exp ','
+    'generators' '=' nonempty_listof(comprehension) ','
+    loc
+')'
+{
+    $5
+}
+
+exp_set:
+'Set'
+'('
+    'elts' '=' possibly_empty_listof(exp) ','
+    loc
+')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    {
+        Token.constIntValue = 999,
+        Token.constIntLocation = $7
+    }
+}
+
+exp_lambda:
+'Lambda'
+'('
+    'args' '=' params ','
+    'body' '=' exp ','
+    loc 
+')'
+{
+    $9
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -921,9 +963,12 @@ exp_yield     { $1 } |
 exp_dict      { $1 } |
 exp_var       { $1 } |
 exp_bool      { $1 } |
+exp_set       { $1 } |
 exp_list      { $1 } |
+generator     { $1 } |
 exp_listcomp  { $1 } |
 exp_tuple     { $1 } |
+exp_lambda    { $1 } |
 exp_unop      { $1 } |
 exp_slice     { $1 } |
 exp_relop     { $1 } |
@@ -1348,6 +1393,22 @@ stmt_pass: 'Pass' '(' loc ')'
     }
 }
 
+-- **************
+-- *            *
+-- * stmt_break *
+-- *            *
+-- **************
+stmt_break:
+'Break'
+'('
+    loc
+')'
+{
+    Ast.StmtBreak $ Ast.StmtBreakContent
+    {
+        Ast.stmtBreakLocation = $3
+    }
+}
 
 -- ********
 -- *      *
@@ -1362,6 +1423,7 @@ stmt_for         { $1 } |
 stmt_with        { $1 } |
 stmt_class       { $1 } |
 stmt_while       { $1 } |
+stmt_break       { $1 } |
 stmt_import      { $1 } |
 stmt_raise       { $1 } |
 stmt_return      { $1 } |
