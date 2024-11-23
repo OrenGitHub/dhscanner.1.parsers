@@ -1223,6 +1223,14 @@ stmt_ann_assign:
 
 -- ******************
 -- *                *
+-- * exception_type *
+-- *                *
+-- ******************
+exception_type: 'type' '=' exp ',' { $3 }
+
+
+-- ******************
+-- *                *
 -- * exception_name *
 -- *                *
 -- ******************
@@ -1236,7 +1244,7 @@ exception_name: 'name' '=' ID ',' { $3 }
 exception_handler:
 'ExceptHandler'
 '('
-    'type' '=' exp ','
+    optional(exception_type)
     optional(exception_name)
     'body' '=' stmts ','
     loc
@@ -1611,6 +1619,8 @@ stmt_import:
     }
 }
 
+import_from_module: 'module' '=' tokenID ',' { $3 }
+
 -- ********************
 -- *                  *
 -- * stmt_import_from *
@@ -1619,7 +1629,7 @@ stmt_import:
 stmt_import_from:
 'ImportFrom'
 '('
-    'module' '=' tokenID ','
+    optional(import_from_module)
     'names' '=' '[' commalistof(alias) ']' ','
     'level' '=' INT ','
     loc
@@ -1627,9 +1637,9 @@ stmt_import_from:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName  = case $10 of { [] -> $5; ((name, _, _):_) -> ($5 ++ "." ++ name)  },
-        Ast.stmtImportAlias = case $10 of { [] -> $5; ((_, alias, _):_) -> alias },
-        Ast.stmtImportLocation = case $10 of { [] -> $17; ((_, _, loc):_) -> loc }
+        Ast.stmtImportName  = case $7 of { [] -> "POPO"; ((name, _, _):_) -> ("POPO" ++ "." ++ name)  },
+        Ast.stmtImportAlias = case $7 of { [] -> "TITI"; ((_, alias, _):_) -> alias },
+        Ast.stmtImportLocation = case $7 of { [] -> $14; ((_, _, loc):_) -> loc }
     }
 }
 
