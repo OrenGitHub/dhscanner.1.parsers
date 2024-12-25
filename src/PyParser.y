@@ -781,6 +781,8 @@ exp_field:
     $5
 }
 
+slice_lower: 'lower' '=' exp ',' { $3 }
+
 -- *************
 -- *           *
 -- * exp_slice *
@@ -789,7 +791,7 @@ exp_field:
 exp_slice:
 'Slice'
 '('
-    'lower' '=' exp ','
+    optional(slice_lower)
     'upper' '=' exp ','
     loc
 ')'
@@ -799,10 +801,10 @@ exp_slice:
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
         {
             Token.content = "slicify",
-            Token.location = $11
+            Token.location = $8
         },
-        Ast.args = [ $5, $9 ],
-        Ast.expCallLocation = $11
+        Ast.args = [ $6 ],
+        Ast.expCallLocation = $8
     }
 }
 
