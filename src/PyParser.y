@@ -989,6 +989,8 @@ exp_call      { Ast.ExpCall $1 } |
 exp_fstring   { $1 } |
 exp_ellipsis  { $1 }
 
+keyword_arg: 'arg' '=' ID ',' { Nothing }
+
 -- ***********
 -- *         *
 -- * keyword *
@@ -997,7 +999,7 @@ exp_ellipsis  { $1 }
 keyword:
 'keyword'
 '('
-    'arg' '=' ID ','
+    optional(keyword_arg)
     'value' '=' exp ','
     loc
 ')'
