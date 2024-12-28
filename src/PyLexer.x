@@ -87,6 +87,7 @@ import Location
 @KW_NOTIN           = NotIn
 @KW_ADD             = Add
 @KW_POW             = Pow
+@KW_FLOOR_DIV       = FloorDiv
 @KW_MOD             = Mod
 @KW_DIV             = Div
 @KW_SUB             = Sub
@@ -153,6 +154,7 @@ import Location
 @KW_IMPORTF         = ImportFrom
 @KW_CONVERSION      = conversion
 @KW_FORMATTED_VAL   = FormattedValue
+@KW_FORMAT_SPEC     = format_spec
 @KW_ASSIGN          = Assign
 @KW_ASSERT          = Assert
 @KW_LAMBDA          = Lambda
@@ -168,6 +170,7 @@ import Location
 @KW_LIST            = List
 @KW_SET             = Set
 @KW_LIST_COMP       = ListComp
+@KW_DICT_COMP       = DictComp
 @KW_GENERATOR_EXP   = GeneratorExp
 @KW_TUPLE           = Tuple
 @KW_ELT             = elt
@@ -178,6 +181,7 @@ import Location
 @KW_WITH            = With|AsyncWith
 @KW_WITH2           = withitem
 @KW_CTX_MANAGER     = context_expr
+@KW_KEY             = key
 @KW_VALUE           = value
 @KW_VALUES          = values
 @KW_ARRAY           = array
@@ -224,6 +228,7 @@ import Location
 @KW_STMT_YIELD    = Yield
 @KW_STMT_DEL      = Del
 @KW_STMT_DELETE   = Delete
+@KW_STMT_GLOBAL   = Global
 @KW_STMT_RAISE    = Raise
 @KW_STMT_CAUSE    = cause
 @KW_STMT_TRY      = Try
@@ -327,6 +332,7 @@ tokens :-
 @KW_NOTIN           { lex' AlexRawToken_NOTIN           }
 @KW_ADD             { lex' AlexRawToken_ADD             }
 @KW_POW             { lex' AlexRawToken_POW             }
+@KW_FLOOR_DIV       { lex' AlexRawToken_FLOOR_DIV       }
 @KW_MOD             { lex' AlexRawToken_MOD             }
 @KW_DIV             { lex' AlexRawToken_DIV             }
 @KW_SUB             { lex' AlexRawToken_SUB             }
@@ -402,6 +408,7 @@ tokens :-
 @KW_FSTRING         { lex' AlexRawToken_FSTRING         }
 @KW_IMPORTF         { lex' AlexRawToken_IMPORTF         }
 @KW_FORMATTED_VAL   { lex' AlexRawToken_FORMATTED_VAL   }
+@KW_FORMAT_SPEC     { lex' AlexRawToken_FORMAT_SPEC     }
 @KW_ASSIGN          { lex' AlexRawToken_ASSIGN          }
 @KW_ASSERT          { lex' AlexRawToken_ASSERT          }
 @KW_LAMBDA          { lex' AlexRawToken_LAMBDA          }
@@ -417,6 +424,7 @@ tokens :-
 @KW_LIST            { lex' AlexRawToken_LIST            }
 @KW_SET             { lex' AlexRawToken_SET             }
 @KW_LIST_COMP       { lex' AlexRawToken_LIST_COMP       }
+@KW_DICT_COMP       { lex' AlexRawToken_DICT_COMP       }
 @KW_GENERATOR_EXP   { lex' AlexRawToken_GENERATOR_EXP   }
 @KW_TUPLE           { lex' AlexRawToken_TUPLE           }
 @KW_ELT             { lex' AlexRawToken_ELT             }
@@ -425,6 +433,7 @@ tokens :-
 @KW_WITH            { lex' AlexRawToken_WITH            }
 @KW_WITH2           { lex' AlexRawToken_WITH2           }
 @KW_CTX_MANAGER     { lex' AlexRawToken_CTX_MANAGER     }
+@KW_KEY             { lex' AlexRawToken_KEY             }
 @KW_VALUE           { lex' AlexRawToken_VALUE           }
 @KW_VALUES          { lex' AlexRawToken_VALUES          }
 @KW_ARRAY           { lex' AlexRawToken_ARRAY           }
@@ -460,6 +469,7 @@ tokens :-
 @KW_STMT_PASS      { lex' AlexRawToken_STMT_PASS      }
 @KW_STMT_YIELD     { lex' AlexRawToken_STMT_YIELD     }
 @KW_STMT_DELETE    { lex' AlexRawToken_STMT_DELETE    }
+@KW_STMT_GLOBAL    { lex' AlexRawToken_STMT_GLOBAL    }
 @KW_STMT_DEL       { lex' AlexRawToken_STMT_DEL       }
 @KW_STMT_RAISE     { lex' AlexRawToken_STMT_RAISE     }
 @KW_STMT_CAUSE     { lex' AlexRawToken_STMT_CAUSE     }
@@ -588,6 +598,7 @@ data AlexRawToken
      | AlexRawToken_NOTIN           -- ^ Reserved Keyword
      | AlexRawToken_ADD             -- ^ Reserved Keyword
      | AlexRawToken_POW             -- ^ Reserved Keyword
+     | AlexRawToken_FLOOR_DIV       -- ^ Reserved Keyword
      | AlexRawToken_MOD             -- ^ Reserved Keyword
      | AlexRawToken_DIV             -- ^ Reserved Keyword
      | AlexRawToken_SUB             -- ^ Reserved Keyword
@@ -662,6 +673,7 @@ data AlexRawToken
      | AlexRawToken_FSTRING         -- ^ Reserved Keyword
      | AlexRawToken_IMPORTF         -- ^ Reserved Keyword
      | AlexRawToken_CONVERSION      -- ^ Reserved Keyword
+     | AlexRawToken_FORMAT_SPEC     -- ^ Reserved Keyword
      | AlexRawToken_FORMATTED_VAL   -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN          -- ^ Reserved Keyword
      | AlexRawToken_ASSERT          -- ^ Reserved Keyword
@@ -680,6 +692,7 @@ data AlexRawToken
      | AlexRawToken_LIST            -- ^ Reserved Keyword
      | AlexRawToken_SET             -- ^ Reserved Keyword
      | AlexRawToken_LIST_COMP       -- ^ Reserved Keyword
+     | AlexRawToken_DICT_COMP       -- ^ Reserved Keyword
      | AlexRawToken_GENERATOR_EXP   -- ^ Reserved Keyword
      | AlexRawToken_TUPLE           -- ^ Reserved Keyword
      | AlexRawToken_ELT             -- ^ Reserved Keyword
@@ -689,6 +702,7 @@ data AlexRawToken
      | AlexRawToken_WITH2           -- ^ Reserved Keyword
      | AlexRawToken_CTX_MANAGER     -- ^ Reserved Keyword
      | AlexRawToken_EXPRS           -- ^ Reserved Keyword
+     | AlexRawToken_KEY             -- ^ Reserved Keyword
      | AlexRawToken_VALUE           -- ^ Reserved Keyword
      | AlexRawToken_VALUES          -- ^ Reserved Keyword
      | AlexRawToken_STMTS           -- ^ Reserved Keyword
@@ -793,6 +807,7 @@ data AlexRawToken
      | AlexRawToken_STMT_YIELD      -- ^ Reserved Keyword
      | AlexRawToken_STMT_DEL        -- ^ Reserved Keyword
      | AlexRawToken_STMT_DELETE     -- ^ Reserved Keyword
+     | AlexRawToken_STMT_GLOBAL     -- ^ Reserved Keyword
      | AlexRawToken_STMT_RAISE      -- ^ Reserved Keyword
      | AlexRawToken_STMT_CAUSE      -- ^ Reserved Keyword
      | AlexRawToken_STMT_RETURN     -- ^ Reserved Keyword

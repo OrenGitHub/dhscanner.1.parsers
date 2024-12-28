@@ -112,6 +112,7 @@ import Data.Map ( fromList )
 'cause'                     { AlexTokenTag AlexRawToken_STMT_CAUSE      _ }
 'Del'                       { AlexTokenTag AlexRawToken_STMT_DEL        _ }
 'Delete'                    { AlexTokenTag AlexRawToken_STMT_DELETE     _ }
+'Global'                    { AlexTokenTag AlexRawToken_STMT_GLOBAL     _ }
 'Try'                       { AlexTokenTag AlexRawToken_STMT_TRY        _ }
 'exc'                       { AlexTokenTag AlexRawToken_EXC             _ }
 'With'                      { AlexTokenTag AlexRawToken_WITH            _ }
@@ -122,6 +123,7 @@ import Data.Map ( fromList )
 'List'                      { AlexTokenTag AlexRawToken_LIST            _ }
 'Set'                       { AlexTokenTag AlexRawToken_SET             _ }
 'ListComp'                  { AlexTokenTag AlexRawToken_LIST_COMP       _ }
+'DictComp'                  { AlexTokenTag AlexRawToken_DICT_COMP       _ }
 'GeneratorExp'              { AlexTokenTag AlexRawToken_GENERATOR_EXP   _ }
 'Tuple'                     { AlexTokenTag AlexRawToken_TUPLE           _ }
 'elt'                       { AlexTokenTag AlexRawToken_ELT             _ }
@@ -138,6 +140,7 @@ import Data.Map ( fromList )
 'NotIn'                     { AlexTokenTag AlexRawToken_NOTIN           _ }
 'Add'                       { AlexTokenTag AlexRawToken_ADD             _ }
 'Pow'                       { AlexTokenTag AlexRawToken_POW             _ }
+'FloorDiv'                  { AlexTokenTag AlexRawToken_FLOOR_DIV       _ }
 'Mod'                       { AlexTokenTag AlexRawToken_MOD             _ }
 'Div'                       { AlexTokenTag AlexRawToken_DIV             _ }
 'Sub'                       { AlexTokenTag AlexRawToken_SUB             _ }
@@ -183,6 +186,7 @@ import Data.Map ( fromList )
 'Call'                      { AlexTokenTag AlexRawToken_CALL            _ }
 'Expr'                      { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
 'level'                     { AlexTokenTag AlexRawToken_LEVEL           _ }
+'key'                       { AlexTokenTag AlexRawToken_KEY             _ }
 'value'                     { AlexTokenTag AlexRawToken_VALUE           _ }
 'values'                    { AlexTokenTag AlexRawToken_VALUES          _ }
 'name'                      { AlexTokenTag AlexRawToken_NAME            _ }
@@ -203,6 +207,7 @@ import Data.Map ( fromList )
 'conversion'                { AlexTokenTag AlexRawToken_CONVERSION      _ }
 'JoinedStr'                 { AlexTokenTag AlexRawToken_FSTRING         _ }
 'ImportFrom'                { AlexTokenTag AlexRawToken_IMPORTF         _ }
+'format_spec'               { AlexTokenTag AlexRawToken_FORMAT_SPEC     _ }
 'FormattedValue'            { AlexTokenTag AlexRawToken_FORMATTED_VAL   _ }
 'Load'                      { AlexTokenTag AlexRawToken_LOAD            _ }
 'Store'                     { AlexTokenTag AlexRawToken_STORE           _ }
@@ -371,6 +376,7 @@ op:
 'And'  '(' ')' { Nothing } |
 'BitAnd' '(' ')' { Nothing } |
 'RShift' '(' ')' { Nothing } |
+'FloorDiv' '(' ')' { Nothing } |
 'BitOr' '(' ')' { Nothing } |
 'Or'   '(' ')' { Nothing }
 
@@ -595,6 +601,8 @@ exp_bool_false { $1 }
 -- **************
 conversion: '-' INT { Nothing }
 
+format_spec: 'format_spec' '=' exp ',' { Nothing }
+
 -- *******************
 -- *                 *
 -- * formatted_value *
@@ -605,6 +613,7 @@ formatted_value:
 '('
     'value' '=' exp ','
     'conversion' '=' conversion ','
+    optional(format_spec)
     loc
 ')'
 {
@@ -788,6 +797,7 @@ exp_field:
 }
 
 slice_lower: 'lower' '=' exp ',' { $3 }
+slice_upper: 'upper' '=' exp ',' { $3 }
 
 -- *************
 -- *           *
@@ -798,7 +808,7 @@ exp_slice:
 'Slice'
 '('
     optional(slice_lower)
-    'upper' '=' exp ','
+    optional(slice_upper)
     loc
 ')'
 {
@@ -807,10 +817,10 @@ exp_slice:
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
         {
             Token.content = "slicify",
-            Token.location = $8
+            Token.location = $5
         },
-        Ast.args = [ $6 ],
-        Ast.expCallLocation = $8
+        Ast.args = [],
+        Ast.expCallLocation = $5
     }
 }
 
@@ -931,6 +941,18 @@ exp_listcomp:
     $5
 }
 
+exp_dictcomp:
+'DictComp'
+'('
+    'key' '=' exp ','
+    'value' '=' exp ','
+    'generators' '=' nonempty_listof(comprehension) ','
+    loc
+')'
+{
+    $5
+}
+
 generator:
 'GeneratorExp'
 '('
@@ -997,6 +1019,7 @@ exp_set       { $1 } |
 exp_list      { $1 } |
 generator     { $1 } |
 exp_listcomp  { $1 } |
+exp_dictcomp  { $1 } |
 exp_tuple     { $1 } |
 exp_lambda    { $1 } |
 exp_unop      { $1 } |
@@ -1336,6 +1359,8 @@ stmt_for:
     }
 }
 
+yield_exp: 'value' '=' exp ',' { $3 }
+
 -- *************
 -- *           *
 -- * exp_yield *
@@ -1344,11 +1369,11 @@ stmt_for:
 exp_yield:
 'Yield'
 '('
-    'value' '=' exp ','
+    optional(yield_exp)
     loc
 ')'
 {
-    $5
+    dummyExp $4
 }
 
 -- ************
@@ -1472,6 +1497,25 @@ stmt_delete:
     }
 }
 
+-- ***************
+-- *             *
+-- * stmt_global *
+-- *             *
+-- ***************
+stmt_global:
+'Global'
+'('
+    'names' '=' nonempty_listof(tokenID) ','
+    loc
+')'
+{
+    Ast.StmtBreak $ Ast.StmtBreakContent
+    {
+        Ast.stmtBreakLocation = $7
+    }
+}
+
+
 -- ********
 -- *      *
 -- * stmt *
@@ -1492,6 +1536,7 @@ stmt_delete      { $1 } |
 stmt_return      { $1 } |
 stmt_assign      { $1 } |
 stmt_assert      { $1 } |
+stmt_global      { $1 } |
 stmt_function    { $1 } |
 stmt_pass        { $1 } |
 stmt_continue    { $1 } |
