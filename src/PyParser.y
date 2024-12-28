@@ -137,6 +137,8 @@ import Data.Map ( fromList )
 'NotEq'                     { AlexTokenTag AlexRawToken_NOTEQ           _ }
 'NotIn'                     { AlexTokenTag AlexRawToken_NOTIN           _ }
 'Add'                       { AlexTokenTag AlexRawToken_ADD             _ }
+'Pow'                       { AlexTokenTag AlexRawToken_POW             _ }
+'Mod'                       { AlexTokenTag AlexRawToken_MOD             _ }
 'Div'                       { AlexTokenTag AlexRawToken_DIV             _ }
 'Sub'                       { AlexTokenTag AlexRawToken_SUB             _ }
 'USub'                      { AlexTokenTag AlexRawToken_USUB            _ }
@@ -163,6 +165,7 @@ import Data.Map ( fromList )
 'args'                      { AlexTokenTag AlexRawToken_ARGS            _ }
 'attr'                      { AlexTokenTag AlexRawToken_ATTR            _ }
 'Attribute'                 { AlexTokenTag AlexRawToken_ATTR2           _ }
+'Starred'                   { AlexTokenTag AlexRawToken_STARRED         _ }
 'Subscript'                 { AlexTokenTag AlexRawToken_SUBSCRIPT       _ }
 'slice'                     { AlexTokenTag AlexRawToken_SLICE           _ }
 'lower'                     { AlexTokenTag AlexRawToken_LOWER           _ }
@@ -186,6 +189,7 @@ import Data.Map ( fromList )
 'asname'                    { AlexTokenTag AlexRawToken_ASNAME          _ }
 'orelse'                    { AlexTokenTag AlexRawToken_ORELSE          _ }
 'defaults'                  { AlexTokenTag AlexRawToken_DEFAULTS        _ }
+'kwarg'                     { AlexTokenTag AlexRawToken_KWARG           _ }
 'comprehension'             { AlexTokenTag AlexRawToken_COMPREHENSION   _ }
 'generators'                { AlexTokenTag AlexRawToken_GENERATORS      _ }
 'kw_defaults'               { AlexTokenTag AlexRawToken_KW_DEFAULTS     _ }
@@ -350,6 +354,8 @@ op:
 'NotEq' '(' ')' { Nothing } |
 'NotIn' '(' ')' { Nothing } |
 'Add'  '(' ')' { Nothing } |
+'Pow'  '(' ')' { Nothing } |
+'Mod'  '(' ')' { Nothing } |
 'Div'  '(' ')' { Nothing } |
 'USub' '(' ')' { Nothing } |
 'Sub'  '(' ')' { Nothing } |
@@ -961,6 +967,17 @@ exp_lambda:
     $9
 }
 
+exp_starred:
+'Starred'
+'('
+    'value' '=' exp ','
+    'ctx' '=' ctx ','
+    loc
+')'
+{
+    $5
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -972,6 +989,7 @@ exp_str       { $1 } |
 exp_int       { $1 } |
 exp_none      { $1 } |
 exp_yield     { $1 } |
+exp_starred   { $1 } |
 exp_dict      { $1 } |
 exp_var       { $1 } |
 exp_bool      { $1 } |
@@ -1521,6 +1539,8 @@ kw_default: exp { Nothing } | none { Nothing }
 
 vararg: 'vararg' '=' 'arg' '(' 'arg' '=' tokenID ',' loc ')' ',' { Nothing }
 
+kwarg: 'kwarg' '=' 'arg' '(' 'arg' '=' tokenID ',' loc ')' ',' { Nothing } 
+
 -- **********
 -- *        *
 -- * params *
@@ -1534,6 +1554,7 @@ params:
     optional(vararg)
     'kwonlyargs' '=' possibly_empty_listof(param) ','
     'kw_defaults' '=' possibly_empty_listof(kw_default) ','
+    optional(kwarg)
     'defaults' '=' defaults
 ')'
 {

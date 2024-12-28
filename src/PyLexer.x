@@ -86,6 +86,8 @@ import Location
 @KW_NOTEQ           = NotEq
 @KW_NOTIN           = NotIn
 @KW_ADD             = Add
+@KW_POW             = Pow
+@KW_MOD             = Mod
 @KW_DIV             = Div
 @KW_SUB             = Sub
 @KW_USUB            = USub
@@ -108,6 +110,7 @@ import Location
 @KW_TARGET          = target
 @KW_TARGETS         = targets
 @KW_DEFAULTS        = defaults
+@KW_KWARG           = kwarg
 @KW_COMPREHENSION   = comprehension
 @KW_GENERATORS      = generators
 @KW_KW_DEFAULTS     = kw_defaults
@@ -116,6 +119,7 @@ import Location
 @KW_ARGS            = args
 @KW_ATTR            = attr
 @KW_ATTR2           = Attribute
+@KW_STARRED         = Starred
 @KW_SUBSCRIPT       = Subscript
 @KW_SLICE           = slice
 @KW_LOWER           = lower
@@ -322,6 +326,8 @@ tokens :-
 @KW_NOTEQ           { lex' AlexRawToken_NOTEQ           }
 @KW_NOTIN           { lex' AlexRawToken_NOTIN           }
 @KW_ADD             { lex' AlexRawToken_ADD             }
+@KW_POW             { lex' AlexRawToken_POW             }
+@KW_MOD             { lex' AlexRawToken_MOD             }
 @KW_DIV             { lex' AlexRawToken_DIV             }
 @KW_SUB             { lex' AlexRawToken_SUB             }
 @KW_USUB            { lex' AlexRawToken_USUB            }
@@ -346,6 +352,7 @@ tokens :-
 @KW_COMPREHENSION   { lex' AlexRawToken_COMPREHENSION   }
 @KW_GENERATORS      { lex' AlexRawToken_GENERATORS      }
 @KW_DEFAULTS        { lex' AlexRawToken_DEFAULTS        }
+@KW_KWARG           { lex' AlexRawToken_KWARG           }
 @KW_KW_DEFAULTS     { lex' AlexRawToken_KW_DEFAULTS     }
 @KW_ELINENO         { lex' AlexRawToken_ELINE           }
 @KW_TRUE            { lex' AlexRawToken_TRUE            }
@@ -353,6 +360,7 @@ tokens :-
 @KW_ARGS            { lex' AlexRawToken_ARGS            }
 @KW_ATTR            { lex' AlexRawToken_ATTR            }
 @KW_ATTR2           { lex' AlexRawToken_ATTR2           }
+@KW_STARRED         { lex' AlexRawToken_STARRED         }
 @KW_SUBSCRIPT       { lex' AlexRawToken_SUBSCRIPT       }
 @KW_SLICE           { lex' AlexRawToken_SLICE           }
 @KW_ELLIPSIS        { lex' AlexRawToken_ELLIPSIS        }
@@ -579,6 +587,8 @@ data AlexRawToken
      | AlexRawToken_NOTEQ           -- ^ Reserved Keyword
      | AlexRawToken_NOTIN           -- ^ Reserved Keyword
      | AlexRawToken_ADD             -- ^ Reserved Keyword
+     | AlexRawToken_POW             -- ^ Reserved Keyword
+     | AlexRawToken_MOD             -- ^ Reserved Keyword
      | AlexRawToken_DIV             -- ^ Reserved Keyword
      | AlexRawToken_SUB             -- ^ Reserved Keyword
      | AlexRawToken_USUB            -- ^ Reserved Keyword
@@ -600,6 +610,7 @@ data AlexRawToken
      | AlexRawToken_TARGET          -- ^ Reserved Keyword
      | AlexRawToken_TARGETS         -- ^ Reserved Keyword
      | AlexRawToken_DEFAULTS        -- ^ Reserved Keyword
+     | AlexRawToken_KWARG           -- ^ Reserved Keyword
      | AlexRawToken_COMPREHENSION   -- ^ Reserved Keyword
      | AlexRawToken_GENERATORS      -- ^ Reserved Keyword
      | AlexRawToken_KW_DEFAULTS     -- ^ Reserved Keyword
@@ -608,6 +619,7 @@ data AlexRawToken
      | AlexRawToken_FUNC            -- ^ Reserved Keyword
      | AlexRawToken_ATTR            -- ^ Reserved Keyword
      | AlexRawToken_ATTR2           -- ^ Reserved Keyword
+     | AlexRawToken_STARRED         -- ^ Reserved Keyword
      | AlexRawToken_SUBSCRIPT       -- ^ Reserved Keyword
      | AlexRawToken_SLICE           -- ^ Reserved Keyword
      | AlexRawToken_ELLIPSIS        -- ^ Reserved Keyword
