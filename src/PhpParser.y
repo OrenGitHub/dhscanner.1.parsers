@@ -113,6 +113,7 @@ import Data.Map ( empty, fromList )
 'Stmt_For'              { AlexTokenTag AlexRawToken_STMT_FOR        _ }
 'Stmt_Nop'              { AlexTokenTag AlexRawToken_STMT_NOP        _ }
 'Stmt_Namespace'        { AlexTokenTag AlexRawToken_STMT_NAMESPACE  _ }
+'Stmt_TraitUse'         { AlexTokenTag AlexRawToken_STMT_TRAITUSE   _ }
 'Stmt_Switch'           { AlexTokenTag AlexRawToken_STMT_SWITCH     _ }
 'Stmt_Case'             { AlexTokenTag AlexRawToken_STMT_CASE       _ }
 'Stmt_Foreach'          { AlexTokenTag AlexRawToken_STMT_FOREACH    _ }
@@ -527,6 +528,19 @@ stmt_namespace:
     }
 }
 
+stmt_traituse:
+'Stmt_TraitUse' loc
+'('
+    ID ':' possibly_empty_arrayof(numbered_exp) 
+    ID ':' possibly_empty_arrayof(exp) 
+')'
+{
+    case $6 of {
+        [] -> Ast.StmtContinue $ Ast.StmtContinueContent $2;
+        (head:_) -> Ast.StmtExp head
+    }
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -543,10 +557,13 @@ stmt_foreach   { $1 } |
 stmt_exp       { $1 } |
 stmt_echo      { $1 } |
 stmt_unset     { $1 } |
+stmt_traituse  { $1 } |
 stmt_catch     { $1 } |
 stmt_global    { $1 } |
 stmt_switch    { $1 } |
 stmt_class     { $1 } |
+stmt_method    { $1 } |
+stmt_data_member { $1 } |
 stmt_interface { $1 } |
 stmt_namespace { $1 } |
 stmt_cont      { $1 } |
@@ -602,10 +619,6 @@ identifier: 'Identifier' loc '(' 'name' ':' tokenID ')'
     }
 }
 
-numbered_class_attr: INT ':' class_attr { $3 }
-
-class_attr: method { $1 } | data_member { $1 }
-
 dec_var:
 tokenID loc
 '('
@@ -628,7 +641,7 @@ flags:
 flag { Nothing } |
 flag '|' flags { Nothing }
 
-data_member:
+stmt_data_member:
 'Stmt_Property' loc
 '('
     ID ':' 'array' '(' ')'
@@ -683,7 +696,7 @@ numbered_param: INT ':' param { $3 }
 
 params: 'array' '(' ')' { [] } | 'array' '(' listof(numbered_param) ')' { $3 }
 
-method:
+stmt_method:
 'Stmt_ClassMethod' loc
 '('
     ID ':' 'array' '(' ')'
@@ -713,7 +726,7 @@ stmt_interface:
     tokenID ':' 'array' '(' ')'
     'name' ':' identifier
     ID ':' 'array' '(' ')'
-    'stmts' ':' 'array' '(' listof(numbered_class_attr) ')' 
+    'stmts' ':' stmts
 ')'
 {
     Ast.StmtClass $ Ast.StmtClassContent
@@ -721,7 +734,7 @@ stmt_interface:
         Ast.stmtClassName = Token.ClassName $11,
         Ast.stmtClassSupers = [],
         Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
-        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $11) $21
+        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $11) $19
     }
 } 
 
@@ -743,7 +756,7 @@ stmt_class:
     'name' ':' identifier
     ID ':' super
     ID ':' possibly_empty_arrayof(numbered_implements)
-    'stmts' ':' 'array' '(' listof(numbered_class_attr) ')' 
+    'stmts' ':' stmts 
 ')'
 {
     Ast.StmtClass $ Ast.StmtClassContent
@@ -751,7 +764,7 @@ stmt_class:
         Ast.stmtClassName = Token.ClassName $14,
         Ast.stmtClassSupers = [],
         Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
-        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $14) $25
+        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $14) $23
     }
 } 
 
@@ -823,6 +836,14 @@ stmt_if:
 -- **************
 var_simple:
 'Expr_Variable' loc '(' 'name' ':' tokenID ')'
+{
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+    {
+        Token.content = $6,
+        Token.location = $2
+    }
+} |
+'Name' loc '(' 'name' ':' tokenID ')'
 {
     Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
     {
@@ -1129,7 +1150,7 @@ exp_ternary:
 'Expr_Ternary' loc
 '('
     'cond' ':' exp
-    ID ':' exp
+    ID ':' ornull(exp)
     ID ':' exp
 ')'
 {
@@ -1397,7 +1418,6 @@ exp_print:
 {
     $6
 }
-
 
 -- *******
 -- *     *
@@ -1899,6 +1919,9 @@ enumerateParams (i,(p:ps)) =
         tail = (enumerateParams (i+1,ps))
     in
         head:tail
+
+dummyLoc :: Location
+dummyLoc = Location "" 0 0 0 0
 
 -- *************
 -- *           *

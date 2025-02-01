@@ -98,6 +98,7 @@ import Location
 @KW_STMT_FOR        = "Stmt_For"
 @KW_STMT_NOP        = "Stmt_Nop"
 @KW_STMT_NAMESPACE  = "Stmt_Namespace"
+@KW_STMT_TRAITUSE   = "Stmt_TraitUse"
 @KW_STMT_SWITCH     = "Stmt_Switch"
 @KW_STMT_CASE       = "Stmt_Case"
 @KW_STMT_FOREACH    = "Stmt_Foreach"
@@ -284,6 +285,7 @@ tokens :-
 @KW_STMT_FOR        { lex' AlexRawToken_STMT_FOR        }
 @KW_STMT_NOP        { lex' AlexRawToken_STMT_NOP        }
 @KW_STMT_NAMESPACE  { lex' AlexRawToken_STMT_NAMESPACE  }
+@KW_STMT_TRAITUSE   { lex' AlexRawToken_STMT_TRAITUSE   }
 @KW_STMT_SWITCH     { lex' AlexRawToken_STMT_SWITCH     }
 @KW_STMT_CASE       { lex' AlexRawToken_STMT_CASE       }
 @KW_STMT_FOREACH    { lex' AlexRawToken_STMT_FOREACH    }
@@ -480,6 +482,7 @@ data AlexRawToken
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
      | AlexRawToken_STMT_NOP        -- ^ Reserved Keyword
      | AlexRawToken_STMT_NAMESPACE  -- ^ Reserved Keyword
+     | AlexRawToken_STMT_TRAITUSE   -- ^ Reserved Keyword
      | AlexRawToken_STMT_SWITCH     -- ^ Reserved Keyword
      | AlexRawToken_STMT_CASE       -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOREACH    -- ^ Reserved Keyword
