@@ -75,6 +75,7 @@ import Location
 @KW_EXPR            = "expr"
 @KW_MAME            = "Name"
 @KW_NULL            = "null"
+@KW_ALIAS           = "alias"
 @KW_TYPE            = "type"
 @KW_LEFT            = "left"
 @KW_LOOP            = "loop"
@@ -96,6 +97,7 @@ import Location
 @KW_USE_ITEM        = "UseItem"
 @KW_STMT_FOR        = "Stmt_For"
 @KW_STMT_NOP        = "Stmt_Nop"
+@KW_STMT_NAMESPACE  = "Stmt_Namespace"
 @KW_STMT_SWITCH     = "Stmt_Switch"
 @KW_STMT_CASE       = "Stmt_Case"
 @KW_STMT_FOREACH    = "Stmt_Foreach"
@@ -259,6 +261,7 @@ tokens :-
 @KW_EXPR            { lex' AlexRawToken_EXPR            }
 @KW_MAME            { lex' AlexRawToken_MAME            }
 @KW_NULL            { lex' AlexRawToken_NULL            }
+@KW_ALIAS           { lex' AlexRawToken_ALIAS           }
 @KW_TYPE            { lex' AlexRawToken_TYPE            }
 @KW_LEFT            { lex' AlexRawToken_LEFT            }
 @KW_LOOP            { lex' AlexRawToken_LOOP            }
@@ -280,6 +283,7 @@ tokens :-
 @KW_USE_ITEM        { lex' AlexRawToken_USE_ITEM        }
 @KW_STMT_FOR        { lex' AlexRawToken_STMT_FOR        }
 @KW_STMT_NOP        { lex' AlexRawToken_STMT_NOP        }
+@KW_STMT_NAMESPACE  { lex' AlexRawToken_STMT_NAMESPACE  }
 @KW_STMT_SWITCH     { lex' AlexRawToken_STMT_SWITCH     }
 @KW_STMT_CASE       { lex' AlexRawToken_STMT_CASE       }
 @KW_STMT_FOREACH    { lex' AlexRawToken_STMT_FOREACH    }
@@ -453,6 +457,7 @@ data AlexRawToken
      | AlexRawToken_EXPR            -- ^ Reserved Keyword
      | AlexRawToken_MAME            -- ^ Reserved Keyword
      | AlexRawToken_NULL            -- ^ Reserved Keyword
+     | AlexRawToken_ALIAS           -- ^ Reserved Keyword
      | AlexRawToken_TYPE            -- ^ Reserved Keyword
      | AlexRawToken_LEFT            -- ^ Reserved Keyword
      | AlexRawToken_LOOP            -- ^ Reserved Keyword
@@ -474,6 +479,7 @@ data AlexRawToken
      | AlexRawToken_USE_ITEM        -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
      | AlexRawToken_STMT_NOP        -- ^ Reserved Keyword
+     | AlexRawToken_STMT_NAMESPACE  -- ^ Reserved Keyword
      | AlexRawToken_STMT_SWITCH     -- ^ Reserved Keyword
      | AlexRawToken_STMT_CASE       -- ^ Reserved Keyword
      | AlexRawToken_STMT_FOREACH    -- ^ Reserved Keyword

@@ -90,6 +90,7 @@ import Data.Map ( empty, fromList )
 'expr'                  { AlexTokenTag AlexRawToken_EXPR            _ }
 'Name'                  { AlexTokenTag AlexRawToken_MAME            _ }
 'null'                  { AlexTokenTag AlexRawToken_NULL            _ }
+'alias'                 { AlexTokenTag AlexRawToken_ALIAS           _ }
 'type'                  { AlexTokenTag AlexRawToken_TYPE            _ }
 'left'                  { AlexTokenTag AlexRawToken_LEFT            _ }
 'loop'                  { AlexTokenTag AlexRawToken_LOOP            _ }
@@ -111,6 +112,7 @@ import Data.Map ( empty, fromList )
 'Stmt_TryCatch'         { AlexTokenTag AlexRawToken_STMT_TRY_CATCH  _ }
 'Stmt_For'              { AlexTokenTag AlexRawToken_STMT_FOR        _ }
 'Stmt_Nop'              { AlexTokenTag AlexRawToken_STMT_NOP        _ }
+'Stmt_Namespace'        { AlexTokenTag AlexRawToken_STMT_NAMESPACE  _ }
 'Stmt_Switch'           { AlexTokenTag AlexRawToken_STMT_SWITCH     _ }
 'Stmt_Case'             { AlexTokenTag AlexRawToken_STMT_CASE       _ }
 'Stmt_Foreach'          { AlexTokenTag AlexRawToken_STMT_FOREACH    _ }
@@ -504,6 +506,26 @@ stmt_static:
     }
 }
 
+-- ******************
+-- *                *
+-- * stmt_namespace *
+-- *                *
+-- ******************
+stmt_namespace:
+'Stmt_Namespace' loc
+'('
+    'name' ':' 'Name' loc '(' 'name' ':' tokenID ')'
+    'stmts' ':' stmts 
+')'
+{
+    Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool True $2,
+        Ast.stmtIfBody = $15,
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $2
+    }
+}
 
 -- ********
 -- *      *
@@ -526,6 +548,7 @@ stmt_global    { $1 } |
 stmt_switch    { $1 } |
 stmt_class     { $1 } |
 stmt_interface { $1 } |
+stmt_namespace { $1 } |
 stmt_cont      { $1 } |
 stmt_break     { $1 } |
 stmt_static    { $1 } |
@@ -537,8 +560,11 @@ importee: tokenID { [$1] } | tokenID '\\' importee { $1:$3 }
 
 name: 'Name' loc '(' 'name' ':' importee ')' { $6 }
 
+alias:
+'alias' ':' tokenID { Nothing }
+
 use_item:
-'UseItem' loc '(' 'type' ':' stmt_use_type 'name' ':' name ID ':' ID ')' { $9 }
+'UseItem' loc '(' 'type' ':' stmt_use_type 'name' ':' name alias ')' { $9 }
 
 numbered_use_item: INT ':' use_item { $3 }
 
@@ -705,13 +731,17 @@ implements:
 numbered_implements:
 INT ':' implements { Nothing }
 
+super:
+tokenID { Nothing } |
+'Name' loc '(' 'name' ':' tokenID ')' { Nothing }
+
 stmt_class:
 'Stmt_Class' loc
 '('
     tokenID ':' 'array' '(' ')'
     ID ':' INT
     'name' ':' identifier
-    ID ':' tokenID
+    ID ':' super
     ID ':' possibly_empty_arrayof(numbered_implements)
     'stmts' ':' 'array' '(' listof(numbered_class_attr) ')' 
 ')'
@@ -1688,7 +1718,7 @@ exp_func_call:
 exp_method_call:
 'Expr_MethodCall' loc
 '('
-    'var' ':' var
+    'var' ':' exp
     'name' ':' 'Identifier' loc '(' 'name' ':' tokenID ')'
     'args' ':' args
 ')' 
@@ -1697,7 +1727,7 @@ exp_method_call:
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
         {
-            Ast.varFieldLhs = Ast.ExpVar (Ast.ExpVarContent $6),
+            Ast.varFieldLhs = $6,
             Ast.varFieldName = Token.FieldName $ Token.Named { Token.content = $14, Token.location = $10 },
             Ast.varFieldLocation = Location {
                 Location.filename = getFilename $1,
