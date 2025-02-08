@@ -96,6 +96,7 @@ import Data.Map ( empty, fromList )
 'loop'                  { AlexTokenTag AlexRawToken_LOOP            _ }
 'init'                  { AlexTokenTag AlexRawToken_INIT            _ }
 'cond'                  { AlexTokenTag AlexRawToken_COND            _ }
+'Const'                 { AlexTokenTag AlexRawToken_CONST           _ }
 'exprs'                 { AlexTokenTag AlexRawToken_EXPRS           _ }
 'value'                 { AlexTokenTag AlexRawToken_VALUE           _ }
 'right'                 { AlexTokenTag AlexRawToken_RIGHT           _ }
@@ -154,6 +155,7 @@ import Data.Map ( empty, fromList )
 'Stmt_ClassMethod'      { AlexTokenTag AlexRawToken_STMT_CLASSMETH  _ }
 'returnType'            { AlexTokenTag AlexRawToken_RETURN_TYPE     _ }
 'Stmt_Class'            { AlexTokenTag AlexRawToken_STMT_CLASS      _ }
+'Stmt_ClassConst'       { AlexTokenTag AlexRawToken_STMT_CLASS_CONST _ }
 'Stmt_Continue'         { AlexTokenTag AlexRawToken_STMT_CONT       _ }
 'Stmt_Break'            { AlexTokenTag AlexRawToken_STMT_BREAK      _ }
 'Stmt_Static'           { AlexTokenTag AlexRawToken_STMT_STATIC     _ }
@@ -587,6 +589,38 @@ stmt_trait:
     }
 }
 
+stmt_class_const:
+'Stmt_ClassConst' loc
+'('
+    ID ':' possibly_empty_arrayof(exp)
+    ID ':' INT
+    'type' ':' type
+    ID ':' stmts 
+')'
+{
+    Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool True $2,
+        Ast.stmtIfBody = $15,
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $2
+    }
+}
+
+stmt_dec_const:
+'Const' loc
+'('
+    'name' ':' identifier
+    'value' ':' exp
+')'
+{
+    Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $6,
+        Ast.stmtAssignRhs = $9
+    }
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -614,6 +648,8 @@ stmt_data_member { $1 } |
 stmt_interface { $1 } |
 stmt_namespace { $1 } |
 stmt_cont      { $1 } |
+stmt_dec_const { $1 } |
+stmt_class_const { $1 } |
 stmt_break     { $1 } |
 stmt_static    { $1 } |
 stmt_trycatch  { $1 } |

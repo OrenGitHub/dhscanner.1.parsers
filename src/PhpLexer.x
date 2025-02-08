@@ -81,6 +81,7 @@ import Location
 @KW_LOOP            = "loop"
 @KW_INIT            = "init"
 @KW_COND            = "cond"
+@KW_CONST           = "Const"
 @KW_EXPRS           = "exprs"
 @KW_VALUE           = "value"
 @KW_RIGHT           = "right"
@@ -149,6 +150,7 @@ import Location
 @KW_RETURN_TYPE     = "returnType"
 @KW_STMT_RETURN     = "Stmt_Return"
 @KW_STMT_CLASS      = "Stmt_Class"
+@KW_STMT_CLASS_CONST = "Stmt_ClassConst"
 @KW_STMT_INTERFACE  = "Stmt_Interface"
 @KW_STMT_CONT       = "Stmt_Continue"
 @KW_STMT_BREAK      = "Stmt_Break"
@@ -273,6 +275,7 @@ tokens :-
 @KW_LOOP            { lex' AlexRawToken_LOOP            }
 @KW_INIT            { lex' AlexRawToken_INIT            }
 @KW_COND            { lex' AlexRawToken_COND            }
+@KW_CONST           { lex' AlexRawToken_CONST           }
 @KW_EXPRS           { lex' AlexRawToken_EXPRS           }
 @KW_VALUE           { lex' AlexRawToken_VALUE           }
 @KW_RIGHT           { lex' AlexRawToken_RIGHT           }
@@ -341,6 +344,7 @@ tokens :-
 @KW_RETURN_TYPE     { lex' AlexRawToken_RETURN_TYPE     }
 @KW_STMT_RETURN     { lex' AlexRawToken_STMT_RETURN     }
 @KW_STMT_CLASS      { lex' AlexRawToken_STMT_CLASS      }
+@KW_STMT_CLASS_CONST { lex' AlexRawToken_STMT_CLASS_CONST }
 @KW_STMT_INTERFACE  { lex' AlexRawToken_STMT_INTERFACE  }
 @KW_STMT_CONT       { lex' AlexRawToken_STMT_CONT       }
 @KW_STMT_BREAK      { lex' AlexRawToken_STMT_BREAK      }
@@ -475,6 +479,7 @@ data AlexRawToken
      | AlexRawToken_LOOP            -- ^ Reserved Keyword
      | AlexRawToken_INIT            -- ^ Reserved Keyword
      | AlexRawToken_COND            -- ^ Reserved Keyword
+     | AlexRawToken_CONST           -- ^ Reserved Keyword
      | AlexRawToken_EXPRS           -- ^ Reserved Keyword
      | AlexRawToken_VALUE           -- ^ Reserved Keyword
      | AlexRawToken_RIGHT           -- ^ Reserved Keyword
@@ -544,6 +549,7 @@ data AlexRawToken
      | AlexRawToken_STMT_RETURN     -- ^ Reserved Keyword
      | AlexRawToken_RETURN_TYPE     -- ^ Reserved Keyword
      | AlexRawToken_STMT_CLASS      -- ^ Reserved Keyword
+     | AlexRawToken_STMT_CLASS_CONST -- ^ Reserved Keyword
      | AlexRawToken_STMT_INTERFACE  -- ^ Reserved Keyword
      | AlexRawToken_STMT_CONT       -- ^ Reserved Keyword
      | AlexRawToken_STMT_BREAK      -- ^ Reserved Keyword
