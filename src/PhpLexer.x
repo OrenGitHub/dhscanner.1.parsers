@@ -115,6 +115,7 @@ import Location
 @KW_EXPR_LAMBDA     = "Expr_Closure"
 @KW_CLOSURE_USE     = "ClosureUse"
 @KW_ERROR_SUPPRESS  = "Expr_ErrorSuppress"
+@KW_FULLY_QUALIFIED = "Name_FullyQualified"
 @KW_EXPR_CAST       = "Expr_Cast_Double"
 @KW_EXPR_CAST2      = "Expr_Cast_Int"
 @KW_EXPR_CAST3      = "Expr_Cast_String"
@@ -302,6 +303,7 @@ tokens :-
 @KW_EXPR_LAMBDA     { lex' AlexRawToken_EXPR_LAMBDA     }
 @KW_CLOSURE_USE     { lex' AlexRawToken_CLOSURE_USE     }
 @KW_ERROR_SUPPRESS  { lex' AlexRawToken_ERROR_SUPPRESS  }
+@KW_FULLY_QUALIFIED { lex' AlexRawToken_FULLY_QUALIFIED }
 @KW_EXPR_CAST       { lex' AlexRawToken_EXPR_CAST       }
 @KW_EXPR_CAST4      { lex' AlexRawToken_EXPR_CAST4      }
 @KW_EXPR_CAST3      { lex' AlexRawToken_EXPR_CAST3      }
@@ -499,6 +501,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_LAMBDA     -- ^ Reserved Keyword
      | AlexRawToken_CLOSURE_USE     -- ^ Reserved Keyword
      | AlexRawToken_ERROR_SUPPRESS  -- ^ Reserved Keyword
+     | AlexRawToken_FULLY_QUALIFIED -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST4      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST3      -- ^ Reserved Keyword

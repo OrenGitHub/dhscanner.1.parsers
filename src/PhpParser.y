@@ -121,6 +121,7 @@ import Data.Map ( empty, fromList )
 'Stmt_Unset'            { AlexTokenTag AlexRawToken_STMT_UNSET      _ }
 'Expr_Closure'          { AlexTokenTag AlexRawToken_EXPR_LAMBDA     _ }
 'Expr_ErrorSuppress'    { AlexTokenTag AlexRawToken_ERROR_SUPPRESS  _ }
+'Name_FullyQualified'   { AlexTokenTag AlexRawToken_FULLY_QUALIFIED _ }
 'ClosureUse'            { AlexTokenTag AlexRawToken_CLOSURE_USE     _ }
 'Expr_Instanceof'       { AlexTokenTag AlexRawToken_EXPR_INSTOF     _ }
 'Expr_Cast_Double'      { AlexTokenTag AlexRawToken_EXPR_CAST       _ }
@@ -307,7 +308,7 @@ stmt_cont:
 case:
 'Stmt_Case' loc
 '('
-    'cond' ':' exp
+    'cond' ':' ornull(exp)
     'stmts' ':' stmts
 ')'
 {
@@ -437,7 +438,28 @@ stmt_do:
 }
 
 
-catch_type: 'Name' loc '(' 'name' ':' tokenID ')' { Nothing }
+catch_type_1:
+'Name' loc
+'('
+    'name' ':' tokenID
+')'
+{
+    Nothing
+}
+
+catch_type_2:
+'Name_FullyQualified' loc
+'('
+    'name' ':' tokenID
+')'
+{
+    Nothing
+}
+
+
+catch_type:
+catch_type_1 { $1 } |
+catch_type_2 { $1 }
 
 numbered_catch_type: INT ':' catch_type { Nothing }
 
@@ -578,7 +600,7 @@ importee: tokenID { [$1] } | tokenID '\\' importee { $1:$3 }
 name: 'Name' loc '(' 'name' ':' importee ')' { $6 }
 
 alias:
-'alias' ':' tokenID { Nothing }
+'alias' ':' type { Nothing }
 
 use_item:
 'UseItem' loc '(' 'type' ':' stmt_use_type 'name' ':' name alias ')' { $9 }
@@ -850,7 +872,18 @@ var_simple:
         Token.content = $6,
         Token.location = $2
     }
+} |
+'Name_FullyQualified' loc '(' 'name' ':' tokenID ')'
+{
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+    {
+        Token.content = $6,
+        Token.location = $2
+    }
 }
+
+
+
 
 -- **************
 -- *            *
@@ -928,24 +961,17 @@ var_field3:
 var_field4:
 'Expr_ClassConstFetch' loc
 '('
-    ID ':' 'Name' loc '(' 'name' ':' tokenID ')'
+    ID ':' exp
     'name' ':' identifier 
 ')'
 {
     Ast.VarField $ Ast.VarFieldContent
     {
-        Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
-        {
-            Token.content = $11,
-            Token.location = $7
-        },
-        Ast.varFieldName = Token.FieldName $15,
+        Ast.varFieldLhs = $6,
+        Ast.varFieldName = Token.FieldName $9,
         Ast.varFieldLocation = $2
     }
 }
-
-
-
 
 -- *************
 -- *           *
@@ -1680,18 +1706,14 @@ operator loc
 exp_new:
 'Expr_New' loc
 '('
-    ID ':' 'Name' loc '(' 'name' ':' tokenID ')'
+    ID ':' exp
     'args' ':' args
 ')' 
 {
     Ast.ExpCall $ Ast.ExpCallContent
     {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
-        {
-            Token.content = $11,
-            Token.location = $2
-        },
-        Ast.args = [],
+        Ast.callee = $6,
+        Ast.args = $9,
         Ast.expCallLocation = $2
     }
 }
@@ -1715,17 +1737,14 @@ exp_static_method_call { $1 }
 exp_func_call:
 'Expr_FuncCall' loc
 '('
-    'name' ':' 'Name' loc '(' 'name' ':' tokenID ')'
+    'name' ':' exp
     'args' ':' args
 ')' 
 {
     Ast.ExpCallContent
     {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent
-        {
-            Ast.varName = Token.VarName $ Token.Named { Token.content = $11, Token.location = $2 }
-        },
-        Ast.args = $15,
+        Ast.callee = $6,
+        Ast.args = $9,
         Ast.expCallLocation = $2
     }
 }
@@ -1770,7 +1789,7 @@ exp_method_call:
 exp_static_method_call:
 'Expr_StaticCall' loc
 '('
-    ID ':' 'Name' loc '(' 'name' ':' tokenID ')'
+    ID ':' exp
     'name' ':' identifier
     'args' ':' args
 ')'
@@ -1779,14 +1798,11 @@ exp_static_method_call:
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
         {
-            Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent
-            {
-                Ast.varName = Token.VarName $ Token.Named { Token.content = $11, Token.location = $7 }
-            },
-            Ast.varFieldName = Token.FieldName $15,
+            Ast.varFieldLhs = $6,
+            Ast.varFieldName = Token.FieldName $9,
             Ast.varFieldLocation = $2
         },
-        Ast.args = $18,
+        Ast.args = $12,
         Ast.expCallLocation = $2
     }
 }
@@ -1812,7 +1828,16 @@ numbered_arg: INT ':' arg { $3 }
 -- * arg *
 -- *     *
 -- *******
-arg: 'Arg' loc '(' 'name' ':' tokenID 'value' ':' exp ID ':' ID ID ':' ID ')' { $9 }
+arg: 'Arg' loc
+'('
+    'name' ':' tokenID
+    'value' ':' exp
+    ID ':' ID
+    ID ':' ID
+')'
+{
+    $9
+}
 
 stmt_for_loop:
 exp { $1 } |
