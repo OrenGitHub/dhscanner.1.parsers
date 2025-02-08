@@ -113,6 +113,7 @@ import Data.Map ( empty, fromList )
 'Stmt_For'              { AlexTokenTag AlexRawToken_STMT_FOR        _ }
 'Stmt_Nop'              { AlexTokenTag AlexRawToken_STMT_NOP        _ }
 'Stmt_Namespace'        { AlexTokenTag AlexRawToken_STMT_NAMESPACE  _ }
+'Stmt_Trait'            { AlexTokenTag AlexRawToken_STMT_TRAIT      _ }
 'Stmt_TraitUse'         { AlexTokenTag AlexRawToken_STMT_TRAITUSE   _ }
 'Stmt_Switch'           { AlexTokenTag AlexRawToken_STMT_SWITCH     _ }
 'Stmt_Case'             { AlexTokenTag AlexRawToken_STMT_CASE       _ }
@@ -127,11 +128,13 @@ import Data.Map ( empty, fromList )
 'Expr_Cast_Double'      { AlexTokenTag AlexRawToken_EXPR_CAST       _ }
 'Expr_Cast_Int'         { AlexTokenTag AlexRawToken_EXPR_CAST2      _ }
 'Expr_Cast_Bool'        { AlexTokenTag AlexRawToken_EXPR_CAST4      _ }
+'Expr_Cast_Object'      { AlexTokenTag AlexRawToken_EXPR_CAST5      _ }
 'Expr_Cast_String'      { AlexTokenTag AlexRawToken_EXPR_CAST3      _ }
 'Expr_New'              { AlexTokenTag AlexRawToken_EXPR_NEW        _ }
 'Expr_Exit'             { AlexTokenTag AlexRawToken_EXPR_EXIT       _ }
 'Expr_Include'          { AlexTokenTag AlexRawToken_EXPR_IMPORT     _ }
 'Expr_Ternary'          { AlexTokenTag AlexRawToken_EXPR_TERNARY    _ }
+'Expr_Throw'            { AlexTokenTag AlexRawToken_EXPR_THROW      _ }
 'Expr_Variable'         { AlexTokenTag AlexRawToken_EXPR_VAR        _ }
 'Expr_FuncCall'         { AlexTokenTag AlexRawToken_EXPR_CALL       _ }
 'Expr_MethodCall'       { AlexTokenTag AlexRawToken_EXPR_MCALL      _ }
@@ -141,6 +144,7 @@ import Data.Map ( empty, fromList )
 'Scalar_Int'            { AlexTokenTag AlexRawToken_SCALAR_INT      _ }
 'Scalar_Float'          { AlexTokenTag AlexRawToken_SCALAR_FLOAT    _ }
 'Scalar_InterpolatedString' { AlexTokenTag AlexRawToken_SCALAR_FSTRING _ }
+'Scalar_MagicConst_Class' { AlexTokenTag AlexRawToken_SCALAR_CLASS  _ }
 'Scalar_MagicConst_File' { AlexTokenTag AlexRawToken_SCALAR_FILE    _ }
 'Scalar_MagicConst_Dir' { AlexTokenTag AlexRawToken_SCALAR_DIR      _ }
 'Identifier'            { AlexTokenTag AlexRawToken_IDENTIFIER      _ }
@@ -490,13 +494,16 @@ static_vardec:
 'StaticVar' loc
 '('
     'var' ':' var
-    ID ':' exp
+    ID ':' ornull(exp)
 ')'
 {
     Ast.StmtAssign $ Ast.StmtAssignContent
     {
         Ast.stmtAssignLhs = $6,
-        Ast.stmtAssignRhs = $9
+        Ast.stmtAssignRhs = case $9 of {
+            Nothing -> Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 0 $2;
+            Just exp -> exp
+        }
     }
 }
 
@@ -563,6 +570,23 @@ stmt_traituse:
     }
 }
 
+stmt_trait:
+'Stmt_Trait' loc
+'('
+    ID ':' possibly_empty_arrayof(exp) 
+    'name' ':' type
+    'stmts' ':' stmts 
+')'
+{
+    Ast.StmtClass $ Ast.StmtClassContent
+    {
+        Ast.stmtClassName = Token.ClassName $9,
+        Ast.stmtClassSupers = [],
+        Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
+        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $9) $12
+    }
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -579,6 +603,7 @@ stmt_foreach   { $1 } |
 stmt_exp       { $1 } |
 stmt_echo      { $1 } |
 stmt_unset     { $1 } |
+stmt_trait     { $1 } |
 stmt_traituse  { $1 } |
 stmt_catch     { $1 } |
 stmt_global    { $1 } |
@@ -682,9 +707,10 @@ stmt_data_member:
 }
 
 type:
-tokenID { Nothing } |
-identifier { Nothing } |
-'Name' loc '(' 'name' ':' ID ')' { Nothing }
+tokenID { Token.Named $1 dummyLoc } |
+identifier { $1 } |
+'Name_FullyQualified' loc '(' 'name' ':' tokenID ')' { Token.Named $6 $2 } |
+'Name' loc '(' 'name' ':' ID ')' { Token.Named (tokIDValue $6) $2 }
 
 param_default_value:
 tokenID { Nothing } |
@@ -766,17 +792,13 @@ implements:
 numbered_implements:
 INT ':' implements { Nothing }
 
-super:
-tokenID { Nothing } |
-'Name' loc '(' 'name' ':' tokenID ')' { Nothing }
-
 stmt_class:
 'Stmt_Class' loc
 '('
     tokenID ':' 'array' '(' ')'
     ID ':' INT
     'name' ':' identifier
-    ID ':' super
+    ID ':' type
     ID ':' possibly_empty_arrayof(numbered_implements)
     'stmts' ':' stmts 
 ')'
@@ -1244,11 +1266,27 @@ exp_cast4:
 -- * exp_cast *
 -- *          *
 -- ************
+exp_cast5:
+'Expr_Cast_Object' loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+}
+
+
+-- ************
+-- *          *
+-- * exp_cast *
+-- *          *
+-- ************
 exp_cast:
 exp_cast1 { $1 } |
 exp_cast2 { $1 } |
 exp_cast3 { $1 } |
-exp_cast4 { $1 }
+exp_cast4 { $1 } |
+exp_cast5 { $1 }
 
 -- *************
 -- *           *
@@ -1445,6 +1483,32 @@ exp_print:
     $6
 }
 
+-- *************
+-- *           *
+-- * exp_throw *
+-- *           *
+-- *************
+exp_throw:
+'Expr_Throw' loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+}
+
+exp_kwclass:
+'Scalar_MagicConst_Class' loc
+'('
+')'
+{
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+    {
+        Token.content = "class",
+        Token.location = $2
+    } 
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1462,6 +1526,7 @@ exp_cast    { $1 } |
 exp_call    { Ast.ExpCall $1 } |
 exp_binop   { $1 } |
 exp_print   { $1 } |
+exp_throw   { $1 } |
 exp_dir     { $1 } |
 exp_file    { $1 } |
 exp_unop    { $1 } |
@@ -1475,7 +1540,8 @@ exp_lambda  { $1 } |
 exp_ternary { $1 } |
 exp_fstring { $1 } |
 exp_instof  { $1 } |
-exp_var     { $1 }
+exp_var     { $1 } |
+exp_kwclass { $1 }
 
 array_item:
 'ArrayItem' loc

@@ -98,6 +98,7 @@ import Location
 @KW_STMT_FOR        = "Stmt_For"
 @KW_STMT_NOP        = "Stmt_Nop"
 @KW_STMT_NAMESPACE  = "Stmt_Namespace"
+@KW_STMT_TRAIT      = "Stmt_Trait"
 @KW_STMT_TRAITUSE   = "Stmt_TraitUse"
 @KW_STMT_SWITCH     = "Stmt_Switch"
 @KW_STMT_CASE       = "Stmt_Case"
@@ -112,6 +113,7 @@ import Location
 @KW_EXPR_EXIT       = "Expr_Exit"
 @KW_EXPR_IMPORT     = "Expr_Include"
 @KW_EXPR_TERNARY    = "Expr_Ternary"
+@KW_EXPR_THROW      = "Expr_Throw"
 @KW_EXPR_LAMBDA     = "Expr_Closure"
 @KW_CLOSURE_USE     = "ClosureUse"
 @KW_ERROR_SUPPRESS  = "Expr_ErrorSuppress"
@@ -120,6 +122,7 @@ import Location
 @KW_EXPR_CAST2      = "Expr_Cast_Int"
 @KW_EXPR_CAST3      = "Expr_Cast_String"
 @KW_EXPR_CAST4      = "Expr_Cast_Bool"
+@KW_EXPR_CAST5      = "Expr_Cast_Object"
 @KW_EXPR_ASSIGN     = "Expr_Assign"
 @KW_EXPR_ASSIGN2    = "Expr_AssignOp_Plus"
 @KW_EXPR_ASSIGN5    = "Expr_AssignOp_Minus"
@@ -140,6 +143,7 @@ import Location
 @KW_SCALAR_FLOAT    = "Scalar_Float"
 @KW_SCALAR_FSTRING  = "Scalar_InterpolatedString"
 @KW_SCALAR_FILE     = "Scalar_MagicConst_File"
+@KW_SCALAR_CLASS    = "Scalar_MagicConst_Class"
 @KW_SCALAR_DIR      = "Scalar_MagicConst_Dir"
 @KW_IDENTIFIER      = "Identifier"
 @KW_RETURN_TYPE     = "returnType"
@@ -286,6 +290,7 @@ tokens :-
 @KW_STMT_FOR        { lex' AlexRawToken_STMT_FOR        }
 @KW_STMT_NOP        { lex' AlexRawToken_STMT_NOP        }
 @KW_STMT_NAMESPACE  { lex' AlexRawToken_STMT_NAMESPACE  }
+@KW_STMT_TRAIT      { lex' AlexRawToken_STMT_TRAIT      }
 @KW_STMT_TRAITUSE   { lex' AlexRawToken_STMT_TRAITUSE   }
 @KW_STMT_SWITCH     { lex' AlexRawToken_STMT_SWITCH     }
 @KW_STMT_CASE       { lex' AlexRawToken_STMT_CASE       }
@@ -300,11 +305,13 @@ tokens :-
 @KW_EXPR_EXIT       { lex' AlexRawToken_EXPR_EXIT       }
 @KW_EXPR_IMPORT     { lex' AlexRawToken_EXPR_IMPORT     }
 @KW_EXPR_TERNARY    { lex' AlexRawToken_EXPR_TERNARY    }
+@KW_EXPR_THROW      { lex' AlexRawToken_EXPR_THROW      }
 @KW_EXPR_LAMBDA     { lex' AlexRawToken_EXPR_LAMBDA     }
 @KW_CLOSURE_USE     { lex' AlexRawToken_CLOSURE_USE     }
 @KW_ERROR_SUPPRESS  { lex' AlexRawToken_ERROR_SUPPRESS  }
 @KW_FULLY_QUALIFIED { lex' AlexRawToken_FULLY_QUALIFIED }
 @KW_EXPR_CAST       { lex' AlexRawToken_EXPR_CAST       }
+@KW_EXPR_CAST5      { lex' AlexRawToken_EXPR_CAST5      }
 @KW_EXPR_CAST4      { lex' AlexRawToken_EXPR_CAST4      }
 @KW_EXPR_CAST3      { lex' AlexRawToken_EXPR_CAST3      }
 @KW_EXPR_CAST2      { lex' AlexRawToken_EXPR_CAST2      }
@@ -328,6 +335,7 @@ tokens :-
 @KW_SCALAR_FLOAT    { lex' AlexRawToken_SCALAR_FLOAT    }
 @KW_SCALAR_FSTRING  { lex' AlexRawToken_SCALAR_FSTRING  }
 @KW_SCALAR_FILE     { lex' AlexRawToken_SCALAR_FILE     }
+@KW_SCALAR_CLASS    { lex' AlexRawToken_SCALAR_CLASS    }
 @KW_SCALAR_DIR      { lex' AlexRawToken_SCALAR_DIR      }
 @KW_IDENTIFIER      { lex' AlexRawToken_IDENTIFIER      }
 @KW_RETURN_TYPE     { lex' AlexRawToken_RETURN_TYPE     }
@@ -484,6 +492,7 @@ data AlexRawToken
      | AlexRawToken_STMT_FOR        -- ^ Reserved Keyword
      | AlexRawToken_STMT_NOP        -- ^ Reserved Keyword
      | AlexRawToken_STMT_NAMESPACE  -- ^ Reserved Keyword
+     | AlexRawToken_STMT_TRAIT      -- ^ Reserved Keyword
      | AlexRawToken_STMT_TRAITUSE   -- ^ Reserved Keyword
      | AlexRawToken_STMT_SWITCH     -- ^ Reserved Keyword
      | AlexRawToken_STMT_CASE       -- ^ Reserved Keyword
@@ -498,11 +507,13 @@ data AlexRawToken
      | AlexRawToken_EXPR_EXIT       -- ^ Reserved Keyword
      | AlexRawToken_EXPR_IMPORT     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_TERNARY    -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_THROW      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_LAMBDA     -- ^ Reserved Keyword
      | AlexRawToken_CLOSURE_USE     -- ^ Reserved Keyword
      | AlexRawToken_ERROR_SUPPRESS  -- ^ Reserved Keyword
      | AlexRawToken_FULLY_QUALIFIED -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST       -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_CAST5      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST4      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST3      -- ^ Reserved Keyword
      | AlexRawToken_EXPR_CAST2      -- ^ Reserved Keyword
@@ -526,6 +537,7 @@ data AlexRawToken
      | AlexRawToken_SCALAR_FLOAT    -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_FSTRING  -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_FILE     -- ^ Reserved Keyword
+     | AlexRawToken_SCALAR_CLASS    -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_DIR      -- ^ Reserved Keyword
      | AlexRawToken_SCALAR_STR      -- ^ Reserved Keyword
      | AlexRawToken_IDENTIFIER      -- ^ Reserved Keyword
