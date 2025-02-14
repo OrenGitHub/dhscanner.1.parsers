@@ -156,6 +156,7 @@ import Location
 @KW_FORMATTED_VAL   = FormattedValue
 @KW_FORMAT_SPEC     = format_spec
 @KW_ASSIGN          = Assign
+@KW_AWAIT           = Await
 @KW_ASSERT          = Assert
 @KW_LAMBDA          = Lambda
 @KW_SIMPLE          = simple
@@ -410,6 +411,7 @@ tokens :-
 @KW_FORMATTED_VAL   { lex' AlexRawToken_FORMATTED_VAL   }
 @KW_FORMAT_SPEC     { lex' AlexRawToken_FORMAT_SPEC     }
 @KW_ASSIGN          { lex' AlexRawToken_ASSIGN          }
+@KW_AWAIT           { lex' AlexRawToken_AWAIT           }
 @KW_ASSERT          { lex' AlexRawToken_ASSERT          }
 @KW_LAMBDA          { lex' AlexRawToken_LAMBDA          }
 @KW_SIMPLE          { lex' AlexRawToken_SIMPLE          }
@@ -676,6 +678,7 @@ data AlexRawToken
      | AlexRawToken_FORMAT_SPEC     -- ^ Reserved Keyword
      | AlexRawToken_FORMATTED_VAL   -- ^ Reserved Keyword
      | AlexRawToken_ASSIGN          -- ^ Reserved Keyword
+     | AlexRawToken_AWAIT           -- ^ Reserved Keyword
      | AlexRawToken_ASSERT          -- ^ Reserved Keyword
      | AlexRawToken_LAMBDA          -- ^ Reserved Keyword
      | AlexRawToken_SIMPLE          -- ^ Reserved Keyword

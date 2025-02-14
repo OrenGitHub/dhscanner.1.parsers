@@ -21,7 +21,7 @@ import qualified Token
 import Data.Maybe
 import Data.Either
 import Data.List ( map )
-import Data.Map ( fromList )
+import Data.Map ( fromList, empty )
 
 }
 
@@ -214,6 +214,7 @@ import Data.Map ( fromList )
 'is_async'                  { AlexTokenTag AlexRawToken_IS_ASYNC        _ }
 'simple'                    { AlexTokenTag AlexRawToken_SIMPLE          _ }
 'Assign'                    { AlexTokenTag AlexRawToken_ASSIGN          _ }
+'Await'                     { AlexTokenTag AlexRawToken_AWAIT           _ }
 'Assert'                    { AlexTokenTag AlexRawToken_ASSERT          _ }
 'Lambda'                    { AlexTokenTag AlexRawToken_LAMBDA          _ }
 'AugAssign'                 { AlexTokenTag AlexRawToken_ASSIGN2         _ }
@@ -668,7 +669,7 @@ exp_relop_1:
 'Compare'
 '('
     'left' '=' exp ','
-    'ops' '=' '[' op ']' ','
+    'ops' '=' '[' commalistof(op) ']' ','
     'comparators' '=' '[' commalistof(exp) ']' ','
     loc
 ')'
@@ -1000,6 +1001,16 @@ exp_starred:
     $5
 }
 
+exp_await:
+'Await'
+'('
+    'value' '=' exp ','
+    loc
+')'
+{
+    $5
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1025,6 +1036,7 @@ exp_lambda    { $1 } |
 exp_unop      { $1 } |
 exp_slice     { $1 } |
 exp_relop     { $1 } |
+exp_await     { $1 } |
 exp_binop     { $1 } |
 exp_call      { Ast.ExpCall $1 } |
 exp_fstring   { $1 } |
@@ -1233,7 +1245,7 @@ stmt_with:
 stmt_class:
 'ClassDef'
 '('
-    'name' '=' ID ','
+    'name' '=' tokenID ','
     'bases' '=' possibly_empty_listof(var) ','
     'keywords' '=' '[' ']' ','
     'body' '=' stmts ','
@@ -1242,10 +1254,12 @@ stmt_class:
     loc
 ')'
 {
-    Ast.StmtReturn $ Ast.StmtReturnContent
+    Ast.StmtClass $ Ast.StmtClassContent
     {
-        Ast.stmtReturnValue = Nothing,
-        Ast.stmtReturnLocation = $29
+        Ast.stmtClassName = Token.ClassName (Token.Named $5 $29),
+        stmtClassSupers = [],
+        stmtClassDataMembers = Ast.DataMembers empty,
+        stmtClassMethods = Ast.Methods empty
     }
 }
 
