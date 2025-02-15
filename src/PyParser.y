@@ -1257,7 +1257,7 @@ stmt_class:
     Ast.StmtClass $ Ast.StmtClassContent
     {
         Ast.stmtClassName = Token.ClassName (Token.Named $5 $29),
-        stmtClassSupers = [],
+        stmtClassSupers = superify $9,
         stmtClassDataMembers = Ast.DataMembers empty,
         stmtClassMethods = Ast.Methods empty
     }
@@ -1730,9 +1730,9 @@ stmt_import:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName  = case $6 of { [] -> "BBB"; ((name, alias, _):_) -> name  },
-        Ast.stmtImportAlias = case $6 of { [] -> "YYY"; ((name, alias, _):_) -> alias },
-        Ast.stmtImportLocation = case $6 of { [] -> $9; ((_, _, loc):_) -> loc }
+        Ast.stmtImportName  = case $6 of { [] -> ""; (name:_) -> name },
+        Ast.stmtImportAlias = case $6 of { [] -> ""; (name:_) -> name },
+        Ast.stmtImportLocation = $9
     }
 }
 
@@ -1754,9 +1754,9 @@ stmt_import_from:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName  = case $7 of { [] -> "POPO"; ((name, _, _):_) -> ("POPO" ++ "." ++ name)  },
-        Ast.stmtImportAlias = case $7 of { [] -> "TITI"; ((_, alias, _):_) -> alias },
-        Ast.stmtImportLocation = case $7 of { [] -> $14; ((_, _, loc):_) -> loc }
+        Ast.stmtImportName  = case $3 of { Nothing -> ""; Just name -> name },
+        Ast.stmtImportAlias = case $7 of { [] -> ""; (name:_) -> name },
+        Ast.stmtImportLocation = $14
     }
 }
 
@@ -1780,11 +1780,7 @@ alias:
     loc
 ')'
 {
-    case $7 of
-    {
-        Nothing -> ($5, $5, $8);
-        Just n -> ($5, n, $8)
-    }
+    $5
 }
 
 -- **********
@@ -1842,6 +1838,14 @@ extractParamNominalType' ts = case ts of { [t] -> Just t; _ -> Nothing }
  
 extractParamNominalType :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.NominalTy
 extractParamNominalType = extractParamNominalType' . rights 
+
+superify' :: Ast.Var -> Token.SuperName
+superify' (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))) = Token.SuperName v
+superify' (Ast.VarField (Ast.VarFieldContent _ (Token.FieldName v) _)) = Token.SuperName v
+superify' (Ast.VarSubscript (Ast.VarSubscriptContent _ _ l)) = Token.SuperName (Token.Named "subscript" l)
+
+superify :: [ Ast.Var ] -> [ Token.SuperName ]
+superify = Data.List.map superify' 
 
 paramify :: [ Either Token.ParamName Token.NominalTy ] -> Location -> Maybe Ast.Param
 paramify attrs l = let
