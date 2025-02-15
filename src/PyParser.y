@@ -1257,9 +1257,9 @@ stmt_class:
     Ast.StmtClass $ Ast.StmtClassContent
     {
         Ast.stmtClassName = Token.ClassName (Token.Named $5 $29),
-        stmtClassSupers = superify $9,
-        stmtClassDataMembers = Ast.DataMembers empty,
-        stmtClassMethods = Ast.Methods empty
+        Ast.stmtClassSupers = superify $9,
+        Ast.stmtClassDataMembers = Ast.DataMembers empty,
+        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $ Token.Named $5 $29) $9 $18 
     }
 }
 
@@ -1825,6 +1825,24 @@ dummyVar loc = Ast.VarSimple $ Ast.VarSimpleContent {
         Token.location = loc
     }
 }
+
+methodify :: Token.ClassName -> [ Ast.Var ] -> [ Ast.Stmt ] -> [(Token.MethdName, Ast.StmtMethodContent)]
+methodify c vars stmts = catMaybes $ Data.List.map (methodify' c vars) stmts
+
+methodify' :: Token.ClassName -> [ Ast.Var ] -> Ast.Stmt -> Maybe (Token.MethdName, Ast.StmtMethodContent)
+methodify' c vars (Ast.StmtFunc f) = Just (methodify'' c vars f)
+methodify' _ _ _ = Nothing
+
+methodify'' :: Token.ClassName -> [ Ast.Var ] -> Ast.StmtFuncContent -> (Token.MethdName, Ast.StmtMethodContent)
+methodify'' c vars f = let m = Token.MethdName $ Token.getFuncNameToken (Ast.stmtFuncName f) in (m, Ast.StmtMethodContent {
+    Ast.stmtMethodReturnType = (Ast.stmtFuncReturnType f),
+    Ast.stmtMethodName = m,
+    Ast.stmtMethodParams = (Ast.stmtFuncParams f),
+    Ast.stmtMethodBody = (Ast.stmtFuncBody f),
+    Ast.stmtMethodLocation = (Ast.stmtFuncLocation f),
+    Ast.hostingClassName = c,
+    Ast.hostingClassSupers = superify vars
+})
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
