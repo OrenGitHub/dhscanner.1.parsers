@@ -285,11 +285,12 @@ dec_var_tag:
     'loc' ':' location
 '}'
 {
-    Ast.DecVarContent
+    Ast.StmtVardecContent
     {
-        Ast.decVarName = Token.VarName $8,
-        Ast.decVarNominalType = Token.NominalTy $ Token.Named "auto" $16,
-        Ast.decVarInitValue = Just $12
+        Ast.stmtVardecName = Token.VarName $8,
+        Ast.stmtVardecNominalType = Token.NominalTy $ Token.Named "auto" $16,
+        Ast.stmtVardecInitValue = Just $12,
+        Ast.stmtVardecLocation = $16
     }
 }
 
@@ -594,7 +595,7 @@ exp_call:
     'loc' ':' location
 '}'
 {
-    Ast.ExpCallContent
+    Ast.ExpCall $ Ast.ExpCallContent
     {
         Ast.callee = $8,
         Ast.args = $13,
@@ -702,7 +703,7 @@ exp_str     { $1 } |
 exp_var     { $1 } |
 exp_new     { $1 } |
 exp_bool    { $1 } |
-exp_call    { Ast.ExpCall $1 } |
+exp_call    { $1 } |
 exp_binop   { $1 } |
 exp_lambda  { $1 } |
 exp_fstring { $1 }
@@ -837,7 +838,7 @@ stmt_call:
     'loc' ':' location
 '}'
 {
-    Ast.StmtCall $8
+    Ast.StmtExp $8
 }
 
 -- ***************
@@ -848,7 +849,7 @@ stmt_call:
 stmt_decvar:
 dec_var
 {
-    Ast.StmtDecvar $1
+    Ast.StmtVardec $1
 }
 
 -- ********

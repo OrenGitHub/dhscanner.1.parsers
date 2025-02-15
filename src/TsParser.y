@@ -654,8 +654,9 @@ stmt_import:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName = "Zuchmir",
-        Ast.stmtImportAlias = "Moish",
+        Ast.stmtImportSource = "Zuchmir",
+        Ast.stmtImportFromSource = Just "Moish",
+        Ast.stmtImportAlias = Just "MM",
         Ast.stmtImportLocation = $2
     }
 }
@@ -714,11 +715,12 @@ stmt_decvar:
     'VariableDeclaration' loc '(' identifier optional(type_hint) firstAssignment exp ')'
 ')'
 {
-    Ast.StmtDecvar $ Ast.DecVarContent
+    Ast.StmtVardec $ Ast.StmtVardecContent
     {
-        Ast.decVarName = Token.VarName $7,
-        Ast.decVarNominalType = Token.NominalTy $7,
-        Ast.decVarInitValue = Just $10
+        Ast.stmtVardecName = Token.VarName $7,
+        Ast.stmtVardecNominalType = Token.NominalTy $7,
+        Ast.stmtVardecInitValue = Just $10,
+        Ast.stmtVardecLocation = $2
     }
 }
 
@@ -841,11 +843,12 @@ stmt_property:
     identifier optional(questionToken) optional(type_hint) optional(commaToken)
 ')'
 {
-    Ast.StmtDecvar $ Ast.DecVarContent
+    Ast.StmtVardec $ Ast.StmtVardecContent
     {
-        Ast.decVarName = Token.VarName $4,
-        Ast.decVarNominalType = Token.NominalTy $4,
-        Ast.decVarInitValue = Nothing
+        Ast.stmtVardecName = Token.VarName $4,
+        Ast.stmtVardecNominalType = Token.NominalTy $4,
+        Ast.stmtVardecInitValue = Nothing,
+        Ast.stmtVardecLocation = $2
     }
 }
 

@@ -1730,8 +1730,9 @@ stmt_import:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName  = case $6 of { [] -> ""; (name:_) -> name },
-        Ast.stmtImportAlias = case $6 of { [] -> ""; (name:_) -> name },
+        Ast.stmtImportSource  = case $6 of { [] -> ""; (name:_) -> name },
+        Ast.stmtImportFromSource = case $6 of { [] -> Just ""; (name:_) -> Just name },
+        Ast.stmtImportAlias = case $6 of { [] -> Just ""; (name:_) -> Just name },
         Ast.stmtImportLocation = $9
     }
 }
@@ -1754,8 +1755,9 @@ stmt_import_from:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName  = case $3 of { Nothing -> ""; Just name -> name },
-        Ast.stmtImportAlias = case $7 of { [] -> ""; (name:_) -> name },
+        Ast.stmtImportSource  = case $3 of { Nothing -> ""; Just name -> name },
+        Ast.stmtImportFromSource = case $7 of { [] -> Just ""; (name:_) -> Just name },
+        Ast.stmtImportAlias = case $7 of { [] -> Just ""; (name:_) -> Just name },
         Ast.stmtImportLocation = $14
     }
 }

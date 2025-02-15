@@ -682,8 +682,9 @@ stmt_use:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportName = (Data.List.foldl' (\x y -> x ++ "." ++ y) "" $11),
-        Ast.stmtImportAlias = last $11,
+        Ast.stmtImportSource = (Data.List.foldl' (\x y -> x ++ "." ++ y) "" $11),
+        Ast.stmtImportFromSource = Just (last $11),
+        Ast.stmtImportAlias = Just (last $11),
         Ast.stmtImportLocation = $2
     }
 } 
@@ -734,11 +735,12 @@ stmt_data_member:
     optional(hooks)
 ')'
 {
-    Ast.StmtDecvar $ Ast.DecVarContent
+    Ast.StmtVardec $ Ast.StmtVardecContent
     {
-        Ast.decVarName = Token.VarName $21,
-        Ast.decVarNominalType = Token.NominalTy (Token.Named "any" $2),
-        Ast.decVarInitValue = Nothing
+        Ast.stmtVardecName = Token.VarName $21,
+        Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" $2),
+        Ast.stmtVardecInitValue = Nothing,
+        Ast.stmtVardecLocation = $2
     }
 }
 
@@ -1091,7 +1093,7 @@ stmt_echo:
     'exprs' ':' exps
 ')'
 {
-    Ast.StmtCall $ Ast.ExpCallContent
+    Ast.StmtExp $ Ast.ExpCall $ Ast.ExpCallContent
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
         {
@@ -1114,7 +1116,7 @@ stmt_unset:
     ID ':' exps
 ')'
 {
-    Ast.StmtCall $ Ast.ExpCallContent
+    Ast.StmtExp $ Ast.ExpCall $ Ast.ExpCallContent
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
         {
