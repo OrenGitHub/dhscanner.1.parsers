@@ -1728,16 +1728,15 @@ stmt_import:
     loc
 ')'
 {
-    Ast.StmtImport $ Ast.StmtImportContent
+    Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtImportSource  = case $6 of { [] -> ""; (name:_) -> name },
-        Ast.stmtImportFromSource = case $6 of { [] -> Just ""; (name:_) -> Just name },
-        Ast.stmtImportAlias = case $6 of { [] -> Just ""; (name:_) -> Just name },
-        Ast.stmtImportLocation = $9
+        Ast.stmtBlockContent = simportify $9 $6,
+        Ast.stmtBlockLocation = $9
     }
 }
 
 import_from_module: 'module' '=' tokenID ',' { $3 }
+
 
 -- ********************
 -- *                  *
@@ -1753,12 +1752,10 @@ stmt_import_from:
     loc
 ')'
 {
-    Ast.StmtImport $ Ast.StmtImportContent
+    Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtImportSource  = case $3 of { Nothing -> ""; Just name -> name },
-        Ast.stmtImportFromSource = case $7 of { [] -> Just ""; (name:_) -> Just name },
-        Ast.stmtImportAlias = case $7 of { [] -> Just ""; (name:_) -> Just name },
-        Ast.stmtImportLocation = $14
+        Ast.stmtBlockContent = importify $14 $3 $7,
+        Ast.stmtBlockLocation = $14
     }
 }
 
@@ -1782,7 +1779,7 @@ alias:
     loc
 ')'
 {
-    $5
+    ($5, $7)
 }
 
 -- **********
@@ -1846,6 +1843,55 @@ methodify'' c vars f = let m = Token.MethdName $ Token.getFuncNameToken (Ast.stm
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
+
+simportify :: Location -> [(String, Maybe String)] -> [ Ast.Stmt ]
+simportify loc args = Data.List.map (simportify' loc) args
+
+simportify' :: Location -> (String, Maybe String) -> Ast.Stmt
+simportify' loc (src, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = src,
+    Ast.stmtImportFromSource = Nothing,
+    Ast.stmtImportAlias = Nothing,
+    Ast.stmtImportLocation = loc
+}
+simportify' loc (src, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = src,
+    Ast.stmtImportFromSource = Nothing,
+    Ast.stmtImportAlias = Just alias,
+    Ast.stmtImportLocation = loc
+}
+
+importify :: Location -> (Maybe String) -> [(String, Maybe String)] -> [ Ast.Stmt ] 
+importify loc Nothing args = Data.List.map (importify' loc) args
+importify loc (Just src) args = Data.List.map (importify'' loc src) args
+
+importify' :: Location -> (String, Maybe String) -> Ast.Stmt
+importify' loc (specific, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = "",
+    Ast.stmtImportFromSource = Just specific,
+    Ast.stmtImportAlias = Nothing,
+    Ast.stmtImportLocation = loc
+}
+importify' loc (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource  = "",
+    Ast.stmtImportFromSource = Just specific,
+    Ast.stmtImportAlias = Just alias,
+    Ast.stmtImportLocation = loc
+}
+
+importify'' :: Location -> String -> (String, Maybe String) -> Ast.Stmt
+importify'' loc src (specific, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = src,
+    Ast.stmtImportFromSource = Just specific,
+    Ast.stmtImportAlias = Nothing,
+    Ast.stmtImportLocation = loc
+}
+importify'' loc src (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = src,
+    Ast.stmtImportFromSource = Just specific,
+    Ast.stmtImportAlias = Just alias,
+    Ast.stmtImportLocation = loc
+}
 
 extractParamSingleName' :: [ Token.ParamName ] -> Maybe Token.ParamName
 extractParamSingleName' ps = case ps of { [p] -> Just p; _ -> Nothing }
