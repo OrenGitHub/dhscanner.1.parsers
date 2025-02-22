@@ -1708,10 +1708,8 @@ stmt_assign:
     Ast.StmtAssign $ Ast.StmtAssignContent
     {
         Ast.stmtAssignLhs = case $5 of
-        {
-            [] -> Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "dummy" $11;
-            _ -> Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "dummy" $11
-        },
+            ((Ast.ExpVar (Ast.ExpVarContent v)):_) -> v
+            _ -> Ast.VarSimple (Ast.VarSimpleContent (Token.VarName (Token.Named "dummyAssignVar" $11))),
         Ast.stmtAssignRhs = $9
     }
 }
