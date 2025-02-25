@@ -15,4 +15,4 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build --tag parsers:$(date +%d-%m-%y'(%H:%M:%S)') --file Dockerfile .
+      run: docker build --tag parsers:$(date +%d-%m-%y) --file Dockerfile .
