@@ -1802,9 +1802,9 @@ loc:
     {
         Location.filename = getFilename $1,
         lineStart = fromIntegral (tokIntValue $3),
-        colStart = fromIntegral (tokIntValue $7),
+        colStart = 1 + (fromIntegral (tokIntValue $7)),
         lineEnd = fromIntegral (tokIntValue $11),
-        colEnd = fromIntegral (tokIntValue $15)
+        colEnd = 1 + (fromIntegral (tokIntValue $15))
     }
 }
 
