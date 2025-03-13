@@ -72,6 +72,13 @@ import Location
 @GENERIC_NAME = GenericName
 @VARIABLE_DECLARATION = VariableDeclaration
 @FIELD_DECLARATION = FieldDeclaration
+@ELEMENT_ACCESS_EXPRESSION = ElementAccessExpression
+@BRACKETED_ARGUMENT_LIST = BracketedArgumentList
+@ARGUMENT = Argument
+@NULLABLE_TYPE = NullableType
+@METHOD_DECLARATION = MethodDeclaration
+@PARAMETER_LIST = ParameterList
+@BLOCK = Block
 
 -- ************
 -- *          *
@@ -158,6 +165,13 @@ tokens :-
 @GENERIC_NAME { lex' AlexRawToken_GENERIC_NAME }
 @VARIABLE_DECLARATION { lex' AlexRawToken_VARIABLE_DECLARATION }
 @FIELD_DECLARATION { lex' AlexRawToken_FIELD_DECLARATION }
+@ELEMENT_ACCESS_EXPRESSION { lex' AlexRawToken_ELEMENT_ACCESS_EXPRESSION }
+@BRACKETED_ARGUMENT_LIST { lex' AlexRawToken_BRACKETED_ARGUMENT_LIST }
+@ARGUMENT { lex' AlexRawToken_ARGUMENT }
+@NULLABLE_TYPE { lex' AlexRawToken_NULLABLE_TYPE }
+@METHOD_DECLARATION { lex' AlexRawToken_METHOD_DECLARATION }
+@PARAMETER_LIST { lex' AlexRawToken_PARAMETER_LIST }
+@BLOCK { lex' AlexRawToken_BLOCK }
 
 -- ***************************
 -- *                         *
@@ -272,6 +286,13 @@ data AlexRawToken
      | AlexRawToken_GENERIC_NAME
      | AlexRawToken_VARIABLE_DECLARATION
      | AlexRawToken_FIELD_DECLARATION
+     | AlexRawToken_ELEMENT_ACCESS_EXPRESSION
+     | AlexRawToken_BRACKETED_ARGUMENT_LIST
+     | AlexRawToken_ARGUMENT
+     | AlexRawToken_NULLABLE_TYPE
+     | AlexRawToken_METHOD_DECLARATION
+     | AlexRawToken_PARAMETER_LIST
+     | AlexRawToken_BLOCK
 
      -- ***************
      -- *             *

@@ -111,6 +111,14 @@ import Data.Map ( fromList, empty )
 'GenericName' { AlexTokenTag AlexRawToken_GENERIC_NAME _ }
 'VariableDeclaration' { AlexTokenTag AlexRawToken_VARIABLE_DECLARATION _ }
 'FieldDeclaration' { AlexTokenTag AlexRawToken_FIELD_DECLARATION _ }
+'ElementAccessExpression' { AlexTokenTag AlexRawToken_ELEMENT_ACCESS_EXPRESSION _ }
+'BracketedArgumentList' { AlexTokenTag AlexRawToken_BRACKETED_ARGUMENT_LIST _ }
+'Argument' { AlexTokenTag AlexRawToken_ARGUMENT _ }
+'NullableType' { AlexTokenTag AlexRawToken_NULLABLE_TYPE _ }
+'MethodDeclaration' { AlexTokenTag AlexRawToken_METHOD_DECLARATION _ }
+'ParameterList' { AlexTokenTag AlexRawToken_PARAMETER_LIST _ }
+'Block' { AlexTokenTag AlexRawToken_BLOCK _ }
+
 
 -- ************
 -- *          *
@@ -187,17 +195,21 @@ program:
     }
 }
 
+tokenID:
+ID { tokIDValue $1 } |
+'null' { "null" }
+
 identifier:
 '{'
     'kind' ':' 'IdentifierName' ','
-    'value' ':' ID ','
+    'value' ':' optional(ID) ','
     'location' ':' location ','
     'children' ':' '[' ']'
 '}'
 {
     Token.Named
     {
-        Token.content = tokIDValue $8,
+        Token.content = case $8 of { Nothing -> "<empty>"; Just name -> tokIDValue name },
         Token.location = $12
     }
 }
@@ -355,8 +367,20 @@ generic_name:
     $17
 }
 
+nullable_type:
+'{'
+    'kind' ':' 'NullableType' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' nominal_type ']'
+'}'
+{
+    $17
+}
+
 nominal_type:
 identifier { $1 } |
+nullable_type { $1 } |
 generic_name { $1 }
 
 args:
@@ -386,8 +410,51 @@ exp_new:
     }
 }
 
+array_values:
+'{'
+    'kind' ':' 'BracketedArgumentList' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' possibly_empty_listof(exp)
+'}'
+{
+    $16
+}
+
+exp_array:
+'{'
+    'kind' ':' 'ElementAccessExpression' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' identifier ',' array_values ']'
+'}'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "arrayify" $12,
+        Ast.args = [],
+        Ast.expCallLocation = $12
+    }
+}
+
+exp_var: var { Ast.ExpVar (Ast.ExpVarContent $1) }
+
+exp_arg:
+'{'
+    'kind' ':' 'Argument' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ']'
+'}'
+{
+    $17
+}
+
 exp:
-exp_new { $1 }
+exp_new { $1 } |
+exp_arg { $1 } |
+exp_var { $1 } |
+exp_array { $1 }
 
 equals_value_clause:
 '{'
@@ -403,9 +470,9 @@ equals_value_clause:
 vardec:
 '{'
     'kind' ':' 'VariableDeclarator' ','
-    'value' ':' 'null' ','
+    'value' ':' tokenID ','
     'location' ':' location ','
-    'children' ':' '[' equals_value_clause ']'
+    'children' ':' '[' optional(equals_value_clause) ']'
 '}'
 {
     $17
@@ -423,7 +490,7 @@ stmt_vardec:
     {
         Ast.stmtVardecName = Token.VarName (Token.Named "unknown" $12),
         Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "TTT" $12),
-        Ast.stmtVardecInitValue = Nothing,
+        Ast.stmtVardecInitValue = $19,
         Ast.stmtVardecLocation = $12 
     }
 }
@@ -439,12 +506,57 @@ stmt_data_member:
     $17
 }
 
+body:
+'{'
+    'kind' ':' 'Block' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' possibly_empty_listof(stmt)
+'}'
+{
+    $16
+}
+
+params:
+'{'
+    'kind' ':' 'ParameterList' ','
+    'value' ':' '(' ')' ','
+    'location' ':' location ','
+    'children' ':' '[' ']'
+'}'
+{
+    []
+}
+
+return_type: nominal_type { $1 }
+
+stmt_method:
+'{'
+    'kind' ':' 'MethodDeclaration' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' return_type ',' params ',' body ']'
+'}'
+{
+    Ast.StmtMethod $ Ast.StmtMethodContent
+    {
+        Ast.stmtMethodReturnType = Token.NominalTy $17,
+        Ast.stmtMethodName = Token.MethdName (Token.Named "POPO" $12),
+        Ast.stmtMethodParams = $19,
+        Ast.stmtMethodBody = $21,
+        Ast.stmtMethodLocation = $12,
+        Ast.hostingClassName = Token.ClassName (Token.Named "MOMO" $12),
+        Ast.hostingClassSupers = []
+    }
+}
+
 stmt:
 stmt_var { $1 } |
 stmt_super { $1 } |
 stmt_class { $1 } |
 stmt_using { $1 } |
 stmt_vardec { $1 } |
+stmt_method { $1 } |
 stmt_namespace { $1 } |
 stmt_data_member { $1 }
 
