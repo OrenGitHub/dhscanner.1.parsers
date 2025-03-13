@@ -79,7 +79,6 @@ import Data.Map ( fromList, empty )
 -- *             *
 -- ***************
 
-
 ':' { AlexTokenTag AlexRawToken_COLON _ }
 ',' { AlexTokenTag AlexRawToken_COMMA _ }
 
@@ -95,6 +94,9 @@ import Data.Map ( fromList, empty )
 'location' { AlexTokenTag AlexRawToken_LOCATION _ }
 'children' { AlexTokenTag AlexRawToken_CHILDREN _ }
 'CompilationUnit' { AlexTokenTag AlexRawToken_COMPILATION_UNIT _ }
+'UsingDirective' { AlexTokenTag AlexRawToken_USING_DIRECTIVE _ }
+'IdentifierName' { AlexTokenTag AlexRawToken_IDENTIFIER_NAME _ }
+'QualifiedName' { AlexTokenTag AlexRawToken_QUALIFIED_NAME _ }
 
 -- ************
 -- *          *
@@ -106,6 +108,15 @@ import Data.Map ( fromList, empty )
 'startColumn' { AlexTokenTag AlexRawToken_START_COLUMN _ }
 'endLine' { AlexTokenTag AlexRawToken_END_LINE _ }
 'endColumn' { AlexTokenTag AlexRawToken_END_COLUMN _ }
+
+-- ************
+-- *          *
+-- * integers *
+-- *          *
+-- ************
+
+INT { AlexTokenTag (AlexRawToken_INT i) _ }
+ID { AlexTokenTag (AlexRawToken_ID s) _ }
 
 -- *************************
 -- *                       *
@@ -152,7 +163,7 @@ program:
     'kind' ':' 'CompilationUnit' ','
     'value' ':' 'null' ','
     'location' ':' location ','
-    'children' ':' 
+    'children' ':' nonempty_listof(stmt) 
 '}'
 {
     Ast.Root
@@ -162,18 +173,83 @@ program:
     }
 }
 
-location:
+identifier:
 '{'
-    'startLine' ':' ','
-    'startColumn' ':' ','
-    'endLine' ':' ','
-    'endColumn' ':'
+    'kind' ':' 'IdentifierName' ','
+    'value' ':' ID ','
+    'location' ':' location ','
+    'children' ':' '[' ']'
 '}'
 {
+    Token.Named
+    {
+        Token.content = tokIDValue $8,
+        Token.location = $12
+    }
+}
+
+var_simple:
+identifier
+{
+    Ast.VarSimple $ Ast.VarSimpleContent
+    {
+        Ast.varName = Token.VarName $1
+    }
+}
+
+var_field:
+'{'
+    'kind' ':' 'QualifiedName' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' var ',' identifier ']'
+'}'
+{
+    Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $17,
+        Ast.varFieldName = Token.FieldName $19,
+        Ast.varFieldLocation = $12
+    }
+}
+
+var:
+var_simple { $1 } |
+var_field { $1 }
+
+stmt_using:
+'{'
+    'kind' ':' 'UsingDirective' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' nonempty_listof(var)
+'}'
+{
+    Nothing
+}
+
+stmt:
+stmt_using { $1 }
+
+location:
+'{'
+    'startLine' ':' INT ','
+    'startColumn' ':' INT ','
+    'endLine' ':' INT ','
+    'endColumn' ':' INT
+'}'
+{
+    Location
+    {
+        Location.filename = getFilename $1,
+        lineStart = fromIntegral (tokIntValue $3),
+        colStart = 1 + (fromIntegral (tokIntValue $7)),
+        lineEnd = fromIntegral (tokIntValue $11),
+        colEnd = 1 + (fromIntegral (tokIntValue $15))
+    } 
 }
 
 {
-
 dummyExp :: Location -> Ast.Exp
 dummyExp loc = Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 888 loc
 

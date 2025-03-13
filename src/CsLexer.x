@@ -46,22 +46,30 @@ import Location
 -- *          *
 -- ************
 
-@KIND = "kind"
-@NULL = "null"
-@VALUE = "value"
-@LOCATION = "location"
-@START_LINE = "startLine"
-@START_COLUMN = "startColumn"
-@END_LINE = "endLine"
-@END_COLUMN = "endColumn"
-@CHILDREN = "children"
-@COMPILATION_UNIT = "CompilationUnit"
+@KIND = kind
+@NULL = null
+@VALUE = value
+@LOCATION = location
+@START_LINE = startLine
+@START_COLUMN = startColumn
+@END_LINE = endLine
+@END_COLUMN = endColumn
+@CHILDREN = children
+@COMPILATION_UNIT = CompilationUnit
+@USING_DIRECTIVE = UsingDirective
+@IDENTIFIER_NAME = IdentifierName
+@QUALIFIED_NAME = QualifiedName
 
 -- ************
 -- *          *
 -- * integers *
 -- *          *
 -- ************
+@DIGIT = 0-9
+@LETTER = [a-zA-Z_]
+@LETTER_OR_DIGIT = @LETTER | @DIGIT
+@INT = @DIGIT+ 
+@ID = (@LETTER)(@LETTER_OR_DIGIT+)
 
 -- ***************
 -- *             *
@@ -121,6 +129,9 @@ tokens :-
 @END_COLUMN { lex' AlexRawToken_END_COLUMN }
 @CHILDREN { lex' AlexRawToken_CHILDREN }
 @COMPILATION_UNIT { lex' AlexRawToken_COMPILATION_UNIT }
+@USING_DIRECTIVE { lex' AlexRawToken_USING_DIRECTIVE }
+@IDENTIFIER_NAME { lex' AlexRawToken_IDENTIFIER_NAME }
+@QUALIFIED_NAME { lex' AlexRawToken_QUALIFIED_NAME }
 
 -- ***************************
 -- *                         *
@@ -135,7 +146,8 @@ tokens :-
 -- * integers and identifiers *
 -- *                          *
 -- ****************************
-
+@INT { lex (AlexRawToken_INT . round . read) }
+@ID { lex (AlexRawToken_ID . read) }
 . { lexicalError }
 
 {
@@ -193,7 +205,22 @@ data AlexTokenTag
 -- *************
 data AlexRawToken
 
-     = AlexRawToken_KIND
+     -- ********************
+     -- *                  *
+     -- * integers and ids *
+     -- *                  *
+     -- ********************
+
+     = AlexRawToken_INT Int
+     | AlexRawToken_ID String
+
+     -- ************
+     -- *          *
+     -- * keywords *
+     -- *          *
+     -- ************
+
+     | AlexRawToken_KIND
      | AlexRawToken_NULL
      | AlexRawToken_VALUE
      | AlexRawToken_LOCATION
@@ -203,6 +230,9 @@ data AlexRawToken
      | AlexRawToken_END_COLUMN
      | AlexRawToken_CHILDREN
      | AlexRawToken_COMPILATION_UNIT
+     | AlexRawToken_USING_DIRECTIVE
+     | AlexRawToken_IDENTIFIER_NAME
+     | AlexRawToken_QUALIFIED_NAME
 
      -- ***************
      -- *             *
@@ -306,6 +336,22 @@ location = tokenLoc
 -- ***************
 getFilename :: AlexTokenTag -> String
 getFilename = Location.filename . location
+
+-- ***************
+-- *             *
+-- * tokIntValue *
+-- *             *
+-- ***************
+tokIntValue :: AlexTokenTag -> Int
+tokIntValue t = case (tokenRaw t) of { AlexRawToken_INT i -> i; _ -> 0; }
+
+-- ***************
+-- *             *
+-- * tokIntValue *
+-- *             *
+-- ***************
+tokIDValue :: AlexTokenTag -> String
+tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> s; _ -> "" }
 
 -- ************
 -- *          *
