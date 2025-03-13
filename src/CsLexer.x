@@ -60,6 +60,18 @@ import Location
 @IDENTIFIER_NAME = IdentifierName
 @QUALIFIED_NAME = QualifiedName
 @NAME_EQUALS = NameEquals
+@NAMESPACE_DECLARATION = NamespaceDeclaration
+@CLASS_DECLARATION = ClassDeclaration
+@SIMPLE_BASE_TYPE = SimpleBaseType
+@BASE_LIST = BaseList
+@ARGUMENT_LIST = ArgumentList
+@OBJECT_CREATION_EXPRESSION = ObjectCreationExpression
+@EQUALS_VALUE_CLAUSE = EqualsValueClause
+@VARIABLE_DECLARATOR = VariableDeclarator
+@TYPE_ARGUMENT_LIST = TypeArgumentList
+@GENERIC_NAME = GenericName
+@VARIABLE_DECLARATION = VariableDeclaration
+@FIELD_DECLARATION = FieldDeclaration
 
 -- ************
 -- *          *
@@ -134,6 +146,18 @@ tokens :-
 @IDENTIFIER_NAME { lex' AlexRawToken_IDENTIFIER_NAME }
 @QUALIFIED_NAME { lex' AlexRawToken_QUALIFIED_NAME }
 @NAME_EQUALS { lex' AlexRawToken_NAME_EQUALS }
+@NAMESPACE_DECLARATION { lex' AlexRawToken_NAMESPACE_DECLARATION }
+@CLASS_DECLARATION { lex' AlexRawToken_CLASS_DECLARATION }
+@SIMPLE_BASE_TYPE { lex' AlexRawToken_SIMPLE_BASE_TYPE }
+@BASE_LIST { lex' AlexRawToken_BASE_LIST }
+@ARGUMENT_LIST { lex' AlexRawToken_ARGUMENT_LIST }
+@OBJECT_CREATION_EXPRESSION { lex' AlexRawToken_OBJECT_CREATION_EXPRESSION }
+@EQUALS_VALUE_CLAUSE { lex' AlexRawToken_EQUALS_VALUE_CLAUSE }
+@VARIABLE_DECLARATOR { lex' AlexRawToken_VARIABLE_DECLARATOR }
+@TYPE_ARGUMENT_LIST { lex' AlexRawToken_TYPE_ARGUMENT_LIST }
+@GENERIC_NAME { lex' AlexRawToken_GENERIC_NAME }
+@VARIABLE_DECLARATION { lex' AlexRawToken_VARIABLE_DECLARATION }
+@FIELD_DECLARATION { lex' AlexRawToken_FIELD_DECLARATION }
 
 -- ***************************
 -- *                         *
@@ -236,6 +260,18 @@ data AlexRawToken
      | AlexRawToken_IDENTIFIER_NAME
      | AlexRawToken_QUALIFIED_NAME
      | AlexRawToken_NAME_EQUALS
+     | AlexRawToken_NAMESPACE_DECLARATION
+     | AlexRawToken_CLASS_DECLARATION
+     | AlexRawToken_SIMPLE_BASE_TYPE
+     | AlexRawToken_BASE_LIST
+     | AlexRawToken_ARGUMENT_LIST
+     | AlexRawToken_OBJECT_CREATION_EXPRESSION
+     | AlexRawToken_EQUALS_VALUE_CLAUSE
+     | AlexRawToken_VARIABLE_DECLARATOR
+     | AlexRawToken_TYPE_ARGUMENT_LIST
+     | AlexRawToken_GENERIC_NAME
+     | AlexRawToken_VARIABLE_DECLARATION
+     | AlexRawToken_FIELD_DECLARATION
 
      -- ***************
      -- *             *

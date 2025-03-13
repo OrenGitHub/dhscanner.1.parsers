@@ -98,6 +98,19 @@ import Data.Map ( fromList, empty )
 'IdentifierName' { AlexTokenTag AlexRawToken_IDENTIFIER_NAME _ }
 'QualifiedName' { AlexTokenTag AlexRawToken_QUALIFIED_NAME _ }
 'NameEquals' { AlexTokenTag AlexRawToken_NAME_EQUALS _ }
+'NamespaceDeclaration' { AlexTokenTag AlexRawToken_NAMESPACE_DECLARATION _ }
+'ClassDeclaration' { AlexTokenTag AlexRawToken_CLASS_DECLARATION _ }
+'SimpleBaseType' { AlexTokenTag AlexRawToken_SIMPLE_BASE_TYPE _ }
+'BaseList' { AlexTokenTag AlexRawToken_BASE_LIST _ }
+'ArgumentList' { AlexTokenTag AlexRawToken_ARGUMENT_LIST _ }
+'ObjectCreationExpression' { AlexTokenTag AlexRawToken_OBJECT_CREATION_EXPRESSION _ }
+'EqualsValueClause' { AlexTokenTag AlexRawToken_EQUALS_VALUE_CLAUSE _ }
+'VariableDeclarator' { AlexTokenTag AlexRawToken_VARIABLE_DECLARATOR _ }
+'TypeArgumentList' { AlexTokenTag AlexRawToken_TYPE_ARGUMENT_LIST _ }
+'ObjectCreationExample' { AlexTokenTag AlexRawToken_OBJECT_CREATION_EXPRESSION _ }
+'GenericName' { AlexTokenTag AlexRawToken_GENERIC_NAME _ }
+'VariableDeclaration' { AlexTokenTag AlexRawToken_VARIABLE_DECLARATION _ }
+'FieldDeclaration' { AlexTokenTag AlexRawToken_FIELD_DECLARATION _ }
 
 -- ************
 -- *          *
@@ -267,8 +280,188 @@ stmt_using:
 stmt_using_1 { $1 } |
 stmt_using_2 { $1 }
 
+stmt_var:
+var
+{
+    Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "theNamespace" (Ast.locationVar $1),
+        Ast.stmtAssignRhs = Ast.ExpVar (Ast.ExpVarContent $1)
+    }
+}
+
+stmt_class:
+'{'
+    'kind' ':' 'ClassDeclaration' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' possibly_empty_listof(stmt)
+'}'
+{
+    Ast.StmtClass $ Ast.StmtClassContent
+    {
+        Ast.stmtClassName = Token.ClassName (Token.Named "MyAwesomeClass" $12),
+        Ast.stmtClassSupers = [],
+        Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
+        Ast.stmtClassMethods = Ast.Methods Data.Map.empty
+    }
+}
+
+simple_base_type:
+'{'
+    'kind' ':' 'SimpleBaseType' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' identifier ']'
+'}'
+{
+    $17
+}
+
+stmt_super:
+'{'
+    'kind' ':' 'BaseList' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' simple_base_type ']'
+'}'
+{
+    Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "thisClassExtends" $12,
+        Ast.stmtAssignRhs = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $17
+    }
+}
+
+type_argument_list:
+'{'
+    'kind' ':' 'TypeArgumentList' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' identifier ']'
+'}'
+{
+    $17
+}
+
+generic_name:
+'{'
+    'kind' ':' 'GenericName' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' type_argument_list ']'
+'}'
+{
+    $17
+}
+
+nominal_type:
+identifier { $1 } |
+generic_name { $1 }
+
+args:
+'{'
+    'kind' ':' 'ArgumentList' ','
+    'value' ':' '(' ')' ','
+    'location' ':' location ','
+    'children' ':' '[' ']'
+'}'
+{
+    []
+}
+
+exp_new:
+'{'
+    'kind' ':' 'ObjectCreationExpression' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' nominal_type ',' args ']'
+'}'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $17,
+        Ast.args = [],
+        Ast.expCallLocation = $12
+    }
+}
+
+exp:
+exp_new { $1 }
+
+equals_value_clause:
+'{'
+    'kind' ':' 'EqualsValueClause' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ']'
+'}'
+{
+    $17
+}
+
+vardec:
+'{'
+    'kind' ':' 'VariableDeclarator' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' equals_value_clause ']'
+'}'
+{
+    $17
+}
+
+stmt_vardec:
+'{'
+    'kind' ':' 'VariableDeclaration' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' nominal_type ',' vardec ']'
+'}'
+{
+    Ast.StmtVardec $ Ast.StmtVardecContent
+    {
+        Ast.stmtVardecName = Token.VarName (Token.Named "unknown" $12),
+        Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "TTT" $12),
+        Ast.stmtVardecInitValue = Nothing,
+        Ast.stmtVardecLocation = $12 
+    }
+}
+
+stmt_data_member:
+'{'
+    'kind' ':' 'FieldDeclaration' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' stmt_vardec ']'
+'}'
+{
+    $17
+}
+
 stmt:
-stmt_using { $1 }
+stmt_var { $1 } |
+stmt_super { $1 } |
+stmt_class { $1 } |
+stmt_using { $1 } |
+stmt_vardec { $1 } |
+stmt_namespace { $1 } |
+stmt_data_member { $1 }
+
+stmt_namespace:
+'{'
+    'kind' ':' 'NamespaceDeclaration' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' possibly_empty_listof(stmt)
+'}'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = $16,
+        Ast.stmtBlockLocation = $12
+    }
+}
 
 location:
 '{'
