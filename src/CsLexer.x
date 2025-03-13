@@ -59,6 +59,7 @@ import Location
 @USING_DIRECTIVE = UsingDirective
 @IDENTIFIER_NAME = IdentifierName
 @QUALIFIED_NAME = QualifiedName
+@NAME_EQUALS = NameEquals
 
 -- ************
 -- *          *
@@ -132,6 +133,7 @@ tokens :-
 @USING_DIRECTIVE { lex' AlexRawToken_USING_DIRECTIVE }
 @IDENTIFIER_NAME { lex' AlexRawToken_IDENTIFIER_NAME }
 @QUALIFIED_NAME { lex' AlexRawToken_QUALIFIED_NAME }
+@NAME_EQUALS { lex' AlexRawToken_NAME_EQUALS }
 
 -- ***************************
 -- *                         *
@@ -233,6 +235,7 @@ data AlexRawToken
      | AlexRawToken_USING_DIRECTIVE
      | AlexRawToken_IDENTIFIER_NAME
      | AlexRawToken_QUALIFIED_NAME
+     | AlexRawToken_NAME_EQUALS
 
      -- ***************
      -- *             *

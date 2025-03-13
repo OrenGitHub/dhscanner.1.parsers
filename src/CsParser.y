@@ -97,6 +97,7 @@ import Data.Map ( fromList, empty )
 'UsingDirective' { AlexTokenTag AlexRawToken_USING_DIRECTIVE _ }
 'IdentifierName' { AlexTokenTag AlexRawToken_IDENTIFIER_NAME _ }
 'QualifiedName' { AlexTokenTag AlexRawToken_QUALIFIED_NAME _ }
+'NameEquals' { AlexTokenTag AlexRawToken_NAME_EQUALS _ }
 
 -- ************
 -- *          *
@@ -217,7 +218,7 @@ var:
 var_simple { $1 } |
 var_field { $1 }
 
-stmt_using:
+stmt_using_1:
 '{'
     'kind' ':' 'UsingDirective' ','
     'value' ':' 'null' ','
@@ -225,8 +226,46 @@ stmt_using:
     'children' ':' nonempty_listof(var)
 '}'
 {
-    Nothing
+    Ast.StmtImport $ Ast.StmtImportContent
+    {
+        Ast.stmtImportSource = stringify $16,
+        Ast.stmtImportFromSource = Nothing,
+        Ast.stmtImportAlias = Nothing,
+        Ast.stmtImportLocation = $12
+    }
 }
+
+name_equals:
+'{'
+    'kind' ':' 'NameEquals' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' identifier ']'
+'}'
+{
+    $17
+}
+
+stmt_using_2:
+'{'
+    'kind' ':' 'UsingDirective' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' name_equals ',' var ']'
+'}'
+{
+    Ast.StmtImport $ Ast.StmtImportContent
+    {
+        Ast.stmtImportSource = stringify [$19],
+        Ast.stmtImportFromSource = Just (Token.content $17),
+        Ast.stmtImportAlias = Nothing,
+        Ast.stmtImportLocation = $12
+    }
+}
+
+stmt_using:
+stmt_using_1 { $1 } |
+stmt_using_2 { $1 }
 
 stmt:
 stmt_using { $1 }
@@ -246,7 +285,7 @@ location:
         colStart = 1 + (fromIntegral (tokIntValue $7)),
         lineEnd = fromIntegral (tokIntValue $11),
         colEnd = 1 + (fromIntegral (tokIntValue $15))
-    } 
+    }
 }
 
 {
@@ -260,6 +299,20 @@ dummyVar loc = Ast.VarSimple $ Ast.VarSimpleContent {
         Token.location = loc
     }
 }
+
+stringifyVarSimple :: Ast.VarSimpleContent -> String
+stringifyVarSimple (Ast.VarSimpleContent (Token.VarName (Token.Named v _))) = v
+
+stringifyVarField :: Ast.VarFieldContent -> String
+stringifyVarField (Ast.VarFieldContent (Ast.ExpVar (Ast.ExpVarContent v)) (Token.FieldName (Token.Named f _)) _) = (stringify' v) ++ "." ++ f
+
+stringify' :: Ast.Var -> String	
+stringify' (Ast.VarSimple v) = stringifyVarSimple v
+stringify' (Ast.VarField v) = stringifyVarField v
+stringify' _ = "MOISH"
+
+stringify :: [ Ast.Var ] -> String
+stringify = concatMap stringify' 
 
 methodify :: Token.ClassName -> [ Ast.Var ] -> [ Ast.Stmt ] -> [(Token.MethdName, Ast.StmtMethodContent)]
 methodify c vars stmts = catMaybes $ Data.List.map (methodify' c vars) stmts
