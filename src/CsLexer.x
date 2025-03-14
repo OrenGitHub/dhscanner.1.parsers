@@ -81,6 +81,7 @@ import Location
 @BLOCK = Block
 @IF_STATEMENT = IfStatement
 @EQUALS_EXPRESSION = EqualsExpression
+@NOT_EQUALS_EXPRESSION = NotEqualsExpression
 @NULL_LITERAL_EXPRESSION = NullLiteralExpression
 @WHILE_STATEMENT = WhileStatement
 @INVOCATION_EXPRESSION = InvocationExpression
@@ -105,6 +106,15 @@ import Location
 @FALSE_LITERAL_EXPRESSION = FalseLiteralExpression
 @TRUE_LITERAL_EXPRESSION = TrueLiteralExpression
 @NUMERIC_LITERAL_EXPRESSION = NumericLiteralExpression
+@STRING_LITERAL_EXPRESSION = StringLiteralExpression
+@SWITCH_STATEMENT = SwitchStatement
+@SWITCH_SECTION = SwitchSection
+@CASE_SWITCH_LABEL = CaseSwitchLabel
+@DEFAULT_SWITCH_LABEL = DefaultSwitchLabel
+@THROW_STATEMENT = ThrowStatement
+@LOCAL_DECLARATION_STATEMENT = LocalDeclarationStatement
+@LOGICAL_NOT_EXPRESSION = LogicalNotExpression
+@PARENTHESIZED_EXPRESSION = ParenthesizedExpression
 
 -- ************
 -- *          *
@@ -200,6 +210,7 @@ tokens :-
 @BLOCK { lex' AlexRawToken_BLOCK }
 @IF_STATEMENT { lex' AlexRawToken_IF_STATEMENT }
 @EQUALS_EXPRESSION { lex' AlexRawToken_EQUALS_EXPRESSION }
+@NOT_EQUALS_EXPRESSION { lex' AlexRawToken_NOT_EQUALS_EXPRESSION }
 @NULL_LITERAL_EXPRESSION { lex' AlexRawToken_NULL_LITERAL_EXPRESSION }
 @WHILE_STATEMENT { lex' AlexRawToken_WHILE_STATEMENT }
 @INVOCATION_EXPRESSION { lex' AlexRawToken_INVOCATION_EXPRESSION }
@@ -224,6 +235,15 @@ tokens :-
 @FALSE_LITERAL_EXPRESSION { lex' AlexRawToken_FALSE_LITERAL_EXPRESSION }
 @TRUE_LITERAL_EXPRESSION { lex' AlexRawToken_TRUE_LITERAL_EXPRESSION }
 @NUMERIC_LITERAL_EXPRESSION { lex' AlexRawToken_NUMERIC_LITERAL_EXPRESSION }
+@STRING_LITERAL_EXPRESSION { lex' AlexRawToken_STRING_LITERAL_EXPRESSION }
+@SWITCH_STATEMENT { lex' AlexRawToken_SWITCH_STATEMENT }
+@SWITCH_SECTION { lex' AlexRawToken_SWITCH_SECTION }
+@CASE_SWITCH_LABEL { lex' AlexRawToken_CASE_SWITCH_LABEL }
+@DEFAULT_SWITCH_LABEL { lex' AlexRawToken_DEFAULT_SWITCH_LABEL }
+@THROW_STATEMENT { lex' AlexRawToken_THROW_STATEMENT }
+@LOCAL_DECLARATION_STATEMENT { lex' AlexRawToken_LOCAL_DECLARATION_STATEMENT }
+@LOGICAL_NOT_EXPRESSION { lex' AlexRawToken_LOGICAL_NOT_EXPRESSION }
+@PARENTHESIZED_EXPRESSION { lex' AlexRawToken_PARENTHESIZED_EXPRESSION }
 
 -- ***************************
 -- *                         *
@@ -347,6 +367,7 @@ data AlexRawToken
      | AlexRawToken_BLOCK
      | AlexRawToken_IF_STATEMENT
      | AlexRawToken_EQUALS_EXPRESSION
+     | AlexRawToken_NOT_EQUALS_EXPRESSION
      | AlexRawToken_NULL_LITERAL_EXPRESSION
      | AlexRawToken_WHILE_STATEMENT
      | AlexRawToken_INVOCATION_EXPRESSION
@@ -371,6 +392,15 @@ data AlexRawToken
      | AlexRawToken_FALSE_LITERAL_EXPRESSION
      | AlexRawToken_TRUE_LITERAL_EXPRESSION
      | AlexRawToken_NUMERIC_LITERAL_EXPRESSION
+     | AlexRawToken_STRING_LITERAL_EXPRESSION
+     | AlexRawToken_SWITCH_STATEMENT
+     | AlexRawToken_SWITCH_SECTION
+     | AlexRawToken_CASE_SWITCH_LABEL
+     | AlexRawToken_DEFAULT_SWITCH_LABEL
+     | AlexRawToken_THROW_STATEMENT
+     | AlexRawToken_LOCAL_DECLARATION_STATEMENT
+     | AlexRawToken_LOGICAL_NOT_EXPRESSION
+     | AlexRawToken_PARENTHESIZED_EXPRESSION
 
      -- ***************
      -- *             *

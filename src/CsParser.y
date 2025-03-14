@@ -120,6 +120,7 @@ import Data.Map ( fromList, empty )
 'Block' { AlexTokenTag AlexRawToken_BLOCK _ }
 'IfStatement' { AlexTokenTag AlexRawToken_IF_STATEMENT _ }
 'EqualsExpression' { AlexTokenTag AlexRawToken_EQUALS_EXPRESSION _ }
+'NotEqualsExpression' { AlexTokenTag AlexRawToken_NOT_EQUALS_EXPRESSION _ }
 'NullLiteralExpression' { AlexTokenTag AlexRawToken_NULL_LITERAL_EXPRESSION _ }
 'WhileStatement' { AlexTokenTag AlexRawToken_WHILE_STATEMENT _ }
 'InvocationExpression' { AlexTokenTag AlexRawToken_INVOCATION_EXPRESSION _ }
@@ -144,6 +145,15 @@ import Data.Map ( fromList, empty )
 'FalseLiteralExpression' { AlexTokenTag AlexRawToken_FALSE_LITERAL_EXPRESSION _ }
 'TrueLiteralExpression' { AlexTokenTag AlexRawToken_TRUE_LITERAL_EXPRESSION _ }
 'NumericLiteralExpression' { AlexTokenTag AlexRawToken_NUMERIC_LITERAL_EXPRESSION _ }
+'SwitchStatement' { AlexTokenTag AlexRawToken_SWITCH_STATEMENT _ }
+'SwitchSection' { AlexTokenTag AlexRawToken_SWITCH_SECTION _ }
+'CaseSwitchLabel' { AlexTokenTag AlexRawToken_CASE_SWITCH_LABEL _ }
+'DefaultSwitchLabel' { AlexTokenTag AlexRawToken_DEFAULT_SWITCH_LABEL _ }
+'StringLiteralExpression' { AlexTokenTag AlexRawToken_STRING_LITERAL_EXPRESSION _ }
+'ThrowStatement' { AlexTokenTag AlexRawToken_THROW_STATEMENT _ }
+'LocalDeclarationStatement' { AlexTokenTag AlexRawToken_LOCAL_DECLARATION_STATEMENT _ }
+'LogicalNotExpression' { AlexTokenTag AlexRawToken_LOGICAL_NOT_EXPRESSION _ }
+'ParenthesizedExpression' { AlexTokenTag AlexRawToken_PARENTHESIZED_EXPRESSION _ }
 
 -- ************
 -- *          *
@@ -530,43 +540,27 @@ exp_arg:
     $17
 }
 
-exp_binop_1:
-'{'
-    'kind' ':' 'EqualsExpression' ','
-    'value' ':' 'null' ','
-    'location' ':' location ','
-    'children' ':' '[' exp ',' exp ']'
-'}'
-{
-    Ast.ExpBinop $ Ast.ExpBinopContent
-    {
-        Ast.expBinopLeft = $17,
-        Ast.expBinopRight = $19,
-        Ast.expBinopOperator = Ast.PLUS,
-        Ast.expBinopLocation = $12
-    }
-}
-
-exp_binop_2:
-'{'
-    'kind' ':' 'IsPatternExpression' ','
-    'value' ':' 'null' ','
-    'location' ':' location ','
-    'children' ':' '[' exp ',' exp ']'
-'}'
-{
-    Ast.ExpBinop $ Ast.ExpBinopContent
-    {
-        Ast.expBinopLeft = $17,
-        Ast.expBinopRight = $19,
-        Ast.expBinopOperator = Ast.PLUS,
-        Ast.expBinopLocation = $12
-    }
-}
+operator:
+'EqualsExpression'    { Nothing } |
+'IsPatternExpression' { Nothing } |
+'NotEqualsExpression' { Nothing }
 
 exp_binop:
-exp_binop_1 { $1 } |
-exp_binop_2 { $1 }
+'{'
+    'kind' ':' operator ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ',' exp ']'
+'}'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $17,
+        Ast.expBinopRight = $19,
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $12
+    }
+}
 
 exp_null:
 '{'
@@ -654,16 +648,52 @@ exp_int:
     Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt (tokIntValue $15) $12
 }
 
+exp_str:
+'{'
+    'kind' ':' 'StringLiteralExpression' ','
+    'value' ':' ID ','
+    'location' ':' location ','
+    'children' ':' '[' ']'
+'}'
+{
+    Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr (tokIDValue $15) $12
+}
+
+exp_not:
+'{'
+    'kind' ':' 'LogicalNotExpression' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ']'
+'}'
+{
+    $17
+}
+
+exp_paren:
+'{'
+    'kind' ':' 'ParenthesizedExpression' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ']'
+'}'
+{
+    $17
+}
+
 exp:
 exp_new { $1 } |
 exp_arg { $1 } |
 exp_var { $1 } |
+exp_not { $1 } |
 exp_int { $1 } |
+exp_str { $1 } |
 exp_this { $1 } |
 exp_call { $1 } |
 exp_null { $1 } |
 exp_bool { $1 } |
 exp_binop { $1 } |
+exp_paren { $1 } |
 exp_casting { $1 } |
 exp_array { $1 }
 
@@ -704,6 +734,17 @@ stmt_vardec:
         Ast.stmtVardecInitValue = $19,
         Ast.stmtVardecLocation = $12 
     }
+}
+
+stmt_local_vardec:
+'{'
+    'kind' ':' 'LocalDeclarationStatement' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' stmt_vardec ']'
+'}'
+{
+    $17
 }
 
 stmt_data_member:
@@ -982,6 +1023,84 @@ stmt_ctor:
 stmt_ctor_1 { $1 } |
 stmt_ctor_2 { $1 }
 
+case_label:
+'{'
+    'kind' ':' 'CaseSwitchLabel' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ']'
+'}'
+{
+    Nothing
+}
+
+normal_case:
+'{'
+    'kind' ':' 'SwitchSection' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' case_label ',' stmt ']'
+'}'
+{
+    Nothing
+}
+
+default:
+'{'
+    'kind' ':' 'DefaultSwitchLabel' ','
+    'value' ':' ID ','
+    'location' ':' location ','
+    'children' ':' '[' ']'
+'}'
+{
+    Nothing
+}
+
+default_stmts:
+stmt { [$1] } |
+stmt ',' default_stmts { $1:$3 }
+
+default_case:
+'{'
+    'kind' ':' 'SwitchSection' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' default ',' default_stmts ']'
+'}'
+{
+    Nothing
+}
+
+case:
+normal_case  { $1 } |
+default_case { $1 }
+
+cases:
+case { [$1] } |
+case ',' cases { $1:$3}
+
+stmt_switch:
+'{'
+    'kind' ':' 'SwitchStatement' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ',' cases ']'
+'}'
+{
+    Ast.StmtExp $17
+}
+
+stmt_throw:
+'{'
+    'kind' ':' 'ThrowStatement' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ']'
+'}'
+{
+    Ast.StmtExp $17
+}
+
 stmt:
 stmt_if { $1 } |
 stmt_exp { $1 } |
@@ -992,6 +1111,8 @@ stmt_class { $1 } |
 stmt_using { $1 } |
 stmt_while { $1 } |
 stmt_block { $1 } |
+stmt_throw { $1 } |
+stmt_switch { $1 } |
 stmt_return { $1 } |
 stmt_vardec { $1 } |
 stmt_assign { $1 } |
@@ -999,6 +1120,7 @@ stmt_method { $1 } |
 stmt_wrapper { $1 } |
 stmt_property { $1 } |
 stmt_namespace { $1 } |
+stmt_local_vardec { $1 } |
 stmt_data_member { $1 }
 
 stmt_namespace:
