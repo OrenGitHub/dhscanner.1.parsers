@@ -118,7 +118,17 @@ import Data.Map ( fromList, empty )
 'MethodDeclaration' { AlexTokenTag AlexRawToken_METHOD_DECLARATION _ }
 'ParameterList' { AlexTokenTag AlexRawToken_PARAMETER_LIST _ }
 'Block' { AlexTokenTag AlexRawToken_BLOCK _ }
-
+'IfStatement' { AlexTokenTag AlexRawToken_IF_STATEMENT _ }
+'EqualsExpression' { AlexTokenTag AlexRawToken_EQUALS_EXPRESSION _ }
+'NullLiteralExpression' { AlexTokenTag AlexRawToken_NULL_LITERAL_EXPRESSION _ }
+'WhileStatement' { AlexTokenTag AlexRawToken_WHILE_STATEMENT _ }
+'InvocationExpression' { AlexTokenTag AlexRawToken_INVOCATION_EXPRESSION _ }
+'SimpleMemberAccessExpression' { AlexTokenTag AlexRawToken_SIMPLE_MEMBER_ACCESS_EXPRESSION _ }
+'ExpressionStatement' { AlexTokenTag AlexRawToken_EXPRESSION_STATEMENT _ }
+'SimpleAssignmentExpression' { AlexTokenTag AlexRawToken_SIMPLE_ASSIGNMENT_EXPRESSION _ }
+'IsPatternExpression' { AlexTokenTag AlexRawToken_IS_PATTERN_EXPRESSION _ }
+'DeclarationPattern' { AlexTokenTag AlexRawToken_DECLARATION_PATTERN _ }
+'SingleVariableDesignation' { AlexTokenTag AlexRawToken_SINGLE_VARIABLE_DESIGNATION _ }
 
 -- ************
 -- *          *
@@ -214,7 +224,7 @@ identifier:
     }
 }
 
-var_simple:
+var_simple_1:
 identifier
 {
     Ast.VarSimple $ Ast.VarSimpleContent
@@ -223,7 +233,26 @@ identifier
     }
 }
 
-var_field:
+var_simple_2:
+'{'
+    'kind' ':' 'SingleVariableDesignation' ','
+    'value' ':' ID ','
+    'location' ':' location ','
+    'children' ':' '[' ']'
+'}'
+{
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+    {
+        Token.content = tokIDValue $8,
+        Token.location = $12
+    }
+}
+
+var_simple:
+var_simple_1 { $1 } |
+var_simple_2 { $1 }
+
+var_field_1:
 '{'
     'kind' ':' 'QualifiedName' ','
     'value' ':' 'null' ','
@@ -238,6 +267,26 @@ var_field:
         Ast.varFieldLocation = $12
     }
 }
+
+var_field_2:
+'{'
+    'kind' ':' 'SimpleMemberAccessExpression' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' var ',' identifier ']'
+'}'
+{
+    Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $17,
+        Ast.varFieldName = Token.FieldName $19,
+        Ast.varFieldLocation = $12
+    }
+}
+
+var_field:
+var_field_1 { $1 } |
+var_field_2 { $1 }
 
 var:
 var_simple { $1 } |
@@ -383,12 +432,16 @@ identifier { $1 } |
 nullable_type { $1 } |
 generic_name { $1 }
 
+argument_list_value:
+'(' ')' { Nothing } |
+'null'  { Nothing }
+
 args:
 '{'
     'kind' ':' 'ArgumentList' ','
-    'value' ':' '(' ')' ','
+    'value' ':' argument_list_value ','
     'location' ':' location ','
-    'children' ':' '[' ']'
+    'children' ':' possibly_empty_listof(exp_arg)
 '}'
 {
     []
@@ -450,10 +503,90 @@ exp_arg:
     $17
 }
 
+exp_binop_1:
+'{'
+    'kind' ':' 'EqualsExpression' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ',' exp ']'
+'}'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $17,
+        Ast.expBinopRight = $19,
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $12
+    }
+}
+
+exp_binop_2:
+'{'
+    'kind' ':' 'IsPatternExpression' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ',' exp ']'
+'}'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $17,
+        Ast.expBinopRight = $19,
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $12
+    }
+}
+
+exp_binop:
+exp_binop_1 { $1 } |
+exp_binop_2 { $1 }
+
+exp_null:
+'{'
+    'kind' ':' 'NullLiteralExpression' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' ']'
+'}'
+{
+    Ast.ExpNull (Ast.ExpNullContent (Token.ConstNull $12))
+}
+
+exp_call:
+'{'
+    'kind' ':' 'InvocationExpression' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ',' args ']'
+'}'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = $17,
+        Ast.args = $19,
+        Ast.expCallLocation = $12
+    }
+}
+
+exp_casting:
+'{'
+    'kind' ':' 'DeclarationPattern' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' var ',' exp ']'
+'}'
+{
+    $19
+}
+
 exp:
 exp_new { $1 } |
 exp_arg { $1 } |
 exp_var { $1 } |
+exp_call { $1 } |
+exp_null { $1 } |
+exp_binop { $1 } |
+exp_casting { $1 } |
 exp_array { $1 }
 
 equals_value_clause:
@@ -550,13 +683,78 @@ stmt_method:
     }
 }
 
+stmt_if:
+'{'
+    'kind' ':' 'IfStatement' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ',' body ']'
+'}'
+{
+    Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = $17,
+        Ast.stmtIfBody = $19,
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $12
+    }
+}
+
+stmt_while:
+'{'
+    'kind' ':' 'WhileStatement' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' exp ',' body ']'
+'}'
+{
+    Ast.StmtWhile $ Ast.StmtWhileContent
+    {
+        Ast.stmtWhileCond = $17,
+        Ast.stmtWhileBody = $19,
+        Ast.stmtWhileLocation = $12
+    }
+}
+
+stmt_wrapper:
+'{'
+    'kind' ':' 'ExpressionStatement' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' stmt ']'
+'}'
+{
+    $17
+}
+
+stmt_assign:
+'{'
+    'kind' ':' 'SimpleAssignmentExpression' ','
+    'value' ':' 'null' ','
+    'location' ':' location ','
+    'children' ':' '[' var ',' exp ']'
+'}'
+{
+    Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = $17,
+        Ast.stmtAssignRhs = $19
+    }
+}
+
+stmt_exp: exp { Ast.StmtExp $1 }
+
 stmt:
-stmt_var { $1 } |
+stmt_if { $1 } |
+stmt_exp { $1 } |
 stmt_super { $1 } |
 stmt_class { $1 } |
 stmt_using { $1 } |
+stmt_while { $1 } |
 stmt_vardec { $1 } |
+stmt_assign { $1 } |
 stmt_method { $1 } |
+stmt_wrapper { $1 } |
 stmt_namespace { $1 } |
 stmt_data_member { $1 }
 

@@ -79,6 +79,17 @@ import Location
 @METHOD_DECLARATION = MethodDeclaration
 @PARAMETER_LIST = ParameterList
 @BLOCK = Block
+@IF_STATEMENT = IfStatement
+@EQUALS_EXPRESSION = EqualsExpression
+@NULL_LITERAL_EXPRESSION = NullLiteralExpression
+@WHILE_STATEMENT = WhileStatement
+@INVOCATION_EXPRESSION = InvocationExpression
+@SIMPLE_MEMBER_ACCESS_EXPRESSION = SimpleMemberAccessExpression
+@EXPRESSION_STATEMENT = ExpressionStatement
+@SIMPLE_ASSIGNMENT_EXPRESSION = SimpleAssignmentExpression
+@IS_PATTERN_EXPRESSION = IsPatternExpression
+@DECLARATION_PATTERN = DeclarationPattern
+@SINGLE_VARIABLE_DESIGNATION = SingleVariableDesignation
 
 -- ************
 -- *          *
@@ -172,6 +183,17 @@ tokens :-
 @METHOD_DECLARATION { lex' AlexRawToken_METHOD_DECLARATION }
 @PARAMETER_LIST { lex' AlexRawToken_PARAMETER_LIST }
 @BLOCK { lex' AlexRawToken_BLOCK }
+@IF_STATEMENT { lex' AlexRawToken_IF_STATEMENT }
+@EQUALS_EXPRESSION { lex' AlexRawToken_EQUALS_EXPRESSION }
+@NULL_LITERAL_EXPRESSION { lex' AlexRawToken_NULL_LITERAL_EXPRESSION }
+@WHILE_STATEMENT { lex' AlexRawToken_WHILE_STATEMENT }
+@INVOCATION_EXPRESSION { lex' AlexRawToken_INVOCATION_EXPRESSION }
+@SIMPLE_MEMBER_ACCESS_EXPRESSION { lex' AlexRawToken_SIMPLE_MEMBER_ACCESS_EXPRESSION }
+@EXPRESSION_STATEMENT { lex' AlexRawToken_EXPRESSION_STATEMENT }
+@SIMPLE_ASSIGNMENT_EXPRESSION { lex' AlexRawToken_SIMPLE_ASSIGNMENT_EXPRESSION }
+@IS_PATTERN_EXPRESSION { lex' AlexRawToken_IS_PATTERN_EXPRESSION }
+@DECLARATION_PATTERN { lex' AlexRawToken_DECLARATION_PATTERN }
+@SINGLE_VARIABLE_DESIGNATION { lex' AlexRawToken_SINGLE_VARIABLE_DESIGNATION }
 
 -- ***************************
 -- *                         *
@@ -293,6 +315,17 @@ data AlexRawToken
      | AlexRawToken_METHOD_DECLARATION
      | AlexRawToken_PARAMETER_LIST
      | AlexRawToken_BLOCK
+     | AlexRawToken_IF_STATEMENT
+     | AlexRawToken_EQUALS_EXPRESSION
+     | AlexRawToken_NULL_LITERAL_EXPRESSION
+     | AlexRawToken_WHILE_STATEMENT
+     | AlexRawToken_INVOCATION_EXPRESSION
+     | AlexRawToken_SIMPLE_MEMBER_ACCESS_EXPRESSION
+     | AlexRawToken_EXPRESSION_STATEMENT
+     | AlexRawToken_SIMPLE_ASSIGNMENT_EXPRESSION
+     | AlexRawToken_IS_PATTERN_EXPRESSION
+     | AlexRawToken_DECLARATION_PATTERN
+     | AlexRawToken_SINGLE_VARIABLE_DESIGNATION
 
      -- ***************
      -- *             *
