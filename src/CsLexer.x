@@ -90,6 +90,17 @@ import Location
 @IS_PATTERN_EXPRESSION = IsPatternExpression
 @DECLARATION_PATTERN = DeclarationPattern
 @SINGLE_VARIABLE_DESIGNATION = SingleVariableDesignation
+@ELSE_CLAUSE = ElseClause
+@BREAK_STATEMENT = BreakStatement
+@RETURN_STATEMENT = ReturnStatement
+@CONSTRUCTOR_DECLARATION = ConstructorDeclaration
+@PARAMETER = Parameter
+@THIS_CONSTRUCTOR_INITIALIZER = ThisConstructorInitializer
+@THIS_EXPRESSION = ThisExpression
+@PROPERTY_DECLARATION = PropertyDeclaration
+@ACCESSOR_LIST = AccessorList
+@GET_ACCESSOR_DECLARATION = GetAccessorDeclaration
+@SET_ACCESSOR_DECLARATION = SetAccessorDeclaration
 
 -- ************
 -- *          *
@@ -194,6 +205,17 @@ tokens :-
 @IS_PATTERN_EXPRESSION { lex' AlexRawToken_IS_PATTERN_EXPRESSION }
 @DECLARATION_PATTERN { lex' AlexRawToken_DECLARATION_PATTERN }
 @SINGLE_VARIABLE_DESIGNATION { lex' AlexRawToken_SINGLE_VARIABLE_DESIGNATION }
+@ELSE_CLAUSE { lex' AlexRawToken_ELSE_CLAUSE }
+@BREAK_STATEMENT { lex' AlexRawToken_BREAK_STATEMENT }
+@RETURN_STATEMENT { lex' AlexRawToken_RETURN_STATEMENT }
+@CONSTRUCTOR_DECLARATION { lex' AlexRawToken_CONSTRUCTOR_DECLARATION }
+@PARAMETER { lex' AlexRawToken_PARAMETER }
+@THIS_CONSTRUCTOR_INITIALIZER { lex' AlexRawToken_THIS_CONSTRUCTOR_INITIALIZER }
+@THIS_EXPRESSION { lex' AlexRawToken_THIS_EXPRESSION }
+@PROPERTY_DECLARATION { lex' AlexRawToken_PROPERTY_DECLARATION }
+@ACCESSOR_LIST { lex' AlexRawToken_ACCESSOR_LIST }
+@GET_ACCESSOR_DECLARATION { lex' AlexRawToken_GET_ACCESSOR_DECLARATION }
+@SET_ACCESSOR_DECLARATION { lex' AlexRawToken_SET_ACCESSOR_DECLARATION }
 
 -- ***************************
 -- *                         *
@@ -326,6 +348,17 @@ data AlexRawToken
      | AlexRawToken_IS_PATTERN_EXPRESSION
      | AlexRawToken_DECLARATION_PATTERN
      | AlexRawToken_SINGLE_VARIABLE_DESIGNATION
+     | AlexRawToken_ELSE_CLAUSE
+     | AlexRawToken_BREAK_STATEMENT
+     | AlexRawToken_RETURN_STATEMENT
+     | AlexRawToken_CONSTRUCTOR_DECLARATION
+     | AlexRawToken_PARAMETER
+     | AlexRawToken_THIS_CONSTRUCTOR_INITIALIZER
+     | AlexRawToken_THIS_EXPRESSION
+     | AlexRawToken_PROPERTY_DECLARATION
+     | AlexRawToken_ACCESSOR_LIST
+     | AlexRawToken_GET_ACCESSOR_DECLARATION
+     | AlexRawToken_SET_ACCESSOR_DECLARATION
 
      -- ***************
      -- *             *
