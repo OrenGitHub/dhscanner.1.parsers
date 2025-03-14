@@ -140,6 +140,10 @@ import Data.Map ( fromList, empty )
 'AccessorList' { AlexTokenTag AlexRawToken_ACCESSOR_LIST _ }
 'GetAccessorDeclaration' { AlexTokenTag AlexRawToken_GET_ACCESSOR_DECLARATION _ }
 'SetAccessorDeclaration' { AlexTokenTag AlexRawToken_SET_ACCESSOR_DECLARATION _ }
+'PredefinedType' { AlexTokenTag AlexRawToken_PREDEFINED_TYPE _ }
+'FalseLiteralExpression' { AlexTokenTag AlexRawToken_FALSE_LITERAL_EXPRESSION _ }
+'TrueLiteralExpression' { AlexTokenTag AlexRawToken_TRUE_LITERAL_EXPRESSION _ }
+'NumericLiteralExpression' { AlexTokenTag AlexRawToken_NUMERIC_LITERAL_EXPRESSION _ }
 
 -- ************
 -- *          *
@@ -438,9 +442,21 @@ nullable_type:
     $17
 }
 
+predefined_type:
+'{'
+    'kind' ':' 'PredefinedType' ','
+    'value' ':' ID ','
+    'location' ':' location ','
+    'children' ':' '[' ']'
+'}'
+{
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName (Token.Named "any" $12)
+}
+
 nominal_type:
 var { $1 } |
 nullable_type { $1 } |
+predefined_type { $1 } |
 generic_name { Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $1 }
 
 argument_list_value:
@@ -601,13 +617,52 @@ exp_this:
     Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "this" $12
 }
 
+exp_bool_true:
+'{'
+    'kind' ':' 'TrueLiteralExpression' ','
+    'value' ':' ID ','
+    'location' ':' location ','
+    'children' ':' '[' ']'
+'}'
+{
+    Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool False $12
+}
+
+exp_bool_false:
+'{'
+    'kind' ':' 'FalseLiteralExpression' ','
+    'value' ':' ID ','
+    'location' ':' location ','
+    'children' ':' '[' ']'
+'}'
+{
+    Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool False $12
+}
+
+exp_bool:
+exp_bool_true { $1 } |
+exp_bool_false { $1 }
+
+exp_int:
+'{'
+    'kind' ':' 'NumericLiteralExpression' ','
+    'value' ':' INT ','
+    'location' ':' location ','
+    'children' ':' '[' ']'
+'}'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt (tokIntValue $15) $12
+}
+
 exp:
 exp_new { $1 } |
 exp_arg { $1 } |
 exp_var { $1 } |
+exp_int { $1 } |
 exp_this { $1 } |
 exp_call { $1 } |
 exp_null { $1 } |
+exp_bool { $1 } |
 exp_binop { $1 } |
 exp_casting { $1 } |
 exp_array { $1 }
@@ -712,7 +767,7 @@ body_value:
 '{' '}' { Nothing } |
 'null'  { Nothing }
 
-body:
+stmt_block:
 '{'
     'kind' ':' 'Block' ','
     'value' ':' body_value ','
@@ -720,7 +775,7 @@ body:
     'children' ':' possibly_empty_listof(stmt)
 '}'
 {
-    $16
+    Ast.StmtBlock $ Ast.StmtBlockContent $16 $12
 }
 
 parameter_list_value:
@@ -756,7 +811,7 @@ stmt_method:
     'kind' ':' 'MethodDeclaration' ','
     'value' ':' 'null' ','
     'location' ':' location ','
-    'children' ':' '[' return_type ',' params ',' body ']'
+    'children' ':' '[' return_type ',' params ',' stmt_block ']'
 '}'
 {
     Ast.StmtMethod $ Ast.StmtMethodContent
@@ -764,7 +819,7 @@ stmt_method:
         Ast.stmtMethodReturnType = Token.NominalTy (Token.Named "POPO" $12),
         Ast.stmtMethodName = Token.MethdName (Token.Named "POPO" $12),
         Ast.stmtMethodParams = $19,
-        Ast.stmtMethodBody = $21,
+        Ast.stmtMethodBody = [],
         Ast.stmtMethodLocation = $12,
         Ast.hostingClassName = Token.ClassName (Token.Named "MOMO" $12),
         Ast.hostingClassSupers = []
@@ -777,7 +832,7 @@ else:
     'kind' ':' 'ElseClause' ','
     'value' ':' 'null' ','
     'location' ':' location ','
-    'children' ':' '[' body ']'
+    'children' ':' nonempty_listof(stmt)
 '}'
 {
     $17
@@ -788,13 +843,13 @@ stmt_if:
     'kind' ':' 'IfStatement' ','
     'value' ':' 'null' ','
     'location' ':' location ','
-    'children' ':' '[' exp ',' body optional(else) ']'
+    'children' ':' '[' exp ',' stmt_block optional(else) ']'
 '}'
 {
     Ast.StmtIf $ Ast.StmtIfContent
     {
         Ast.stmtIfCond = $17,
-        Ast.stmtIfBody = $19,
+        Ast.stmtIfBody = [],
         Ast.stmtElseBody = [],
         Ast.stmtIfLocation = $12
     }
@@ -805,13 +860,13 @@ stmt_while:
     'kind' ':' 'WhileStatement' ','
     'value' ':' 'null' ','
     'location' ':' location ','
-    'children' ':' '[' exp ',' body ']'
+    'children' ':' '[' exp ',' stmt_block ']'
 '}'
 {
     Ast.StmtWhile $ Ast.StmtWhileContent
     {
         Ast.stmtWhileCond = $17,
-        Ast.stmtWhileBody = $19,
+        Ast.stmtWhileBody = [],
         Ast.stmtWhileLocation = $12
     }
 }
@@ -886,7 +941,7 @@ stmt_ctor_1:
     'kind' ':' 'ConstructorDeclaration' ','
     'value' ':' 'null' ','
     'location' ':' location ','
-    'children' ':' '[' params ',' initializer ',' body ']'
+    'children' ':' '[' params ',' initializer ',' stmt_block ']'
 '}'
 {
 
@@ -895,7 +950,7 @@ stmt_ctor_1:
         Ast.stmtMethodReturnType = Token.NominalTy (Token.Named "POPO" $12),
         Ast.stmtMethodName = Token.MethdName (Token.Named "POPO" $12),
         Ast.stmtMethodParams = $17,
-        Ast.stmtMethodBody = $21,
+        Ast.stmtMethodBody = [],
         Ast.stmtMethodLocation = $12,
         Ast.hostingClassName = Token.ClassName (Token.Named "MOMO" $12),
         Ast.hostingClassSupers = []
@@ -907,7 +962,7 @@ stmt_ctor_2:
     'kind' ':' 'ConstructorDeclaration' ','
     'value' ':' 'null' ','
     'location' ':' location ','
-    'children' ':' '[' params ',' body ']'
+    'children' ':' '[' params ',' stmt_block ']'
 '}'
 {
 
@@ -916,7 +971,7 @@ stmt_ctor_2:
         Ast.stmtMethodReturnType = Token.NominalTy (Token.Named "POPO" $12),
         Ast.stmtMethodName = Token.MethdName (Token.Named "POPO" $12),
         Ast.stmtMethodParams = $17,
-        Ast.stmtMethodBody = $19,
+        Ast.stmtMethodBody = [],
         Ast.stmtMethodLocation = $12,
         Ast.hostingClassName = Token.ClassName (Token.Named "MOMO" $12),
         Ast.hostingClassSupers = []
@@ -936,6 +991,7 @@ stmt_break { $1 } |
 stmt_class { $1 } |
 stmt_using { $1 } |
 stmt_while { $1 } |
+stmt_block { $1 } |
 stmt_return { $1 } |
 stmt_vardec { $1 } |
 stmt_assign { $1 } |

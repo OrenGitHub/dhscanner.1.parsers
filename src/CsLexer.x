@@ -101,6 +101,10 @@ import Location
 @ACCESSOR_LIST = AccessorList
 @GET_ACCESSOR_DECLARATION = GetAccessorDeclaration
 @SET_ACCESSOR_DECLARATION = SetAccessorDeclaration
+@PREDEFINED_TYPE = PredefinedType
+@FALSE_LITERAL_EXPRESSION = FalseLiteralExpression
+@TRUE_LITERAL_EXPRESSION = TrueLiteralExpression
+@NUMERIC_LITERAL_EXPRESSION = NumericLiteralExpression
 
 -- ************
 -- *          *
@@ -216,6 +220,10 @@ tokens :-
 @ACCESSOR_LIST { lex' AlexRawToken_ACCESSOR_LIST }
 @GET_ACCESSOR_DECLARATION { lex' AlexRawToken_GET_ACCESSOR_DECLARATION }
 @SET_ACCESSOR_DECLARATION { lex' AlexRawToken_SET_ACCESSOR_DECLARATION }
+@PREDEFINED_TYPE { lex' AlexRawToken_PREDEFINED_TYPE }
+@FALSE_LITERAL_EXPRESSION { lex' AlexRawToken_FALSE_LITERAL_EXPRESSION }
+@TRUE_LITERAL_EXPRESSION { lex' AlexRawToken_TRUE_LITERAL_EXPRESSION }
+@NUMERIC_LITERAL_EXPRESSION { lex' AlexRawToken_NUMERIC_LITERAL_EXPRESSION }
 
 -- ***************************
 -- *                         *
@@ -359,6 +367,10 @@ data AlexRawToken
      | AlexRawToken_ACCESSOR_LIST
      | AlexRawToken_GET_ACCESSOR_DECLARATION
      | AlexRawToken_SET_ACCESSOR_DECLARATION
+     | AlexRawToken_PREDEFINED_TYPE
+     | AlexRawToken_FALSE_LITERAL_EXPRESSION
+     | AlexRawToken_TRUE_LITERAL_EXPRESSION
+     | AlexRawToken_NUMERIC_LITERAL_EXPRESSION
 
      -- ***************
      -- *             *
