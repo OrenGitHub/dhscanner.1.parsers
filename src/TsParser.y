@@ -511,6 +511,7 @@ ampersandlistof(a): a { [$1] } | a 'AmpersandToken' loc '(' ')' ampersandlistof(
 -- *                    *
 -- **********************
 commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
+possibly_empty_listof(a): { [] } | commalistof(a) { $1 }
 
 -- ******************
 -- *                *
@@ -546,6 +547,22 @@ identifier:
     }
 }
 
+parameter:
+'Parameter' loc
+'('
+    identifier
+    optional(type_hint)
+')'
+{
+    Ast.Param
+    {
+        Ast.paramName = Token.ParamName $4,
+        Ast.paramNominalType = Token.NominalTy (Token.Named "any" $2),
+        Ast.paramSerialIdx = 156
+    }
+}
+
+throwKeyword:        'ThrowKeyword'        loc '(' ')' { Nothing }
 importKeyword:       'ImportKeyword'       loc '(' ')' { Nothing }
 interfaceKeyword:    'InterfaceKeyword'    loc '(' ')' { Nothing }
 nullKeyword:         'NullKeyword'         loc '(' ')' { $2 }
@@ -1045,6 +1062,16 @@ stmt_return:
     }
 }
 
+stmt_throw:
+'ThrowStatement' loc
+'('
+    throwKeyword
+    exp
+')'
+{
+    Ast.StmtExp $5
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -1058,6 +1085,7 @@ stmt_function    { $1 } |
 stmt_property    { $1 } |
 stmt_class       { $1 } |
 stmt_return      { $1 } |
+stmt_throw       { $1 } |
 stmt_decvar      { $1 }
 
 -- ******************
@@ -1350,6 +1378,60 @@ exp_ternary:
     }
 }
 
+stmt_method:
+'MethodDeclaration' loc
+'('
+    identifier
+    openParenToken
+    possibly_empty_listof(parameter)
+    closeParenToken
+    body
+')'
+{
+    Ast.StmtMethodContent
+    {
+        Ast.stmtMethodReturnType = Token.NominalTy (Token.Named "any" $2),
+        Ast.stmtMethodName = Token.MethdName $4,
+        Ast.stmtMethodParams = $6,
+        Ast.stmtMethodBody = $8,
+        Ast.stmtMethodLocation = $2,
+        Ast.hostingClassName = Token.ClassName (Token.Named "host" $2),
+        Ast.hostingClassSupers = []
+    }
+}
+
+shorthandElement:
+identifier
+{
+    Ast.StmtMethodContent
+    {
+        Ast.stmtMethodReturnType = Token.NominalTy $1,
+        Ast.stmtMethodName = Token.MethdName $1,
+        Ast.stmtMethodParams = [],
+        Ast.stmtMethodBody = [],
+        Ast.stmtMethodLocation = Token.location $1,
+        Ast.hostingClassName = Token.ClassName $1,
+        Ast.hostingClassSupers = []
+    } 
+}
+
+shorthandPropertyAssignment_1:
+'ShorthandPropertyAssignment' loc
+'('
+    shorthandElement
+')'
+{
+    $4
+}
+
+shorthandPropertyAssignment_2:
+stmt_method { $1 }
+
+
+shorthandPropertyAssignment:
+shorthandPropertyAssignment_1 { $1 } |
+shorthandPropertyAssignment_2 { $1 }
+
 -- **********************
 -- *                    *
 -- * exp object literal *
@@ -1358,12 +1440,14 @@ exp_ternary:
 exp_objliteral:
 'ObjectLiteralExpression' loc
 '('
+    commalistof(shorthandPropertyAssignment)
 ')'
 {
-    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    Ast.ExpCall $ Ast.ExpCallContent
     {
-        Token.constIntValue = 888,
-        Token.constIntLocation = $2
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "dictify" $2,
+        Ast.args = lambdame $4,
+        Ast.expCallLocation = $2
     }
 }
 
@@ -1590,6 +1674,16 @@ assignify' v e = Ast.StmtAssign (Ast.StmtAssignContent v e)
 assignify :: [ Ast.Var ] -> Exp -> [ Ast.Stmt ]
 assignify [] _ = []
 assignify (v:vs) e = (assignify' v e):(assignify vs e)
+
+lambdame' :: Ast.StmtMethodContent -> Ast.Exp
+lambdame' m = Ast.ExpLambda $ Ast.ExpLambdaContent {
+    Ast.expLambdaParams = Ast.stmtMethodParams m,
+    Ast.expLambdaBody = Ast.stmtMethodBody m,
+    Ast.expLambdaLocation = Ast.stmtMethodLocation m
+} 
+
+lambdame :: [ Ast.StmtMethodContent ] -> [ Ast.Exp ]
+lambdame = Data.List.map lambdame'
 
 getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
 getFuncNameAttr = undefined
