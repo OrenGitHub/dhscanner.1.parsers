@@ -20,7 +20,7 @@ import qualified Token
 -- *******************
 import Data.Maybe
 import Data.Either
-import Data.List ( map )
+import Data.List ( map, stripPrefix )
 import Data.Map ( empty, fromList )
 
 }
@@ -611,7 +611,7 @@ importSpecifier:
     identifier
 ')'
 {
-    Nothing
+    $4
 }
 
 
@@ -621,13 +621,13 @@ namedImports:
     commalistof(importSpecifier)
 ')'
 {
-    Nothing
+    $4
 }
 
 importClauseStuff:
 namedImports
 {
-    Nothing
+    $1
 }
 
 importClause:
@@ -636,7 +636,7 @@ importClause:
     importClauseStuff
 ')'
 {
-    Nothing
+    $4
 }
 
 
@@ -657,7 +657,7 @@ stringLiteral:
 {
     Token.ConstStr
     {
-        Token.constStrValue = tokSTRValue $4,
+        Token.constStrValue = unquote (tokSTRValue $4),
         Token.constStrLocation = $2
     }
 }
@@ -678,9 +678,9 @@ stmt_import:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportSource = "Zuchmir",
-        Ast.stmtImportFromSource = Just "Moish",
-        Ast.stmtImportAlias = Just "MM",
+        Ast.stmtImportSource = unlocalify (Token.constStrValue $7),
+        Ast.stmtImportFromSource = case $5 of { (i:_) -> Just (Token.content i); _ -> Just "GGG" },
+        Ast.stmtImportAlias = Nothing,
         Ast.stmtImportLocation = $2
     }
 }
@@ -1649,6 +1649,9 @@ loc:
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
+
+unlocalify :: String -> String
+unlocalify imported = case (Data.List.stripPrefix "./" imported) of { Just filename -> filename; _ -> imported }
 
 extractParamSingleName' :: [ Token.ParamName ] -> Maybe Token.ParamName
 extractParamSingleName' ps = case ps of { [p] -> Just p; _ -> Nothing }
