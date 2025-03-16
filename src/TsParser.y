@@ -78,6 +78,7 @@ import Data.Map ( empty, fromList )
 -- ************
 
 ':'    { AlexTokenTag AlexRawToken_COLON _ }
+','    { AlexTokenTag AlexRawToken_COMMA _ }
 '-'    { AlexTokenTag AlexRawToken_MINUS _ }
 
 -- *********************
@@ -501,9 +502,15 @@ ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
 -- *                    *
 -- **********************
 listof(a):          a { [$1] } | a listof(a)                                       { $1:$2 }
-commalistof(a):     a { [$1] } | a 'CommaToken'     loc '(' ')' commalistof(a)     { $1:$6 }
 barlistof(a):       a { [$1] } | a 'BarToken'       loc '(' ')' barlistof(a)       { $1:$6 }
 ampersandlistof(a): a { [$1] } | a 'AmpersandToken' loc '(' ')' ampersandlistof(a) { $1:$6 }
+
+-- **********************
+-- *                    *
+-- * parametrized lists *
+-- *                    *
+-- **********************
+commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
 
 -- ******************
 -- *                *
@@ -517,7 +524,7 @@ optional(a): { Nothing } | a { Just $1 }
 -- * Ast root: program *
 -- *                   *
 -- *********************
-program: listof(stmt)
+program: commalistof(stmt)
 {
     Ast.Root
     {
@@ -855,7 +862,7 @@ stmt_property:
 body:
 'Block' loc
 '('
-    listof(stmt)
+    commalistof(stmt)
 ')'
 {
     $4
@@ -917,7 +924,7 @@ stmt_function:
 -- * stmt if *
 -- *         *
 -- ***********
-stmt_if:
+stmt_if_1:
 'IfStatement' loc
 '('
     ifKeyword
@@ -935,6 +942,34 @@ stmt_if:
         Ast.stmtIfLocation = $2
     }
 }
+
+-- ***********
+-- *         *
+-- * stmt if *
+-- *         *
+-- ***********
+stmt_if_2:
+'IfStatement' loc
+'('
+    ifKeyword
+    openParenToken
+    exp
+    closeParenToken
+    stmt
+')'
+{
+    Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = $6,
+        Ast.stmtIfBody = [$8],
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $2
+    }
+}
+
+stmt_if:
+stmt_if_1 { $1 } |
+stmt_if_2 { $1 }
 
 -- ************
 -- *          *
@@ -1004,22 +1039,47 @@ exp_arrow_func:
 -- * exp call *
 -- *          *
 -- ************
-exp_call:
+exp_call_1:
 'CallExpression' loc
 '('
     exp
     openParenToken
-    optional(commalistof(exp))
+    commalistof(exp)
     closeParenToken
 ')'
 {
     Ast.ExpCall $ Ast.ExpCallContent
     {
         Ast.callee = $4,
-        Ast.args = case $6 of { Nothing -> []; Just exps -> exps },
+        Ast.args = $6,
         Ast.expCallLocation = $2
     }
 }
+
+-- ************
+-- *          *
+-- * exp call *
+-- *          *
+-- ************
+exp_call_2:
+'CallExpression' loc
+'('
+    exp
+    openParenToken
+    closeParenToken
+')'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = $4,
+        Ast.args = [],
+        Ast.expCallLocation = $2
+    }
+}
+
+exp_call:
+exp_call_1 { $1 } |
+exp_call_2 { $1 }
 
 -- ***********
 -- *         *
@@ -1034,6 +1094,7 @@ stringLiteral
 
 operator:
 inKeyword            { Nothing } |
+firstBinaryOperator  { Nothing } |
 firstAssignment      { Nothing } |
 barBarToken          { Nothing } |
 eqEqEqToken          { Nothing } |
@@ -1401,6 +1462,24 @@ exp_regex:
     }
 }
 
+exp_int:
+'FirstLiteralToken' loc '(' ')'
+{
+    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 888 $2
+}
+
+exp_ty_assert:
+'TypeAssertionExpression' loc
+'('
+    firstBinaryOperator
+    typeReference
+    greaterThanToken
+    exp
+')'
+{
+    $7
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1408,6 +1487,7 @@ exp_regex:
 -- *******
 exp:
 exp_str        { $1 } |
+exp_int        { $1 } |
 exp_new        { $1 } |
 exp_bool       { $1 } |
 exp_null       { $1 } |
@@ -1424,6 +1504,7 @@ exp_delete     { $1 } |
 exp_typeof     { $1 } |
 exp_binop      { $1 } |
 exp_regex      { $1 } |
+exp_ty_assert  { $1 } |
 exp_arrow_func { $1 }
 
 loc:

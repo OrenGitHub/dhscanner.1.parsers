@@ -58,6 +58,7 @@ import Location
 -- ******************
 @COLON = ":"
 @MINUS = \-
+@COMMA = ","
 
 -- ************
 -- *          *
@@ -509,6 +510,7 @@ tokens :-
 -- ************
 
 @COLON     { lex' AlexRawToken_COLON }
+@COMMA     { lex' AlexRawToken_COMMA }
 @MINUS     { lex' AlexRawToken_MINUS }
 
 -- ************
@@ -1004,6 +1006,7 @@ data AlexRawToken
      -- ************
 
      | AlexRawToken_COLON -- ^ For location support
+     | AlexRawToken_COMMA -- ^ For location support
      | AlexRawToken_MINUS -- ^ For location support
 
      -- ************
