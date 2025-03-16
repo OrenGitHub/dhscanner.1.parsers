@@ -716,7 +716,7 @@ type_hint: colonToken type
 -- * stmt decvar *
 -- *             *
 -- ***************
-stmt_decvar:
+stmt_decvar_1:
 'VariableDeclarationList' loc
 '('
     'VariableDeclaration' loc '(' identifier optional(type_hint) firstAssignment exp ')'
@@ -730,6 +730,47 @@ stmt_decvar:
         Ast.stmtVardecLocation = $2
     }
 }
+
+bindingElement:
+'BindingElement' loc
+'('
+    identifier
+')'
+{
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $4
+}
+
+objectBindingPattern:
+'ObjectBindingPattern' loc
+'('
+    commalistof(bindingElement)
+')'
+{
+    $4
+}
+
+-- ***************
+-- *             *
+-- * stmt decvar *
+-- *             *
+-- ***************
+stmt_decvar_2:
+'VariableDeclarationList' loc
+'('
+    'VariableDeclaration' loc
+    '('
+        objectBindingPattern
+        firstAssignment
+        exp
+    ')'
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent (assignify $7 $9) $2
+}
+
+stmt_decvar:
+stmt_decvar_1 { $1 } |
+stmt_decvar_2 { $1 }
 
 expressionWithTypeArguments:
 'ExpressionWithTypeArguments' loc
@@ -1542,6 +1583,13 @@ paramify attrs l = let
     name = extractParamSingleName attrs
     nominalType = extractParamNominalType attrs
     in case (name, nominalType) of { (Just n, Just t) -> Just $ Ast.Param n t 0; _ -> Nothing }
+
+assignify' :: Ast.Var -> Exp -> Ast.Stmt
+assignify' v e = Ast.StmtAssign (Ast.StmtAssignContent v e)
+
+assignify :: [ Ast.Var ] -> Exp -> [ Ast.Stmt ]
+assignify [] _ = []
+assignify (v:vs) e = (assignify' v e):(assignify vs e)
 
 getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
 getFuncNameAttr = undefined
