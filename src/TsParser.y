@@ -1057,7 +1057,7 @@ stmt_return:
 {
     Ast.StmtReturn $ Ast.StmtReturnContent
     {
-        Ast.stmtReturnValue = Nothing,
+        Ast.stmtReturnValue = $5,
         Ast.stmtReturnLocation = $2
     }
 }
