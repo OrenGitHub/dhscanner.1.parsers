@@ -577,6 +577,7 @@ unknownKeyword:      'UnknownKeyword'      loc '(' ')' { Nothing }
 deleteKeyword:       'DeleteKeyword'       loc '(' ')' { Nothing }
 typeOfKeyword:       'TypeOfKeyword'       loc '(' ')' { Nothing }
 returnKeyword:       'ReturnKeyword'       loc '(' ')' { Nothing }
+slashToken:          'SlashToken'          loc '(' ')' { Nothing }
 exclamationToken:    'ExclamationToken'    loc '(' ')' { Nothing }
 undefinedKeyword:    'UndefinedKeyword'    loc '(' ')' { Nothing }
 templateHead:        'TemplateHead'        loc '(' ')' { Nothing }
@@ -733,7 +734,7 @@ type_hint: colonToken type
 -- * stmt decvar *
 -- *             *
 -- ***************
-stmt_decvar_1:
+stmt_decvar_1_original:
 'VariableDeclarationList' loc
 '('
     'VariableDeclaration' loc '(' identifier optional(type_hint) firstAssignment exp ')'
@@ -746,6 +747,20 @@ stmt_decvar_1:
         Ast.stmtVardecInitValue = Just $10,
         Ast.stmtVardecLocation = $2
     }
+}
+
+-- ***************
+-- *             *
+-- * stmt decvar *
+-- *             *
+-- ***************
+stmt_decvar_1:
+'VariableDeclarationList' loc
+'('
+    'VariableDeclaration' loc '(' identifier optional(type_hint) firstAssignment exp ')'
+')'
+{
+    normalize_exports $7 $10 $2
 }
 
 bindingElement:
@@ -1593,16 +1608,29 @@ exp_int:
     Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 888 $2
 }
 
-exp_ty_assert:
-'TypeAssertionExpression' loc
+exp_jsx:
+'JsxElement' loc
 '('
-    firstBinaryOperator
-    typeReference
-    greaterThanToken
-    exp
+    'JsxOpeningElement' loc
+    '('
+        firstBinaryOperator
+        identifier
+        greaterThanToken
+    ')'
+    'JsxExpression' loc
+    '('
+        exp
+    ')'
+    'JsxClosingElement' loc
+    '('
+        firstBinaryOperator
+        slashToken
+        identifier
+        greaterThanToken
+    ')'
 ')'
 {
-    $7
+    $14
 }
 
 -- *******
@@ -1629,7 +1657,7 @@ exp_delete     { $1 } |
 exp_typeof     { $1 } |
 exp_binop      { $1 } |
 exp_regex      { $1 } |
-exp_ty_assert  { $1 } |
+exp_jsx        { $1 } |
 exp_arrow_func { $1 }
 
 loc:
@@ -1687,6 +1715,67 @@ lambdame' m = Ast.ExpLambda $ Ast.ExpLambdaContent {
 
 lambdame :: [ Ast.StmtMethodContent ] -> [ Ast.Exp ]
 lambdame = Data.List.map lambdame'
+
+exported_dict_3 :: Ast.VarSimpleContent -> [ Ast.ExpLambdaContent ] -> Maybe [ Ast.ExpLambdaContent ]
+exported_dict_3 _ [] = Nothing
+exported_dict_3 (Ast.VarSimpleContent (Token.VarName (Token.Named "dictify" _))) lambdas = Just lambdas
+exported_dict_3 _ _ = Nothing
+
+lambdas_only' :: Ast.Exp -> Maybe Ast.ExpLambdaContent
+lambdas_only' (Ast.ExpLambda content) = Just content
+lambdas_only' _ = Nothing
+
+lambdas_only :: [ Ast.Exp ] -> [ Ast.ExpLambdaContent ]
+lambdas_only exps = catMaybes (Data.List.map lambdas_only' exps)
+
+exported_dict_2 :: Ast.ExpVarContent -> [ Ast.Exp ] -> Maybe [ Ast.ExpLambdaContent ]
+exported_dict_2 (Ast.ExpVarContent (Ast.VarSimple v)) exps = exported_dict_3 v (lambdas_only exps)
+exported_dict_2 _ _ = Nothing
+
+exported_dict_1 :: Ast.ExpCallContent -> Maybe [ Ast.ExpLambdaContent ]
+exported_dict_1 (Ast.ExpCallContent (Ast.ExpVar v) args _) = exported_dict_2 v args
+exported_dict_1 _ = Nothing
+
+exported_dict :: Ast.Exp -> Maybe [ Ast.ExpLambdaContent ]
+exported_dict (Ast.ExpCall e) = exported_dict_1 e
+exported_dict _ = Nothing
+
+normalize_exports_helper' :: Token.Named -> Ast.Exp -> Location -> Ast.ExpLambdaContent -> Ast.Stmt
+normalize_exports_helper' v exp l lambda = let
+    location = Ast.expLambdaLocation lambda
+    params = Ast.expLambdaParams lambda
+    real_params = case params of { (p:ps) -> ps; _ -> [] }
+    methodName = case params of { ((Ast.Param (Token.ParamName p) _ _):_) -> p; _ -> Token.Named "popo" location }
+    in Ast.StmtMethod $ Ast.StmtMethodContent {
+        Ast.stmtMethodReturnType = Token.NominalTy $ Token.Named "any" location,
+        Ast.stmtMethodName = Token.MethdName methodName,
+        Ast.stmtMethodParams = real_params,
+        Ast.stmtMethodBody = Ast.expLambdaBody lambda,
+        Ast.stmtMethodLocation = l,
+        Ast.hostingClassName = Token.ClassName $ Token.Named "host" location,
+        Ast.hostingClassSupers = []
+    } 
+
+normalize_exports_helper :: Token.Named -> Ast.Exp -> Location -> [ Ast.ExpLambdaContent ] -> [ Ast.Stmt ]
+normalize_exports_helper v exp l lambdas = Data.List.map (normalize_exports_helper' v exp l) lambdas
+
+normalize_exports' :: Token.Named -> Ast.Exp -> Location -> [ Ast.ExpLambdaContent ] -> Ast.Stmt
+normalize_exports' v exp l lambdas = let
+    methods = normalize_exports_helper v exp l lambdas
+    in Ast.StmtBlock $ Ast.StmtBlockContent methods l
+
+normalize_exports'' :: Token.Named -> Ast.Exp -> Location -> Ast.Stmt
+normalize_exports'' v exp l = Ast.StmtVardec $ Ast.StmtVardecContent {
+    Ast.stmtVardecName = Token.VarName v,
+    Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" l),
+    Ast.stmtVardecInitValue = Just exp,
+    Ast.stmtVardecLocation = l
+}
+
+normalize_exports :: Token.Named -> Ast.Exp -> Location -> Ast.Stmt
+normalize_exports v exp l = case (exported_dict exp) of
+    Just lambdas -> normalize_exports' v exp l lambdas
+    Nothing -> normalize_exports'' v exp l 
 
 getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
 getFuncNameAttr = undefined
