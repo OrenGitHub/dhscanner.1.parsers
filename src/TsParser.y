@@ -1059,6 +1059,21 @@ stmt_exp:
     Ast.StmtExp $4
 }
 
+-- ************
+-- *          *
+-- * stmt exp *
+-- *          *
+-- ************
+stmt_exp:
+'ExpressionStatement' loc
+'('
+    stmt_assign
+')'
+{
+    $4
+}
+
+
 -- ***************
 -- *             *
 -- * stmt return *
@@ -1180,7 +1195,6 @@ stringLiteral
 operator:
 inKeyword            { Nothing } |
 firstBinaryOperator  { Nothing } |
-firstAssignment      { Nothing } |
 barBarToken          { Nothing } |
 eqEqEqToken          { Nothing } |
 ampAmpToken          { Nothing } |
@@ -1205,6 +1219,26 @@ exp_binop:
         Ast.expBinopRight = $6,
         Ast.expBinopOperator = Ast.PLUS,
         Ast.expBinopLocation = $2
+    }
+}
+
+-- *************
+-- *           *
+-- * exp binop *
+-- *           *
+-- *************
+stmt_assign:
+'BinaryExpression' loc
+'('
+    var
+    firstAssignment
+    exp
+')'
+{
+    Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = $4,
+        Ast.stmtAssignRhs = $6
     }
 }
 
