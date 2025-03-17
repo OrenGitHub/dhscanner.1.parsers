@@ -22,6 +22,7 @@ import Data.Maybe
 import Data.Either
 import Data.List ( map, stripPrefix )
 import Data.Map ( empty, fromList )
+import System.FilePath ( takeBaseName )
 
 }
 
@@ -1745,18 +1746,20 @@ exported_dict (Ast.ExpCall e) = exported_dict_1 e
 exported_dict _ = Nothing
 
 normalize_exports_helper' :: Token.Named -> Ast.Exp -> Location -> Ast.ExpLambdaContent -> Ast.Stmt
-normalize_exports_helper' v exp l lambda = let
+normalize_exports_helper' v exp _ lambda = let
     location = Ast.expLambdaLocation lambda
     params = Ast.expLambdaParams lambda
     real_params = case params of { (p:ps) -> ps; _ -> [] }
     methodName = case params of { ((Ast.Param (Token.ParamName p) _ _):_) -> p; _ -> Token.Named "popo" location }
+    filename = takeBaseName (Location.filename location)
+    exportedHost = filename ++ "." ++ (Token.content v)
     in Ast.StmtMethod $ Ast.StmtMethodContent {
         Ast.stmtMethodReturnType = Token.NominalTy $ Token.Named "any" location,
         Ast.stmtMethodName = Token.MethdName methodName,
         Ast.stmtMethodParams = real_params,
         Ast.stmtMethodBody = Ast.expLambdaBody lambda,
-        Ast.stmtMethodLocation = l,
-        Ast.hostingClassName = Token.ClassName $ Token.Named "host" location,
+        Ast.stmtMethodLocation = location,
+        Ast.hostingClassName = Token.ClassName $ Token.Named exportedHost location,
         Ast.hostingClassSupers = []
     } 
 
