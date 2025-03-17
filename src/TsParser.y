@@ -706,7 +706,7 @@ unknownKeyword   { Nothing } |
 undefinedKeyword { Nothing } |
 stringKeyword    { Nothing } |
 voidKeyword      { Nothing } |
-identifier       { Nothing } |
+identifier       { Just $1 } |
 typeReference    { Nothing } |
 literalType      { Nothing } |
 typeLiteral      { Nothing }
@@ -870,7 +870,7 @@ union_type                       { Nothing } |
 intersection_type                { Nothing } |
 parenthesized_type               { Nothing } |
 type_operator                    { Nothing } |
-internal_type optional(generics) { Nothing }
+internal_type optional(generics) { $1 }
 
 extends:
 'HeritageClause' loc
@@ -1579,7 +1579,7 @@ exp_new:
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
         {
-            Token.content = "new",
+            Token.content = case $5 of { Just t -> Token.content t; _ -> "nondet"},
             Token.location = $2
         },
         Ast.args = case $7 of { Nothing -> []; Just exps -> exps },
@@ -1707,11 +1707,15 @@ assignify [] _ = []
 assignify (v:vs) e = (assignify' v e):(assignify vs e)
 
 lambdame' :: Ast.StmtMethodContent -> Ast.Exp
-lambdame' m = Ast.ExpLambda $ Ast.ExpLambdaContent {
-    Ast.expLambdaParams = Ast.stmtMethodParams m,
-    Ast.expLambdaBody = Ast.stmtMethodBody m,
-    Ast.expLambdaLocation = Ast.stmtMethodLocation m
-} 
+lambdame' m = let
+    l = Token.getMethodNameLocation (Ast.stmtMethodName m)
+    p = Token.ParamName (Token.getMethdNameToken (Ast.stmtMethodName m))
+    t = Token.NominalTy (Token.Named "any" l)
+    in Ast.ExpLambda $ Ast.ExpLambdaContent {
+        Ast.expLambdaParams = [(Ast.Param p t 174)] ++ (Ast.stmtMethodParams m),
+        Ast.expLambdaBody = Ast.stmtMethodBody m,
+        Ast.expLambdaLocation = Ast.stmtMethodLocation m
+    }
 
 lambdame :: [ Ast.StmtMethodContent ] -> [ Ast.Exp ]
 lambdame = Data.List.map lambdame'
