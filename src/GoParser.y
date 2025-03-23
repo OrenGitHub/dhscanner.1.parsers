@@ -90,9 +90,16 @@ import Data.Map ( fromList, empty )
 -- *           *
 -- *************
 
-'-' { AlexTokenTag AlexRawToken_MINUS _ }
-'*' { AlexTokenTag AlexRawToken_TIMES _ }
-'@' { AlexTokenTag AlexRawToken_AT _    }
+'-'  { AlexTokenTag AlexRawToken_MINUS _ }
+'*'  { AlexTokenTag AlexRawToken_TIMES _ }
+'+'  { AlexTokenTag AlexRawToken_OP_PLUS _ }
+'@'  { AlexTokenTag AlexRawToken_AT _    }
+'&'  { AlexTokenTag AlexRawToken_ampersand _ }
+':=' { AlexTokenTag AlexRawToken_OP_ASSIGN _ }
+'!=' { AlexTokenTag AlexRawToken_OP_NEQ _ }
+'!'  { AlexTokenTag AlexRawToken_OP_BANG _ }
+'&&' { AlexTokenTag AlexRawToken_OP_AND _ }
+'>=' { AlexTokenTag AlexRawToken_OP_GEQ _ }
 
 -- ************
 -- *          *
@@ -150,6 +157,53 @@ import Data.Map ( fromList, empty )
 'Index' { AlexTokenTag AlexRawToken_Index _ }
 '*ast.SelectorExpr' { AlexTokenTag AlexRawToken_astSelectorExpr _ }
 'Sel' { AlexTokenTag AlexRawToken_Sel _ }
+'Y' { AlexTokenTag AlexRawToken_Y _ }
+'Op' { AlexTokenTag AlexRawToken_Op _ }
+'OpPos' { AlexTokenTag AlexRawToken_OpPos _ }
+'*ast.BinaryExpr' { AlexTokenTag AlexRawToken_astBinaryExpr _ }
+'INT' { AlexTokenTag AlexRawToken_KW_INT _ }
+'type' { AlexTokenTag AlexRawToken_type _ }
+'*ast.Field' { AlexTokenTag AlexRawToken_astField _ }
+'Tag' { AlexTokenTag AlexRawToken_Tag _ }
+'*ast.FieldList' { AlexTokenTag AlexRawToken_astFieldList _ }
+'Opening' { AlexTokenTag AlexRawToken_Opening _ }
+'List' { AlexTokenTag AlexRawToken_List _ }
+'Closing' { AlexTokenTag AlexRawToken_Closing _ }
+'*ast.StructType' { AlexTokenTag AlexRawToken_astStructType _ }
+'Struct' { AlexTokenTag AlexRawToken_Struct _ }
+'Fields' { AlexTokenTag AlexRawToken_Fields _ }
+'Incomplete' { AlexTokenTag AlexRawToken_Incomplete _ }
+'false' { AlexTokenTag AlexRawToken_false _ }
+'*ast.TypeSpec' { AlexTokenTag AlexRawToken_astTypeSpec _ }
+'TypeParams' { AlexTokenTag AlexRawToken_TypeParams _ }
+'Assign' { AlexTokenTag AlexRawToken_Assign _ }
+'*ast.FuncType' { AlexTokenTag AlexRawToken_astFuncType _ }
+'Func' { AlexTokenTag AlexRawToken_Func _ }
+'Params' { AlexTokenTag AlexRawToken_Params _ }
+'Results' { AlexTokenTag AlexRawToken_Results _ }
+'*ast.BlockStmt' { AlexTokenTag AlexRawToken_astBlockStmt _ }
+'Lbrace' { AlexTokenTag AlexRawToken_Lbrace _ }
+'Rbrace' { AlexTokenTag AlexRawToken_Rbrace _ }
+'*ast.FuncDecl' { AlexTokenTag AlexRawToken_astFuncDecl _ }
+'Recv' { AlexTokenTag AlexRawToken_Recv _ }
+'Body' { AlexTokenTag AlexRawToken_Body _ }
+'func' { AlexTokenTag AlexRawToken_func _ }
+'Star' { AlexTokenTag AlexRawToken_Star _ }
+'*ast.StarExpr' { AlexTokenTag AlexRawToken_astStarExpr _ }
+'ast.Stmt' { AlexTokenTag AlexRawToken_astStmt _ }
+'*ast.DeclStmt' { AlexTokenTag AlexRawToken_astDeclStmt _ }
+'If' { AlexTokenTag AlexRawToken_If _ }
+'Init' { AlexTokenTag AlexRawToken_Init _ }
+'Cond' { AlexTokenTag AlexRawToken_Cond _ }
+'Else' { AlexTokenTag AlexRawToken_Else _ }
+'*ast.IfStmt' { AlexTokenTag AlexRawToken_astIfStmt _ }
+'Lhs' { AlexTokenTag AlexRawToken_Lhs _ }
+'Rhs' { AlexTokenTag AlexRawToken_Rhs _ }
+'*ast.AssignStmt' { AlexTokenTag AlexRawToken_astAssignStmt _ }
+'*ast.UnaryExpr' { AlexTokenTag AlexRawToken_astUnaryExpr _ }
+'*ast.ExprStmt' { AlexTokenTag AlexRawToken_astExprStmt _ }
+'*ast.ReturnStmt' { AlexTokenTag AlexRawToken_astReturnStmt _ }
+'Return' { AlexTokenTag AlexRawToken_Return _ }
 -- last keywords first part
 
 -- ************
@@ -188,6 +242,7 @@ optional(a): { Nothing } | a { Just $1 }
 -- *        *
 -- **********
 ornull(a): 'nil' { Nothing } | a { Just $1 }
+orempty(a): 'nil' { [] } | a { $1 }
 
 -- **********************
 -- *                    *
@@ -219,7 +274,10 @@ program:
 
 tokenID:
 'import' { "import" } |
-'var'    { "var"    }
+'var'    { "var"    } |
+'nil'    { "null"   } |
+'type'   { "type"   } |
+'func'   { "func"   }
 
 stmts:
 '[' ']' 'ast.Decl' '(' 'len' '=' INT ')'
@@ -280,12 +338,27 @@ exp_str:
     }
 }
 
+exp_int:
+'*ast.BasicLit'
+'{'
+    'ValuePos' ':' filename ':' location
+    'Kind' ':' 'INT'
+    'Value' ':' QUOTED_ID
+'}'
+{
+    Token.ConstInt
+    {
+        Token.constIntValue = 8888,
+        Token.constIntLocation = $7
+    }
+}
+
 exp_call:
 '*ast.CallExpr'
 '{'
     'Fun' ':' exp
     'Lparen' ':' filename ':' location
-    'Args' ':' 'nil'
+    'Args' ':' orempty(values)
     'Ellipsis' ':' '-'
     'Rparen' ':' filename ':' location
 '}'
@@ -340,10 +413,64 @@ var_subscript { $1 }
 exp_var:
 var { Ast.ExpVar $ Ast.ExpVarContent $1 }
 
+operator:
+'*'  { Nothing } |
+'+'  { Nothing } |
+'!'  { Nothing } |
+'&'  { Nothing } |
+'&&' { Nothing } |
+':=' { Nothing } |
+'='  { Nothing } |
+'>=' { Nothing } |
+'!=' { Nothing }
+
+exp_binop:
+'*ast.BinaryExpr'
+'{'
+    'X' ':' exp
+    'OpPos' ':' filename ':' location
+    'Op' ':' operator
+    'Y' ':' exp
+'}'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $5,
+        Ast.expBinopRight = $16,
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $10
+    }
+}
+
+exp_star:
+'*ast.StarExpr'
+'{'
+    'Star' ':' filename ':' location
+    'X' ':' exp
+'}'
+{
+    $10
+}
+
+exp_unop:
+'*ast.UnaryExpr'
+'{'
+    'OpPos' ':' filename ':' location
+    'Op' ':' operator
+    'X' ':' exp
+'}'
+{
+    $13
+}
+
 exp:
 exp_str { Ast.ExpStr $ Ast.ExpStrContent $1 } |
+exp_int { Ast.ExpInt $ Ast.ExpIntContent $1 } |
 exp_var { $1 } |
-exp_call { $1 }
+exp_call { $1 } |
+exp_star { $1 } |
+exp_unop { $1 } |
+exp_binop { $1 }
 
 stmt_import:
 '*ast.ImportSpec'
@@ -401,8 +528,8 @@ stmt_decvar:
 '{'
     'Doc' ':' 'nil'
     'Names' ':' names
-    'Type' ':' 'nil'
-    'Values' ':' values
+    'Type' ':' ornull(identifier)
+    'Values' ':' orempty(values)
     'Comment' ':' 'nil'
 '}'
 {
@@ -413,9 +540,237 @@ stmt_decvar:
     }
 }
 
+field:
+'*ast.Field'
+'{'
+    'Doc' ':' 'nil'
+    'Names' ':' names
+    'Type' ':' exp
+    'Tag' ':' ornull(exp_str)
+    'Comment' ':' 'nil'
+'}'
+{
+    Nothing
+}
+
+numbered_field:
+INT ':' field { $3 }
+
+numbered_fields:
+numbered_field { [$1] } |
+numbered_field numbered_fields { $1:$2 }
+
+fields_list: '[' ']' '*ast.Field' '(' 'len' '=' INT ')'
+'{'
+    numbered_fields
+'}'
+{
+    $10
+}
+
+fields:
+'*ast.FieldList'
+'{'
+    'Opening' ':' filename ':' location
+    'List' ':' fields_list
+    'Closing' ':' filename ':' location
+'}'
+{
+    $10
+}
+
+type_struct:
+'*ast.StructType'
+'{'
+    'Struct' ':' filename ':' location
+    'Fields' ':' fields
+    'Incomplete' ':' 'false'
+'}'
+{
+    $10
+}
+
+stmt_class:
+'*ast.TypeSpec'
+'{'
+    'Doc' ':' 'nil'
+    'Name' ':' identifier
+    'TypeParams' ':' 'nil'
+    'Assign' ':' '-'
+    'Type' ':' type_struct
+    'Comment' ':' 'nil'
+'}'
+{
+    Ast.StmtClass $ Ast.StmtClassContent
+    {
+        Ast.stmtClassName = Token.ClassName $8,
+        Ast.stmtClassSupers = [],
+        Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
+        Ast.stmtClassMethods = Ast.Methods Data.Map.empty
+    }
+}
+
+stmt_type:
+stmt_class { $1 }
+
+type_func:
+'*ast.FuncType'
+'{'
+    'Func' ':' filename ':' location
+    'TypeParams' ':' 'nil'
+    'Params' ':' fields
+    'Results' ':' 'nil'
+'}'
+{
+    []
+}
+
+block_stmts:
+'[' ']' 'ast.Stmt' '(' 'len' '=' INT ')'
+'{'
+    numbered_stmts
+'}'
+{
+    $10
+}
+
+stmt_block:
+'*ast.BlockStmt'
+'{'
+    'Lbrace' ':' filename ':' location
+    'List' ':' block_stmts
+    'Rbrace' ':' filename ':' location
+'}'
+{
+    $10
+}
+
+stmt_func:
+'*ast.FuncDecl'
+'{'
+    'Doc' ':' 'nil'
+    'Recv' ':' 'nil'
+    'Name' ':' identifier
+    'Type' ':' type_func
+    'Body' ':' stmt_block
+'}'
+{
+    Ast.StmtFunc $ Ast.StmtFuncContent
+    {
+        Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" (Token.location $11)),
+        Ast.stmtFuncName = Token.FuncName $11,
+        Ast.stmtFuncParams = [],
+        Ast.stmtFuncBody = $17,
+        Ast.stmtFuncAnnotations = [],
+        Ast.stmtFuncLocation = Token.location $11 
+    }
+}
+
+decl:
+'*ast.GenDecl'
+'{'
+    'Doc' ':' 'nil'
+    'TokPos' ':' filename ':' location
+    'Tok' ':' 'var'
+    'Lparen' ':' '-'
+    'Specs' ':' specs
+    'Rparen' ':' '-'
+'}'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent $19 $10
+}
+
+stmt_decl:
+'*ast.DeclStmt'
+'{'
+    'Decl' ':' decl
+'}'
+{
+    $5
+}
+
+stmt_if:
+'*ast.IfStmt'
+'{'
+    'If' ':' filename ':' location
+    'Init' ':' ornull(stmt)
+    'Cond' ':' exp
+    'Body' ':' stmt_block
+    'Else' ':' 'nil'
+'}'
+{
+    Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = $13,
+        Ast.stmtIfBody = $16,
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $7
+    }
+}
+
+numbered_var:
+INT ':' var { $3 }
+
+numbered_vars:
+numbered_var { ($1,[]) } |
+numbered_var numbered_vars { ($1,(fst $2):(snd $2)) }
+
+stmt_assign:
+'*ast.AssignStmt'
+'{'
+    'Lhs' ':' '[' ']' 'ast.Expr' '(' 'len' '=' INT ')' '{' numbered_vars '}'
+    'TokPos' ':' filename ':' location
+    'Tok' ':' operator
+    'Rhs' ':' '[' ']' 'ast.Expr' '(' 'len' '=' INT ')' '{' numbered_exps '}'
+'}'
+{
+    Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = fst $14,
+        Ast.stmtAssignRhs = Ast.ExpCall $ Ast.ExpCallContent {
+            Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named {
+                Token.content = "expify",
+                Token.location = $20
+            },
+            Ast.args = $35,
+            Ast.expCallLocation = $20
+        }
+    }
+}
+
+stmt_exp:
+'*ast.ExprStmt'
+'{'
+    'X' ':' exp
+'}'
+{
+    Ast.StmtExp $5
+}
+
+stmt_return:
+'*ast.ReturnStmt'
+'{'
+    'Return' ':' filename ':' location
+    'Results' ':' ornull(exp)
+'}'
+{
+    Ast.StmtReturn $ Ast.StmtReturnContent
+    {
+        Ast.stmtReturnValue = $10,
+        Ast.stmtReturnLocation = $7
+    }
+}
+
 stmt:
+stmt_assign  { $1 } |
 stmt_gendecl { $1 } |
+stmt_type    { $1 } |
+stmt_if      { $1 } |
+stmt_exp     { $1 } |
+stmt_func    { $1 } |
 stmt_import  { $1 } |
+stmt_return  { $1 } |
+stmt_decl    { $1 } |
 stmt_decvar  { $1 }
 
 numbered_stmt:
@@ -424,18 +779,42 @@ INT ':' stmt
     $3
 }
 
-object:
+objectdata:
+INT { Nothing } |
+'nil' { Nothing }
+
+object_1:
 '*ast.Object'
 '{'
-    'Kind' ':' 'var'
+    'Kind' ':' tokenID
     'Name' ':' QUOTED_ID
     'Decl' ':' '*' '(' 'obj' '@' INT ')'
-    'Data' ':' INT
-    'Type' ':' 'nil'
+    'Data' ':' objectdata
+    'Type' ':' tokenID
 '}'
 {
     Nothing
 }
+
+object_2: '*' '(' 'obj' '@' INT ')' { Nothing }
+
+object_3:
+'*ast.Object'
+'{'
+    'Kind' ':' tokenID
+    'Name' ':' QUOTED_ID
+    'Decl' ':' stmt
+    'Data' ':' objectdata
+    'Type' ':' tokenID
+'}'
+{
+    Nothing
+}
+
+object:
+object_1 { $1 } |
+object_2 { $1 } |
+object_3 { $1 }
 
 identifier:
 '*ast.Ident'
