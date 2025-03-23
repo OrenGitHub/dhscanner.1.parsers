@@ -28,6 +28,7 @@ import qualified Ast
 -- project imports
 import qualified JsParser
 import qualified CsParser
+import qualified GoParser
 import qualified TsParser
 import qualified PyParser
 import qualified RbParser
@@ -59,6 +60,7 @@ mkYesod "App" [parseRoutes|
 /from/rb/to/dhscanner/ast FromRbR POST
 /from/js/to/dhscanner/ast FromJsR POST
 /from/cs/to/dhscanner/ast FromCsR POST
+/from/go/to/dhscanner/ast FromGoR POST
 /from/ts/to/dhscanner/ast FromTsR POST
 /healthcheck HealthcheckR GET
 |]
@@ -84,6 +86,9 @@ postFromJsR = post JsParser.parseProgram
 
 postFromCsR :: Handler Value
 postFromCsR = post CsParser.parseProgram
+
+postFromGoR :: Handler Value
+postFromGoR = post GoParser.parseProgram
 
 postFromTsR :: Handler Value
 postFromTsR = post TsParser.parseProgram
