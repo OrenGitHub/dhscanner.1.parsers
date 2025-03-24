@@ -162,6 +162,23 @@ import Location
 @OP_GEQ = ">="
 @OP_PLUS = "+"
 @OP_BANG = "!"
+@Key = Key
+@Colon = Colon
+@Elts = Elts
+@astKeyValueExpr = "*ast.KeyValueExpr"
+@astCompositeLit = "*ast.CompositeLit"
+@astTypeAssertExpr = "*ast.TypeAssertExpr"
+@FileStart = FileStart
+@FileEnd = FileEnd
+@Scope = Scope
+@Imports = Imports
+@Unresolved = Unresolved
+@Comments = Comments
+@Outer = Outer
+@Objects = Objects
+@map = map
+@string = string
+@astScope = "*ast.Scope"
 -- last keywords first part
 
 -- ************
@@ -336,6 +353,23 @@ tokens :-
 @OP_GEQ {lex' AlexRawToken_OP_GEQ}
 @OP_PLUS {lex' AlexRawToken_OP_PLUS}
 @OP_BANG {lex' AlexRawToken_OP_BANG}
+@Key {lex' AlexRawToken_Key}
+@Colon {lex' AlexRawToken_Colon}
+@Elts {lex' AlexRawToken_Elts}
+@astKeyValueExpr {lex' AlexRawToken_astKeyValueExpr}
+@astCompositeLit {lex' AlexRawToken_astCompositeLit}
+@astTypeAssertExpr {lex' AlexRawToken_astTypeAssertExpr}
+@FileStart {lex' AlexRawToken_FileStart}
+@FileEnd {lex' AlexRawToken_FileEnd}
+@Scope {lex' AlexRawToken_Scope}
+@Imports {lex' AlexRawToken_Imports}
+@Unresolved {lex' AlexRawToken_Unresolved}
+@Comments {lex' AlexRawToken_Comments}
+@Outer {lex' AlexRawToken_Outer}
+@Objects {lex' AlexRawToken_Objects}
+@map {lex' AlexRawToken_map}
+@string {lex' AlexRawToken_string}
+@astScope {lex' AlexRawToken_astScope}
 -- last keywords second part
 
 -- ***************************
@@ -531,6 +565,23 @@ data AlexRawToken
      | AlexRawToken_OP_GEQ
      | AlexRawToken_OP_PLUS
      | AlexRawToken_OP_BANG
+     | AlexRawToken_Key
+     | AlexRawToken_Colon
+     | AlexRawToken_Elts
+     | AlexRawToken_astKeyValueExpr
+     | AlexRawToken_astCompositeLit
+     | AlexRawToken_astTypeAssertExpr
+     | AlexRawToken_FileStart
+     | AlexRawToken_FileEnd
+     | AlexRawToken_Scope
+     | AlexRawToken_Imports
+     | AlexRawToken_Unresolved
+     | AlexRawToken_Comments
+     | AlexRawToken_Outer
+     | AlexRawToken_Objects
+     | AlexRawToken_map
+     | AlexRawToken_string
+     | AlexRawToken_astScope
      -- last keywords third part
 
      -- ***************

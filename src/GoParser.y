@@ -204,6 +204,23 @@ import Data.Map ( fromList, empty )
 '*ast.ExprStmt' { AlexTokenTag AlexRawToken_astExprStmt _ }
 '*ast.ReturnStmt' { AlexTokenTag AlexRawToken_astReturnStmt _ }
 'Return' { AlexTokenTag AlexRawToken_Return _ }
+'Key' { AlexTokenTag AlexRawToken_Key _ }
+'Colon' { AlexTokenTag AlexRawToken_Colon _ }
+'Elts' { AlexTokenTag AlexRawToken_Elts _ }
+'*ast.KeyValueExpr' { AlexTokenTag AlexRawToken_astKeyValueExpr _ }
+'*ast.CompositeLit' { AlexTokenTag AlexRawToken_astCompositeLit _ }
+'*ast.TypeAssertExpr' { AlexTokenTag AlexRawToken_astTypeAssertExpr _ }
+'FileStart' { AlexTokenTag AlexRawToken_FileStart _ }
+'FileEnd' { AlexTokenTag AlexRawToken_FileEnd _ }
+'Scope' { AlexTokenTag AlexRawToken_Scope _ }
+'Imports' { AlexTokenTag AlexRawToken_Imports _ }
+'Unresolved' { AlexTokenTag AlexRawToken_Unresolved _ }
+'Comments' { AlexTokenTag AlexRawToken_Comments _ }
+'Outer' { AlexTokenTag AlexRawToken_Outer _ }
+'Objects' { AlexTokenTag AlexRawToken_Objects _ }
+'map' { AlexTokenTag AlexRawToken_map _ }
+'string' { AlexTokenTag AlexRawToken_string _ }
+'*ast.Scope' { AlexTokenTag AlexRawToken_astScope _ }
 -- last keywords first part
 
 -- ************
@@ -263,6 +280,12 @@ program:
     'Package' ':' filename ':' location
     'Name' ':' identifier 
     'Decls' ':' stmts
+    'FileStart' ':' filename ':' location
+    'FileEnd' ':' filename ':' location
+    'Scope' ':' scope
+    'Imports' ':' imports
+    'Unresolved' ':' unresolved
+    'Comments' ':' 'nil'
 '}'
 {
     Ast.Root
@@ -270,6 +293,46 @@ program:
         Ast.filename = "DDD",
         stmts = []
     }
+}
+
+scope_object: QUOTED_ID ':' '*' '(' 'obj' '@' INT ')' { Nothing }
+
+scope_objects:
+scope_object { Nothing } |
+scope_object scope_objects { Nothing }
+
+scope:
+'*ast.Scope'
+'{'
+    'Outer' ':' 'nil'
+    'Objects' ':' 'map' '[' 'string' ']' '*ast.Object' '(' 'len' '=' INT ')' '{' scope_objects '}'
+'}'
+{
+    Nothing
+}
+
+imported_obj: INT ':' '*' '(' 'obj' '@' INT ')' { Nothing }
+
+imported_objs:
+imported_obj { Nothing } |
+imported_obj imported_objs { Nothing }
+
+imports:
+'[' ']' '*ast.ImportSpec' '(' 'len' '=' INT ')' '{' imported_objs '}'
+{
+    Nothing
+}
+
+unresolved_obj: INT ':' '*' '(' 'obj' '@' INT ')' { Nothing }
+
+unresolved_objs:
+unresolved_obj { Nothing } |
+unresolved_obj unresolved_objs { Nothing }
+
+unresolved:
+'[' ']' '*ast.Ident' '(' 'len' '=' INT ')' '{' unresolved_objs '}'
+{
+    Nothing
 }
 
 tokenID:
@@ -463,14 +526,66 @@ exp_unop:
     $13
 }
 
+kv:
+'*ast.KeyValueExpr'
+'{'
+    'Key' ':' exp
+    'Colon' ':' filename ':' location
+    'Value' ':' exp
+'}'
+{
+    $13
+}
+
+numbered_kv: INT ':' kv { $3 }
+
+numbered_kvs:
+numbered_kv { [$1] } |
+numbered_kv numbered_kvs { $1:$2 }
+
+exp_dict:
+'*ast.CompositeLit'
+'{'
+    'Type' ':' exp
+    'Lbrace' ':' filename ':' location
+    'Elts' ':' '[' ']' 'ast.Expr' '(' 'len' '=' INT ')' '{' numbered_kvs '}'
+    'Rbrace' ':' filename ':' location
+    'Incomplete' ':' 'false'
+'}'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named {
+            Token.content = "dictify",
+            Token.location = $10
+        },
+        Ast.args = $22,
+        Ast.expCallLocation = $10
+    }
+}
+
+exp_ty_assert:
+'*ast.TypeAssertExpr'
+'{'
+    'X' ':' exp
+    'Lparen' ':' filename ':' location
+    'Type' ':' exp
+    'Rparen' ':' filename ':' location
+'}'
+{
+    $5
+}
+
 exp:
 exp_str { Ast.ExpStr $ Ast.ExpStrContent $1 } |
 exp_int { Ast.ExpInt $ Ast.ExpIntContent $1 } |
 exp_var { $1 } |
+exp_dict { $1 } |
 exp_call { $1 } |
 exp_star { $1 } |
 exp_unop { $1 } |
-exp_binop { $1 }
+exp_binop { $1 } |
+exp_ty_assert { $1 }
 
 stmt_import:
 '*ast.ImportSpec'
@@ -528,7 +643,7 @@ stmt_decvar:
 '{'
     'Doc' ':' 'nil'
     'Names' ':' names
-    'Type' ':' ornull(identifier)
+    'Type' ':' ornull(exp)
     'Values' ':' orempty(values)
     'Comment' ':' 'nil'
 '}'
@@ -544,7 +659,7 @@ field:
 '*ast.Field'
 '{'
     'Doc' ':' 'nil'
-    'Names' ':' names
+    'Names' ':' orempty(names)
     'Type' ':' exp
     'Tag' ':' ornull(exp_str)
     'Comment' ':' 'nil'
@@ -696,7 +811,7 @@ stmt_if:
     'Init' ':' ornull(stmt)
     'Cond' ':' exp
     'Body' ':' stmt_block
-    'Else' ':' 'nil'
+    'Else' ':' orempty(stmt_block)
 '}'
 {
     Ast.StmtIf $ Ast.StmtIfContent
@@ -761,11 +876,18 @@ stmt_return:
     }
 }
 
+stmt_obj:
+'*' '(' 'obj' '@' INT ')'
+{
+    StmtExp $ ExpInt $ ExpIntContent $ Token.ConstInt 0 (Location "" 1 1 1 1)
+}
+
 stmt:
 stmt_assign  { $1 } |
 stmt_gendecl { $1 } |
 stmt_type    { $1 } |
 stmt_if      { $1 } |
+stmt_obj     { $1 } |
 stmt_exp     { $1 } |
 stmt_func    { $1 } |
 stmt_import  { $1 } |
@@ -788,7 +910,7 @@ object_1:
 '{'
     'Kind' ':' tokenID
     'Name' ':' QUOTED_ID
-    'Decl' ':' '*' '(' 'obj' '@' INT ')'
+    'Decl' ':' stmt
     'Data' ':' objectdata
     'Type' ':' tokenID
 '}'
@@ -798,23 +920,9 @@ object_1:
 
 object_2: '*' '(' 'obj' '@' INT ')' { Nothing }
 
-object_3:
-'*ast.Object'
-'{'
-    'Kind' ':' tokenID
-    'Name' ':' QUOTED_ID
-    'Decl' ':' stmt
-    'Data' ':' objectdata
-    'Type' ':' tokenID
-'}'
-{
-    Nothing
-}
-
 object:
 object_1 { $1 } |
-object_2 { $1 } |
-object_3 { $1 }
+object_2 { $1 }
 
 identifier:
 '*ast.Ident'
