@@ -221,6 +221,11 @@ import Data.Map ( fromList, empty )
 'map' { AlexTokenTag AlexRawToken_map _ }
 'string' { AlexTokenTag AlexRawToken_string _ }
 '*ast.Scope' { AlexTokenTag AlexRawToken_astScope _ }
+'Low' { AlexTokenTag AlexRawToken_Low _ }
+'High' { AlexTokenTag AlexRawToken_High _ }
+'*ast.SliceExpr' { AlexTokenTag AlexRawToken_astSliceExpr _ }
+'Max' { AlexTokenTag AlexRawToken_Max _ }
+'Slice3' { AlexTokenTag AlexRawToken_Slice3 _ }
 -- last keywords first part
 
 -- ************
@@ -291,7 +296,7 @@ program:
     Ast.Root
     {
         Ast.filename = "DDD",
-        stmts = []
+        stmts = $16
     }
 }
 
@@ -479,6 +484,7 @@ var { Ast.ExpVar $ Ast.ExpVarContent $1 }
 operator:
 '*'  { Nothing } |
 '+'  { Nothing } |
+'-'  { Nothing } |
 '!'  { Nothing } |
 '&'  { Nothing } |
 '&&' { Nothing } |
@@ -576,6 +582,21 @@ exp_ty_assert:
     $5
 }
 
+exp_slice:
+'*ast.SliceExpr'
+'{'
+    'X' ':' exp
+    'Lbrack' ':' filename ':' location
+    'Low' ':' ornull(exp)
+    'High' ':' ornull(exp)
+    'Max' ':' 'nil'
+    'Slice3' ':' 'false'
+    'Rbrack' ':' filename ':' location
+'}'
+{
+    $5
+}
+
 exp:
 exp_str { Ast.ExpStr $ Ast.ExpStrContent $1 } |
 exp_int { Ast.ExpInt $ Ast.ExpIntContent $1 } |
@@ -584,6 +605,7 @@ exp_dict { $1 } |
 exp_call { $1 } |
 exp_star { $1 } |
 exp_unop { $1 } |
+exp_slice { $1 } |
 exp_binop { $1 } |
 exp_ty_assert { $1 }
 
@@ -665,7 +687,17 @@ field:
     'Comment' ':' 'nil'
 '}'
 {
-    Nothing
+    case $8 of {
+        [] -> Nothing;
+        (name:_) -> case (nameExp $11) of {
+            Nothing -> Nothing;
+            Just nominalType -> Just Ast.Param {
+                Ast.paramName = Token.ParamName name,
+                Ast.paramNominalType = nominalType,
+                Ast.paramSerialIdx = 0
+            }
+        }
+    } 
 }
 
 numbered_field:
@@ -680,7 +712,7 @@ fields_list: '[' ']' '*ast.Field' '(' 'len' '=' INT ')'
     numbered_fields
 '}'
 {
-    $10
+    catMaybes $10
 }
 
 fields:
@@ -737,7 +769,7 @@ type_func:
     'Results' ':' 'nil'
 '}'
 {
-    []
+    $13
 }
 
 block_stmts:
@@ -774,7 +806,7 @@ stmt_func:
     {
         Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" (Token.location $11)),
         Ast.stmtFuncName = Token.FuncName $11,
-        Ast.stmtFuncParams = [],
+        Ast.stmtFuncParams = $14,
         Ast.stmtFuncBody = $17,
         Ast.stmtFuncAnnotations = [],
         Ast.stmtFuncLocation = Token.location $11 
@@ -934,8 +966,14 @@ identifier:
 {
     Token.Named
     {
-        Token.content = "popo",
-        Token.location = $7
+        Token.content = tokIDValue $10,
+        Token.location = Location {
+            Location.filename = Location.filename $7,
+            Location.lineStart = Location.lineStart $7,
+            Location.colStart = Location.colStart $7,
+            Location.lineEnd = Location.lineStart $7,
+            Location.colEnd = (Location.colStart $7) + (fromIntegral (length (tokIDValue $10)))
+        }
     }
 }
 
@@ -949,9 +987,9 @@ INT ':' INT
     {
         Location.filename = getFilename $1,
         lineStart = fromIntegral (tokIntValue $1),
-        colStart = 1 + (fromIntegral (tokIntValue $3)),
+        colStart = (fromIntegral (tokIntValue $3)),
         lineEnd = fromIntegral (tokIntValue $1),
-        colEnd = 1 + (fromIntegral (tokIntValue $3))
+        colEnd = (fromIntegral (tokIntValue $3))
     }
 }
 
@@ -1001,6 +1039,26 @@ methodify'' c vars f = let m = Token.MethdName $ Token.getFuncNameToken (Ast.stm
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
+
+nameExp''' :: Token.Named -> Token.FieldName -> Token.NominalTy
+nameExp''' v (Token.FieldName f) = let
+    n = (Token.content v) ++ "." ++ (Token.content f)
+    vloc = Token.location v
+    floc = Token.location f
+    l = vloc { Location.colEnd = Location.colEnd floc }
+    in Token.NominalTy (Token.Named n l)
+
+nameExp'' :: Ast.Exp -> Token.FieldName -> Maybe Token.NominalTy
+nameExp'' (Ast.ExpVar (Ast.ExpVarContent (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))))) f = Just (nameExp''' v f)
+nameExp'' _ _ = Nothing
+
+nameExp' :: Ast.Var -> Maybe Token.NominalTy
+nameExp' (Ast.VarField (Ast.VarFieldContent lhs fieldName _)) = nameExp'' lhs fieldName
+nameExp' _ = Nothing
+
+nameExp :: Ast.Exp -> Maybe Token.NominalTy
+nameExp (Ast.ExpVar (Ast.ExpVarContent v)) = nameExp' v
+nameExp _ = Nothing
 
 simportify :: Location -> [(String, Maybe String)] -> [ Ast.Stmt ]
 simportify loc args = Data.List.map (simportify' loc) args

@@ -179,6 +179,11 @@ import Location
 @map = map
 @string = string
 @astScope = "*ast.Scope"
+@Low = Low
+@High = High
+@astSliceExpr = "*ast.SliceExpr"
+@Max = Max
+@Slice3 = Slice3
 -- last keywords first part
 
 -- ************
@@ -370,6 +375,11 @@ tokens :-
 @map {lex' AlexRawToken_map}
 @string {lex' AlexRawToken_string}
 @astScope {lex' AlexRawToken_astScope}
+@Low {lex' AlexRawToken_Low}
+@High {lex' AlexRawToken_High}
+@astSliceExpr {lex' AlexRawToken_astSliceExpr}
+@Max {lex' AlexRawToken_Max}
+@Slice3 {lex' AlexRawToken_Slice3}
 -- last keywords second part
 
 -- ***************************
@@ -582,6 +592,11 @@ data AlexRawToken
      | AlexRawToken_map
      | AlexRawToken_string
      | AlexRawToken_astScope
+     | AlexRawToken_Low
+     | AlexRawToken_High
+     | AlexRawToken_astSliceExpr
+     | AlexRawToken_Max
+     | AlexRawToken_Slice3
      -- last keywords third part
 
      -- ***************
@@ -712,7 +727,7 @@ tokIntValue t = case (tokenRaw t) of { AlexRawToken_INT i -> i; _ -> 0; }
 -- *             *
 -- ***************
 tokIDValue :: AlexTokenTag -> String
-tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> s; _ -> "" }
+tokIDValue t = case (tokenRaw t) of { AlexRawToken_QUOTED_ID s -> s; _ -> "" }
 
 -- ************
 -- *          *
