@@ -20,7 +20,8 @@ import qualified Token
 -- *******************
 import Data.Maybe
 import Data.Either
-import Data.List ( map )
+import Data.List ( map, isPrefixOf )
+import Data.List.Split ( splitOn )
 import Data.Map ( fromList, empty )
 
 }
@@ -401,7 +402,7 @@ exp_str:
 {
     Token.ConstStr
     {
-        Token.constStrValue = "POPO",
+        Token.constStrValue = tokIDValue $13,
         Token.constStrLocation = $7
     }
 }
@@ -619,11 +620,11 @@ stmt_import:
     'EndPos' ':' '-'
 '}'
 {
-    Ast.StmtImport $ Ast.StmtImportContent
+    let s = (Token.constStrValue $11) in Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportSource = "momo",
+        Ast.stmtImportSource = s,
         Ast.stmtImportFromSource = Nothing,
-        Ast.stmtImportAlias = Nothing,
+        Ast.stmtImportAlias = Just (extractPackageName s),
         Ast.stmtImportLocation = Token.constStrLocation $11
     }
 }
@@ -1107,6 +1108,12 @@ importify'' loc src (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportCont
     Ast.stmtImportFromSource = Just specific,
     Ast.stmtImportAlias = Just alias,
     Ast.stmtImportLocation = loc
+}
+
+extractPackageName :: String -> String
+extractPackageName s = case ("github.com/" `isPrefixOf` s) of {
+    True -> last ( splitOn "/" s );
+    False -> s
 }
 
 extractParamSingleName' :: [ Token.ParamName ] -> Maybe Token.ParamName

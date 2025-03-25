@@ -60,6 +60,7 @@ executable parser
         dhscanner-ast >= 0.1.0.5,
         aeson,
         array,
+        split,
         yesod,
         filepath,
         yesod-core,
