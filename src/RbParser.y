@@ -2350,7 +2350,7 @@ paramify :: Token.Named -> Ast.Param
 paramify token = let
     paramName = Token.ParamName token
     nominalType = Token.NominalTy (Token.Named "any" (Token.location token))
-    in Ast.Param paramName nominalType 156
+    in Ast.Param paramName nominalType Nothing 156
 
 nameify :: Ast.Var -> Token.Named
 nameify (Ast.VarSimple    v) = nameifyVarSimple    v
@@ -2428,7 +2428,7 @@ enumerateParams (i,(p:ps)) =
     let
         n = (paramName        p)
         t = (paramNominalType p)
-        head = Param { paramName = n, paramNominalType = t, paramSerialIdx = i }
+        head = Param { paramName = n, paramNominalType = t, paramNominalTypeV2 = Nothing, paramSerialIdx = i }
         tail = (enumerateParams (i+1,ps))
     in
         head:tail

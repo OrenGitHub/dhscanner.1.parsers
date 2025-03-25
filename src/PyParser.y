@@ -1586,6 +1586,7 @@ param:
             Token.location = $8 { Location.colEnd = (Location.colStart $8) + (fromIntegral (length $5)) }
         },
         Ast.paramNominalType = Token.NominalTy $ Token.Named "any" $8,
+        Ast.paramNominalTypeV2 = Nothing,
         Ast.paramSerialIdx = 156
     }
 }
@@ -1915,7 +1916,7 @@ paramify :: [ Either Token.ParamName Token.NominalTy ] -> Location -> Maybe Ast.
 paramify attrs l = let
     name = extractParamSingleName attrs
     nominalType = extractParamNominalType attrs
-    in case (name, nominalType) of { (Just n, Just t) -> Just $ Ast.Param n t 0; _ -> Nothing }
+    in case (name, nominalType) of { (Just n, Just t) -> Just $ Ast.Param n t Nothing 0; _ -> Nothing }
 
 getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
 getFuncNameAttr = undefined
@@ -1941,7 +1942,7 @@ enumerateParams (i,(p:ps)) =
     let
         n = (paramName        p)
         t = (paramNominalType p)
-        head = Param { paramName = n, paramNominalType = t, paramSerialIdx = i }
+        head = Param { paramName = n, paramNominalType = t, paramNominalTypeV2 = Nothing, paramSerialIdx = i }
         tail = (enumerateParams (i+1,ps))
     in
         head:tail

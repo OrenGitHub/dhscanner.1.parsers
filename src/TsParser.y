@@ -559,6 +559,7 @@ parameter:
     {
         Ast.paramName = Token.ParamName $4,
         Ast.paramNominalType = Token.NominalTy (Token.Named "any" $2),
+        Ast.paramNominalTypeV2 = Nothing,
         Ast.paramSerialIdx = 156
     }
 }
@@ -957,6 +958,7 @@ param:
             Token.content = "any",
             Token.location = $2
         },
+        Ast.paramNominalTypeV2 = Nothing,
         Ast.paramSerialIdx = 156
     }
 }
@@ -1732,7 +1734,7 @@ paramify :: [ Either Token.ParamName Token.NominalTy ] -> Location -> Maybe Ast.
 paramify attrs l = let
     name = extractParamSingleName attrs
     nominalType = extractParamNominalType attrs
-    in case (name, nominalType) of { (Just n, Just t) -> Just $ Ast.Param n t 0; _ -> Nothing }
+    in case (name, nominalType) of { (Just n, Just t) -> Just $ Ast.Param n t Nothing 0; _ -> Nothing }
 
 assignify' :: Ast.Var -> Exp -> Ast.Stmt
 assignify' v e = Ast.StmtAssign (Ast.StmtAssignContent v e)
@@ -1747,7 +1749,7 @@ lambdame' m = let
     p = Token.ParamName (Token.getMethdNameToken (Ast.stmtMethodName m))
     t = Token.NominalTy (Token.Named "any" l)
     in Ast.ExpLambda $ Ast.ExpLambdaContent {
-        Ast.expLambdaParams = [(Ast.Param p t 174)] ++ (Ast.stmtMethodParams m),
+        Ast.expLambdaParams = [(Ast.Param p t Nothing 174)] ++ (Ast.stmtMethodParams m),
         Ast.expLambdaBody = Ast.stmtMethodBody m,
         Ast.expLambdaLocation = Ast.stmtMethodLocation m
     }
@@ -1784,7 +1786,7 @@ normalize_exports_helper' v exp _ lambda = let
     location = Ast.expLambdaLocation lambda
     params = Ast.expLambdaParams lambda
     real_params = case params of { (p:ps) -> ps; _ -> [] }
-    methodName = case params of { ((Ast.Param (Token.ParamName p) _ _):_) -> p; _ -> Token.Named "popo" location }
+    methodName = case params of { ((Ast.Param (Token.ParamName p) _ _ _):_) -> p; _ -> Token.Named "popo" location }
     filename = takeBaseName (Location.filename location)
     exportedHost = filename ++ "." ++ (Token.content v)
     in Ast.StmtMethod $ Ast.StmtMethodContent {
@@ -1839,7 +1841,7 @@ enumerateParams (i,(p:ps)) =
     let
         n = (paramName        p)
         t = (paramNominalType p)
-        head = Param { paramName = n, paramNominalType = t, paramSerialIdx = i }
+        head = Param { paramName = n, paramNominalType = t, paramNominalTypeV2 = Nothing, paramSerialIdx = i }
         tail = (enumerateParams (i+1,ps))
     in
         head:tail
