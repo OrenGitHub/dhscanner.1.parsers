@@ -403,7 +403,9 @@ exp_str:
     Token.ConstStr
     {
         Token.constStrValue = tokIDValue $13,
-        Token.constStrLocation = $7
+        Token.constStrLocation = $7 {
+            Location.colEnd = (Location.colEnd $7) + (fromIntegral (length (tokIDValue $13)))
+        }
     }
 }
 
@@ -435,8 +437,11 @@ exp_call:
     Ast.ExpCall $ Ast.ExpCallContent
     {
         Ast.callee = $5,
-        Ast.args = [],
-        Ast.expCallLocation = $10
+        Ast.args = $13,
+        Ast.expCallLocation = $10 {
+            Location.lineEnd = Location.lineEnd $21,
+            Location.colEnd = Location.colEnd $21
+        }
     }
 }
 
@@ -468,7 +473,7 @@ var_field:
     {
         Ast.varFieldLhs = $5,
         Ast.varFieldName = Token.FieldName $8,
-        Ast.varFieldLocation = Location "" 1 1 1 1
+        Ast.varFieldLocation = Token.location $8
     }
 }
 
@@ -694,8 +699,8 @@ field:
             Nothing -> Nothing;
             Just nominalType -> Just Ast.Param {
                 Ast.paramName = Token.ParamName name,
-                Ast.paramNominalType = nominalType,
-                Ast.paramNominalTypeV2 = Nothing,
+                Ast.paramNominalType = Token.NominalTy name,
+                Ast.paramNominalTypeV2 = Just nominalType,
                 Ast.paramSerialIdx = 0
             }
         }
@@ -1050,15 +1055,11 @@ nameExp''' v (Token.FieldName f) = let
     l = vloc { Location.colEnd = Location.colEnd floc }
     in Token.NominalTy (Token.Named n l)
 
-nameExp'' :: Ast.Exp -> Token.FieldName -> Maybe Token.NominalTy
-nameExp'' (Ast.ExpVar (Ast.ExpVarContent (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))))) f = Just (nameExp''' v f)
-nameExp'' _ _ = Nothing
-
-nameExp' :: Ast.Var -> Maybe Token.NominalTy
-nameExp' (Ast.VarField (Ast.VarFieldContent lhs fieldName _)) = nameExp'' lhs fieldName
+nameExp' :: Ast.Var -> Maybe Ast.Var
+nameExp' (Ast.VarField v) = Just (Ast.VarField v)
 nameExp' _ = Nothing
 
-nameExp :: Ast.Exp -> Maybe Token.NominalTy
+nameExp :: Ast.Exp -> Maybe Ast.Var
 nameExp (Ast.ExpVar (Ast.ExpVarContent v)) = nameExp' v
 nameExp _ = Nothing
 
