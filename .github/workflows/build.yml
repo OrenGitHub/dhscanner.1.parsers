@@ -31,6 +31,6 @@ jobs:
     - name: tag release image
       run: docker tag parsers.rel ${{ secrets.DOCKERHUB_USERNAME }}/dhscanner-parsers:x64
     - name: login to DockerHub
-      run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
     - name: push image to Dockerhub
       run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/dhscanner-parsers:x64
