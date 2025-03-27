@@ -440,7 +440,7 @@ exp_call:
         Ast.args = $13,
         Ast.expCallLocation = loc {
             Location.lineEnd = Location.lineEnd $21,
-            Location.colEnd = Location.colEnd $21
+            Location.colEnd = Location.colEnd $21 + 1
         }
     }
 }
