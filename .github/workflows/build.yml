@@ -21,7 +21,7 @@ jobs:
     - name: extract generated binary
       run: |
         CONTAINER_ID=$(docker create parsers)
-        BINARY_PATH=$(docker run --rm parser cabal list-bin parser | tail -n1)
+        BINARY_PATH=$(docker run --rm parsers cabal list-bin parser | tail -n1)
         docker cp $CONTAINER_ID:$BINARY_PATH ./parsers.elf.x64
         docker rm $CONTAINER_ID
     - name: strip binary
