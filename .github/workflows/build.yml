@@ -18,3 +18,19 @@ jobs:
     - uses: actions/checkout@v4
     - name: build docker image
       run: docker build --tag parsers --file Dockerfile .
+    - name: extract generated binary
+      run: |
+        CONTAINER_ID=$(docker create parsers)
+        BINARY_PATH=$(docker run --rm parsers cabal list-bin parser | tail -n1)
+        docker cp $CONTAINER_ID:$BINARY_PATH ./parsers.elf.x64
+        docker rm $CONTAINER_ID
+    - name: strip binary
+      run: strip parsers.elf.x64
+    - name: embed binary in minimal image
+      run: docker build --tag parsers.rel --file Dockerfile.rel .
+    - name: tag release image
+      run: docker tag parsers.rel ${{ secrets.DOCKER_USERNAME }}/dhscanner-parsers:x64
+    - name: login to DockerHub
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+    - name: push image to Dockerhub
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/dhscanner-parsers:x64
