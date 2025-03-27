@@ -434,11 +434,11 @@ exp_call:
     'Rparen' ':' filename ':' location
 '}'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
+    let loc = case (startloc $5) of { Nothing -> $10; Just l -> l } in Ast.ExpCall $ Ast.ExpCallContent
     {
         Ast.callee = $5,
         Ast.args = $13,
-        Ast.expCallLocation = $10 {
+        Ast.expCallLocation = loc {
             Location.lineEnd = Location.lineEnd $21,
             Location.colEnd = Location.colEnd $21
         }
@@ -1025,6 +1025,11 @@ stringify' _ = "MOISH"
 
 stringify :: [ Ast.Var ] -> String
 stringify = concatMap stringify' 
+
+startloc :: Ast.Exp -> Maybe Location
+startloc (Ast.ExpVar (Ast.ExpVarContent (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))))) = Just (Token.location v)
+startloc (Ast.ExpVar (Ast.ExpVarContent (Ast.VarField (Ast.VarFieldContent e _ _)))) = startloc e
+startloc _ = Nothing
 
 methodify :: Token.ClassName -> [ Ast.Var ] -> [ Ast.Stmt ] -> [(Token.MethdName, Ast.StmtMethodContent)]
 methodify c vars stmts = catMaybes $ Data.List.map (methodify' c vars) stmts
