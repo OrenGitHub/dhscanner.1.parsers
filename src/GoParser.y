@@ -101,6 +101,8 @@ import Data.Map ( fromList, empty )
 '!'  { AlexTokenTag AlexRawToken_OP_BANG _ }
 '&&' { AlexTokenTag AlexRawToken_OP_AND _ }
 '>=' { AlexTokenTag AlexRawToken_OP_GEQ _ }
+'<=' { AlexTokenTag AlexRawToken_OP_LEQ _ }
+'==' { AlexTokenTag AlexRawToken_OP_EQEQ _ }
 
 -- ************
 -- *          *
@@ -227,6 +229,10 @@ import Data.Map ( fromList, empty )
 '*ast.SliceExpr' { AlexTokenTag AlexRawToken_astSliceExpr _ }
 'Max' { AlexTokenTag AlexRawToken_Max _ }
 'Slice3' { AlexTokenTag AlexRawToken_Slice3 _ }
+'Elt' { AlexTokenTag AlexRawToken_Elt _ }
+'Len' { AlexTokenTag AlexRawToken_Len _ }
+'*ast.ArrayType' { AlexTokenTag AlexRawToken_astArrayType _ }
+'*ast.ParenExpr' { AlexTokenTag AlexRawToken_astParenExpr _ }
 -- last keywords first part
 
 -- ************
@@ -303,9 +309,7 @@ program:
 
 scope_object: QUOTED_ID ':' '*' '(' 'obj' '@' INT ')' { Nothing }
 
-scope_objects:
-scope_object { Nothing } |
-scope_object scope_objects { Nothing }
+scope_objects: { Nothing } | scope_object scope_objects { Nothing }
 
 scope:
 '*ast.Scope'
@@ -497,6 +501,8 @@ operator:
 ':=' { Nothing } |
 '='  { Nothing } |
 '>=' { Nothing } |
+'<=' { Nothing } |
+'==' { Nothing } |
 '!=' { Nothing }
 
 exp_binop:
@@ -555,12 +561,21 @@ numbered_kvs:
 numbered_kv { [$1] } |
 numbered_kv numbered_kvs { $1:$2 }
 
+elts:
+'[' ']' 'ast.Expr' '(' 'len' '=' INT ')'
+'{'
+    numbered_kvs
+'}'
+{
+    $10
+}
+
 exp_dict:
 '*ast.CompositeLit'
 '{'
     'Type' ':' exp
     'Lbrace' ':' filename ':' location
-    'Elts' ':' '[' ']' 'ast.Expr' '(' 'len' '=' INT ')' '{' numbered_kvs '}'
+    'Elts' ':' orempty(elts)
     'Rbrace' ':' filename ':' location
     'Incomplete' ':' 'false'
 '}'
@@ -571,7 +586,7 @@ exp_dict:
             Token.content = "dictify",
             Token.location = $10
         },
-        Ast.args = $22,
+        Ast.args = $13,
         Ast.expCallLocation = $10
     }
 }
@@ -603,6 +618,28 @@ exp_slice:
     $5
 }
 
+exp_array:
+'*ast.ArrayType'
+'{'
+    'Lbrack' ':' filename ':' location
+    'Len' ':' 'nil'
+    'Elt' ':' exp
+'}'
+{
+    $13
+}
+
+exp_paren:
+'*ast.ParenExpr'
+'{'
+    'Lparen' ':' filename ':' location
+    'X' ':' exp
+    'Rparen' ':' filename ':' location
+'}'
+{
+    $10
+}
+
 exp:
 exp_str { Ast.ExpStr $ Ast.ExpStrContent $1 } |
 exp_int { Ast.ExpInt $ Ast.ExpIntContent $1 } |
@@ -613,6 +650,9 @@ exp_star { $1 } |
 exp_unop { $1 } |
 exp_slice { $1 } |
 exp_binop { $1 } |
+exp_paren { $1 } |
+exp_array { $1 } |
+exp_struct { $1 } |
 exp_ty_assert { $1 }
 
 stmt_import:
@@ -733,7 +773,7 @@ fields:
     $10
 }
 
-type_struct:
+exp_struct:
 '*ast.StructType'
 '{'
     'Struct' ':' filename ':' location
@@ -741,7 +781,16 @@ type_struct:
     'Incomplete' ':' 'false'
 '}'
 {
-    $10
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "structify",
+            Token.location = $7
+        },
+        Ast.args = [],
+        Ast.expCallLocation = $7
+    }
 }
 
 stmt_class:
@@ -751,7 +800,7 @@ stmt_class:
     'Name' ':' identifier
     'TypeParams' ':' 'nil'
     'Assign' ':' '-'
-    'Type' ':' type_struct
+    'Type' ':' exp
     'Comment' ':' 'nil'
 '}'
 {
@@ -799,11 +848,13 @@ stmt_block:
     $10
 }
 
+supers: fields { $1 }
+
 stmt_func:
 '*ast.FuncDecl'
 '{'
     'Doc' ':' 'nil'
-    'Recv' ':' 'nil'
+    'Recv' ':' orempty(supers)
     'Name' ':' identifier
     'Type' ':' type_func
     'Body' ':' stmt_block

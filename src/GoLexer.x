@@ -184,6 +184,12 @@ import Location
 @astSliceExpr = "*ast.SliceExpr"
 @Max = Max
 @Slice3 = Slice3
+@Elt = Elt
+@Len = Len
+@astArrayType = "*ast.ArrayType"
+@OP_LEQ = "<="
+@astParenExpr = "*ast.ParenExpr"
+@OP_EQEQ = "=="
 -- last keywords first part
 
 -- ************
@@ -380,6 +386,12 @@ tokens :-
 @astSliceExpr {lex' AlexRawToken_astSliceExpr}
 @Max {lex' AlexRawToken_Max}
 @Slice3 {lex' AlexRawToken_Slice3}
+@Elt {lex' AlexRawToken_Elt}
+@Len {lex' AlexRawToken_Len}
+@astArrayType {lex' AlexRawToken_astArrayType}
+@OP_LEQ {lex' AlexRawToken_OP_LEQ}
+@astParenExpr {lex' AlexRawToken_astParenExpr}
+@OP_EQEQ {lex' AlexRawToken_OP_EQEQ}
 -- last keywords second part
 
 -- ***************************
@@ -597,6 +609,12 @@ data AlexRawToken
      | AlexRawToken_astSliceExpr
      | AlexRawToken_Max
      | AlexRawToken_Slice3
+     | AlexRawToken_Elt
+     | AlexRawToken_Len
+     | AlexRawToken_astArrayType
+     | AlexRawToken_OP_LEQ
+     | AlexRawToken_astParenExpr
+     | AlexRawToken_OP_EQEQ
      -- last keywords third part
 
      -- ***************
