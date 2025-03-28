@@ -473,11 +473,14 @@ var_field:
     'Sel' ':' identifier
 '}'
 {
-    Ast.VarField $ Ast.VarFieldContent
+    let loc = case (startloc $5) of { Nothing -> Token.location $8; Just l -> l }  in Ast.VarField $ Ast.VarFieldContent
     {
         Ast.varFieldLhs = $5,
         Ast.varFieldName = Token.FieldName $8,
-        Ast.varFieldLocation = Token.location $8
+        Ast.varFieldLocation = loc {
+            Location.lineEnd = Location.lineEnd ( Token.location $8 ),
+            Location.colEnd = Location.colEnd ( Token.location $8 )
+        }
     }
 }
 
@@ -1080,6 +1083,7 @@ stringify = concatMap stringify'
 startloc :: Ast.Exp -> Maybe Location
 startloc (Ast.ExpVar (Ast.ExpVarContent (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))))) = Just (Token.location v)
 startloc (Ast.ExpVar (Ast.ExpVarContent (Ast.VarField (Ast.VarFieldContent e _ _)))) = startloc e
+startloc (Ast.ExpCall (Ast.ExpCallContent callee _ _)) = startloc callee
 startloc _ = Nothing
 
 methodify :: Token.ClassName -> [ Ast.Var ] -> [ Ast.Stmt ] -> [(Token.MethdName, Ast.StmtMethodContent)]
@@ -1169,10 +1173,7 @@ importify'' loc src (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportCont
 }
 
 extractPackageName :: String -> String
-extractPackageName s = case ("github.com/" `isPrefixOf` s) of {
-    True -> last ( splitOn "/" s );
-    False -> s
-}
+extractPackageName s = last ( splitOn "/" s )
 
 extractParamSingleName' :: [ Token.ParamName ] -> Maybe Token.ParamName
 extractParamSingleName' ps = case ps of { [p] -> Just p; _ -> Nothing }
