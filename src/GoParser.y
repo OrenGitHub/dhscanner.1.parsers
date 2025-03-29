@@ -583,14 +583,14 @@ exp_dict:
     'Incomplete' ':' 'false'
 '}'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
+    let loc = case (startloc $5) of { Nothing -> $18; Just l -> l } in Ast.ExpCall $ Ast.ExpCallContent
     {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named {
-            Token.content = "dictify",
-            Token.location = $10
-        },
+        Ast.callee = $5, 
         Ast.args = $13,
-        Ast.expCallLocation = $10
+        Ast.expCallLocation = loc {
+            Location.lineEnd = Location.lineEnd $18,
+            Location.colEnd = Location.colEnd $18
+        }
     }
 }
 
@@ -911,7 +911,7 @@ stmt_if:
     {
         Ast.stmtIfCond = $13,
         Ast.stmtIfBody = $16,
-        Ast.stmtElseBody = [],
+        Ast.stmtElseBody = $19,
         Ast.stmtIfLocation = $7
     }
 }
@@ -935,14 +935,7 @@ stmt_assign:
     Ast.StmtAssign $ Ast.StmtAssignContent
     {
         Ast.stmtAssignLhs = fst $14,
-        Ast.stmtAssignRhs = Ast.ExpCall $ Ast.ExpCallContent {
-            Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named {
-                Token.content = "expify",
-                Token.location = $20
-            },
-            Ast.args = $35,
-            Ast.expCallLocation = $20
-        }
+        Ast.stmtAssignRhs = case $35 of { [] -> Ast.ExpNull (Ast.ExpNullContent (Token.ConstNull $20)); (e:_) -> e }
     }
 }
 
