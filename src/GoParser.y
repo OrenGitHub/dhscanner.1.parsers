@@ -893,12 +893,14 @@ stmt_if:
     'Else' ':' orempty(stmt_block)
 '}'
 {
-    Ast.StmtIf $ Ast.StmtIfContent
-    {
+    let stmt = Ast.StmtIf $ Ast.StmtIfContent {
         Ast.stmtIfCond = $13,
         Ast.stmtIfBody = $16,
         Ast.stmtElseBody = $19,
         Ast.stmtIfLocation = $7
+    } in case $10 of {
+        Nothing -> stmt;
+        Just init_stmt -> Ast.StmtBlock (Ast.StmtBlockContent [ init_stmt, stmt ] $7 )
     }
 }
 
