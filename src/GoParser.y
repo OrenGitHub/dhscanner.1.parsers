@@ -874,24 +874,10 @@ stmt_func:
     }
 }
 
-decl:
-'*ast.GenDecl'
-'{'
-    'Doc' ':' 'nil'
-    'TokPos' ':' filename ':' location
-    'Tok' ':' 'var'
-    'Lparen' ':' '-'
-    'Specs' ':' specs
-    'Rparen' ':' '-'
-'}'
-{
-    Ast.StmtBlock $ Ast.StmtBlockContent $19 $10
-}
-
 stmt_decl:
 '*ast.DeclStmt'
 '{'
-    'Decl' ':' decl
+    'Decl' ':' stmt
 '}'
 {
     $5
