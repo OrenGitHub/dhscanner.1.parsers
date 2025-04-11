@@ -247,6 +247,10 @@ import Data.Map ( fromList, empty, map )
 'return'              { AlexTokenTag AlexRawToken_STMT_RETURN _ }
 'unless'              { AlexTokenTag AlexRawToken_STMT_UNLESS _ }
 'ExpressionStatement' { AlexTokenTag AlexRawToken_STMT_EXP    _ }
+'string_concat'       { AlexTokenTag AlexRawToken_string_concat _ }
+'lambda'              { AlexTokenTag AlexRawToken_lambda _ }
+'lambda_var'          { AlexTokenTag AlexRawToken_lambda_var _ }
+-- last keywords first part
 
 -- *************
 -- *           *
@@ -318,7 +322,7 @@ program:
     'type' ':' 'program' ','
     'location' ':' location ','
     'stmts' ':' stmts ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.Root
@@ -374,6 +378,7 @@ ID        { unquote (tokIDValue $1) } |
 'params'  { "params"                } |
 'label'   { "label"                 } |
 'block'   { "block"                 } |
+'options' { "options"               } |
 'class'   { "class"                 }
 
 -- *******************
@@ -446,7 +451,7 @@ exp_binop:
     'left' ':' exp ','
     'operator' ':' actual_op ','
     'right' ':' exp ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpBinop $ Ast.ExpBinopContent
@@ -469,7 +474,7 @@ exp_unop:
     'location' ':' location ','
     'operator' ':' actual_op ','
     'statement' ':' exp ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpBinop $ Ast.ExpBinopContent
@@ -500,7 +505,7 @@ var_simple:
     'type' ':' var_simple_type ','
     'location' ':' location ','
     var_simple_content ':' identifier ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $12
@@ -518,7 +523,7 @@ var_field:
     'parent' ':' identifier_wrapper ','
     'operator' ':' operator ','
     'name' ':' identifier ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.VarField $ Ast.VarFieldContent
@@ -570,7 +575,7 @@ var_parented:
     'location' ':' location ','
     optional(parent)
     'constant' ':' identifier ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     let e' = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $13 
@@ -603,7 +608,7 @@ string_part_type_1:
     'type' ':' 'tstring_content' ','
     'location' ':' location ','
     'value' ':' tokenID ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
@@ -652,7 +657,7 @@ fstring:
     'type' ':' 'string_literal' ','
     'location' ':' location ','
     'parts' ':' parts ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpCall $ Ast.ExpCallContent
@@ -677,7 +682,7 @@ exp_str:
     'type' ':' 'symbol_literal' ','
     'location' ':' location ','
     'value' ':' identifier ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
@@ -721,7 +726,7 @@ key:
     'location' ':' location ','
     optional(key_parts)
     optional(key_value)
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Nothing
@@ -774,7 +779,7 @@ exp_dict_1:
     'type' ':' 'bare_assoc_hash' ','
     'location' ':' location ','
     'assocs' ':' '[' commalistof(assoc) ']' ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
@@ -801,7 +806,7 @@ exp_dict_2:
     'type' ':' 'hash' ','
     'location' ':' location ','
     optional(assocs)
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
@@ -837,7 +842,7 @@ args:
     'type' ':' 'args' ','
     'location' ':' location ','
     'parts' ':' parts ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     $12
@@ -860,7 +865,7 @@ exp_array:
     'type' ':' 'array' ','
     'location' ':' location ','
     'contents' ':' array_content ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpCall $ Ast.ExpCallContent
@@ -885,7 +890,7 @@ arg_star:
     'type' ':' 'arg_star' ','
     'location' ':' location ','
     'value' ':' exp ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     $12
@@ -917,7 +922,7 @@ exp_yield:
     'type' ':' 'yield' ','
     'location' ':' location ','
     'arguments' ':' 'null' ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
@@ -1124,13 +1129,45 @@ exp_if:
     $12
 }
 
+exp_nil:
+'{'
+    'type' ':' 'kw' ','
+    'location' ':' location ','
+    'value' ':' ID ','
+    'comments' ':' comments
+'}'
+{
+    Ast.ExpNull $ Ast.ExpNullContent $ Token.ConstNull $8
+}
+
+str_concat:
+'{'
+    'type' ':' 'string_concat' ','
+    'location' ':' location ','
+    'left' ':' exp ','
+    'right' ':' exp ','
+    'comments' ':' comments
+'}'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $12,
+        Ast.expBinopRight = $16,
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $8
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
 -- *     *
 -- *******
 exp:
+str_concat { $1 } |
+exp_block  { $1 } |
 exp_str    { $1 } |
+exp_nil    { $1 } |
 exp_if     { $1 } |
 exp_int    { $1 } |
 backref    { $1 } |
@@ -1166,7 +1203,7 @@ collection:
     'left' ':' exp ','
     'operator' ':' operator ','
     'right' ':' exp ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Nothing
@@ -1184,7 +1221,7 @@ stmt_for:
     'index' ':' var ','
     'collection' ':' collection ','
     'stmts' ':' stmts ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Nothing
@@ -1236,7 +1273,7 @@ operator:
     'type' ':' operator_name ','
     'location' ':' location ','
     'value' ':' actual_op ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Nothing
@@ -1268,7 +1305,7 @@ arguments_type_2:
     'type' ':' 'args' ','
     'location' ':' location ','
     'parts' ':' '[' ']' ','
-    'comments' ':' '[' ']' 
+    'comments' ':' comments 
 '}'
 {
     []
@@ -1284,7 +1321,7 @@ arguments_type_3:
     'type' ':' 'arg_paren' ','
     'location' ':' location ','
     'arguments' ':' arguments ','
-    'comments' ':' '[' ']' 
+    'comments' ':' comments 
 '}'
 {
     $12
@@ -1319,7 +1356,7 @@ arguments_wrapper:
     'type' ':' 'arg_paren' ','
     'location' ':' location ','
     'arguments' ':' arguments ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     $12
@@ -1512,7 +1549,7 @@ exp_call_without_args:
     'receiver' ':' exp ','
     'operator' ':' operator ','
     'message' ':' identifier ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
@@ -1536,7 +1573,7 @@ exp_call_with_args:
     'operator' ':' operator ','
     'message' ':' identifier ','
     'arguments' ':' arguments_wrapper ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpCall $ Ast.ExpCallContent
@@ -1571,7 +1608,7 @@ exp_call_without_rcvr:
     'operator' ':' 'null' ','
     'message' ':' identifier ','
     'arguments' ':' arguments ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Ast.ExpCall $ Ast.ExpCallContent
@@ -1644,7 +1681,7 @@ identifier_wrapper:
     'location' ':' location ','
     optional(parent)
     constant_or_value ':' identifier ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     case $10 of
@@ -1769,7 +1806,7 @@ stmt_method_type_1:
     'name' ':' identifier ','
     'params' ':' params ','
     'bodystmt' ':' bodystmt ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Just $ Right $ Ast.StmtFunc $ Ast.StmtFuncContent
@@ -1797,7 +1834,7 @@ stmt_method_type_2:
     'name' ':' identifier ','
     'params' ':' params ','
     'bodystmt' ':' bodystmt ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Just $ Right $ Ast.StmtFunc $ Ast.StmtFuncContent
@@ -1838,7 +1875,7 @@ stmt_sclass:
     'location' ':' location ','
     'target' ':' identifier_wrapper ','
     'bodystmt' ':' bodystmt ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Nothing
@@ -1854,7 +1891,7 @@ stmt_return:
     'type' ':' 'return' ','
     'location' ':' location ','
     'arguments' ':' arguments ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Nothing
@@ -1871,7 +1908,7 @@ stmt_unless:
     'location' ':' location ','
     'predicate' ':' exp ','
     'stmts' ':' stmts ',' 
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     Nothing
@@ -1917,12 +1954,7 @@ block:
     Nothing
 }
 
--- **************
--- *            *
--- * stmt_block *
--- *            *
--- **************
-stmt_block:
+exp_block:
 '{'
     'type' ':' 'method_add_block' ','
     'location' ':' location ','
@@ -1931,7 +1963,7 @@ stmt_block:
     'comments' ':' comments
 '}'
 {
-    Just $ Right $ Ast.StmtExp $12
+    $12
 }
 
 -- ***************
@@ -2026,6 +2058,66 @@ stmt_break:
     Nothing
 }
 
+lambda_block:
+'{'
+    'type' ':' 'blockarg' ','
+    'location' ':' location ','
+    'name' ':' identifier ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+lambda_params_tag:
+'{'
+    'type' ':' 'params' ','
+    'location' ':' location ','
+    'block' ':' lambda_block ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+lambda_content:
+'{'
+    'type' ':' 'lambda_var' ','
+    'location' ':' location ','
+    'params' ':' lambda_params_tag ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+lambda_params:
+'{'
+    'type' ':' 'paren' ','
+    'location' ':' location ','
+    'contents' ':' lambda_content ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+stmt_lambda:
+'{'
+    'type' ':' 'lambda' ','
+    'location' ':' location ','
+    'params' ':' lambda_params ','
+    'stmts' ':' stmts ','
+    'comments' ':' comments
+'}'
+{
+    Just $ Right $ Ast.StmtExp $ Ast.ExpLambda $ Ast.ExpLambdaContent
+    {
+        Ast.expLambdaParams = [],
+        Ast.expLambdaBody = [],
+        Ast.expLambdaLocation = $8
+    }
+}
 
 -- ********
 -- *      *
@@ -2033,6 +2125,7 @@ stmt_break:
 -- *      *
 -- ********
 stmt:
+stmt_lambda  { $1 } |
 stmt_if      { $1 } |
 stmt_if2     { $1 } |
 stmt_for     { $1 } |
@@ -2046,7 +2139,6 @@ stmt_class   { $1 } |
 stmt_sclass  { $1 } |
 stmt_method  { $1 } |
 stmt_module  { $1 } |
-stmt_block   { $1 } |
 stmt_return  { $1 } |
 stmt_unless  { $1 } |
 stmt_comment { $1 }
@@ -2061,7 +2153,7 @@ stmts:
     'type' ':' 'stmts' ','
     'location' ':' location ','
     'body' ':' '[' commalistof(stmt) ']' ','
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     $13
@@ -2106,7 +2198,7 @@ block_param:
     Nothing
 }
 
-keyword:
+keyword_1:
 '{'
     'type' ':' 'label' ','
     'location' ':' location ','
@@ -2116,6 +2208,24 @@ keyword:
 {
     Nothing
 }
+
+keyword_2:
+'{'
+    'type' ':' 'var_ref' ','
+    'location' ':' location ','
+    'value' ':' exp ','
+    'comments' ':' comments
+'}'
+{
+    Nothing
+}
+
+
+keyword:
+keyword_1 { Nothing } |
+keyword_2 { Nothing }
+
+
 keywords: 'keywords' ':' '[' '[' commalistof(ornull(keyword)) ']' ']' ',' { Nothing }
 
 -- ************
@@ -2301,7 +2411,7 @@ bodystmt_type_1:
     'stmts' ':' stmts ','
     optional(rescue_clause)
     optional(else_clause)
-    'comments' ':' '[' ']'
+    'comments' ':' comments
 '}'
 {
     $12

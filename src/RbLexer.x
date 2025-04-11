@@ -233,6 +233,10 @@ import Location
 @KW_EXPR_MEMBER = \"MemberExpression\"
 @KW_EXPR_UPDATE = \"UpdateExpression\"
 @KW_EXPR_ASSIGN = \"AssignmentExpression\"
+@string_concat  = \"string_concat\"
+@lambda         = \"lambda\"
+@lambda_var     = \"lambda_var\"
+-- last keywords first part
 
 -- *************
 -- *           *
@@ -491,6 +495,10 @@ tokens :-
 @KW_STMT_UNLESS   { lex' AlexRawToken_STMT_UNLESS   }
 @KW_STMT_EXP      { lex' AlexRawToken_STMT_EXP      }
 @KW_STMT_FUNCTION { lex' AlexRawToken_STMT_FUNCTION }
+@string_concat {lex' AlexRawToken_string_concat}
+@lambda {lex' AlexRawToken_lambda}
+@lambda_var {lex' AlexRawToken_lambda_var}
+-- last keywords second part
 
 -- *************
 -- *           *
@@ -748,6 +756,10 @@ data AlexRawToken
      | AlexRawToken_EXPR_CONST_GET  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_LT   -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_PLUS -- ^ Reserved Keyword
+     | AlexRawToken_string_concat
+     | AlexRawToken_lambda
+     | AlexRawToken_lambda_var
+     -- last keywords third part
 
      -- *************
      -- *           *
