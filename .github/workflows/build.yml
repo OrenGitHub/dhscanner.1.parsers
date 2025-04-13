@@ -30,7 +30,7 @@ jobs:
       run: docker build --tag parsers.rel --file Dockerfile.rel .
     - name: login to DockerHub
       run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-    - name: Read and bump patch version
+    - name: read and bump patch version
       id: version
       run: |
         current=$(cat VERSION)
@@ -46,7 +46,7 @@ jobs:
       run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/dhscanner-parsers:${{ steps.version.outputs.new_version }}-x64
     - name: update VERSION file
       run: echo "${{ steps.version.outputs.new_version }}" > VERSION
-    - name: Commit version bump
+    - name: commit version bump
       run: |
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
