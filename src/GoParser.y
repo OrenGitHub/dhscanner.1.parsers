@@ -712,10 +712,10 @@ exp_lambda:
 {
     Ast.ExpLambda $ Ast.ExpLambdaContent
     {
-        Ast.expLambdaParams = snd $5,
+        Ast.expLambdaParams = snd (fst $5),
         Ast.expLambdaBody = [$8],
-        Ast.expLambdaLocation = (fst $5) {
-            Location.colEnd = Location.colStart (fst $5) + (fromIntegral (length "func"))
+        Ast.expLambdaLocation = (fst (fst $5)) {
+            Location.colEnd = Location.colStart (fst (fst $5)) + (fromIntegral (length "func"))
         }
     }
 }
@@ -816,8 +816,19 @@ field:
     'Comment' ':' 'nil'
 '}'
 {
-    case $8 of {
-        [] -> Nothing;
+    let param = case (nameExp $11) of {
+        Nothing -> Nothing;
+        Just (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName t))) -> Just (Token.NominalTy t)
+    } in case $8 of {
+        [] -> case param of {
+            Nothing -> Nothing;
+            Just nominalType -> Just Ast.Param {
+                Ast.paramName = Token.ParamName (Token.Named "_" (Location "" 1 1 1 1)),
+                Ast.paramNominalType = nominalType,
+                Ast.paramNominalTypeV2 = Nothing,
+                Ast.paramSerialIdx = 0
+            }
+        };
         (name:_) -> case (nameExp $11) of {
             Nothing -> Nothing;
             Just nominalType -> Just Ast.Param {
@@ -910,7 +921,10 @@ type_func:
     'Results' ':' ornull(fields)
 '}'
 {
-    ($7,$13)
+    let returnType = case $16 of {
+        Just (p:_) -> Ast.paramNominalType p;
+        _ -> Token.NominalTy (Token.Named "any" $7)
+    } in (($7,$13),returnType)
 }
 
 block_stmts:
@@ -947,9 +961,9 @@ stmt_func:
 {
     Ast.StmtFunc $ Ast.StmtFuncContent
     {
-        Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" (Token.location $11)),
+        Ast.stmtFuncReturnType = snd $14,
         Ast.stmtFuncName = Token.FuncName $11,
-        Ast.stmtFuncParams = snd $14,
+        Ast.stmtFuncParams = snd (fst $14),
         Ast.stmtFuncBody = [$17],
         Ast.stmtFuncAnnotations = [],
         Ast.stmtFuncLocation = Token.location $11 
@@ -1277,6 +1291,7 @@ nameExp''' v (Token.FieldName f) = let
 
 nameExp' :: Ast.Var -> Maybe Ast.Var
 nameExp' (Ast.VarField v) = Just (Ast.VarField v)
+nameExp' (Ast.VarSimple v) = Just (Ast.VarSimple v)
 nameExp' _ = Nothing
 
 nameExp :: Ast.Exp -> Maybe Ast.Var
