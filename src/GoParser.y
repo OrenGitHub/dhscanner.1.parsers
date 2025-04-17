@@ -948,7 +948,7 @@ stmt_func:
         Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" (Token.location $11)),
         Ast.stmtFuncName = Token.FuncName $11,
         Ast.stmtFuncParams = $14,
-        Ast.stmtFuncBody = [],
+        Ast.stmtFuncBody = [$17],
         Ast.stmtFuncAnnotations = [],
         Ast.stmtFuncLocation = Token.location $11 
     }
