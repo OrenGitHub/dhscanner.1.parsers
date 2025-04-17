@@ -817,8 +817,8 @@ field:
 '}'
 {
     let param = case (nameExp $11) of {
-        Nothing -> Nothing;
-        Just (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName t))) -> Just (Token.NominalTy t)
+        Just (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName t))) -> Just (Token.NominalTy t);
+        _ -> Nothing
     } in case $8 of {
         [] -> case param of {
             Nothing -> Nothing;
@@ -833,7 +833,7 @@ field:
             Nothing -> Nothing;
             Just nominalType -> Just Ast.Param {
                 Ast.paramName = Token.ParamName name,
-                Ast.paramNominalType = Token.NominalTy name,
+                Ast.paramNominalType = case param of { Nothing -> Token.NominalTy name; Just t -> t },
                 Ast.paramNominalTypeV2 = Just nominalType,
                 Ast.paramSerialIdx = 0
             }
@@ -947,27 +947,38 @@ stmt_block:
     Ast.StmtBlock $ Ast.StmtBlockContent $10 $7
 }
 
-supers: fields { $1 }
+classes: fields { $1 }
 
 stmt_func:
 '*ast.FuncDecl'
 '{'
     'Doc' ':' 'nil'
-    'Recv' ':' orempty(supers)
+    'Recv' ':' orempty(classes)
     'Name' ':' identifier
     'Type' ':' type_func
     'Body' ':' stmt
 '}'
 {
-    Ast.StmtFunc $ Ast.StmtFuncContent
-    {
-        Ast.stmtFuncReturnType = snd $14,
-        Ast.stmtFuncName = Token.FuncName $11,
-        Ast.stmtFuncParams = snd (fst $14),
-        Ast.stmtFuncBody = [$17],
-        Ast.stmtFuncAnnotations = [],
-        Ast.stmtFuncLocation = Token.location $11 
-    }
+    case $8 of
+        [] -> Ast.StmtFunc $ Ast.StmtFuncContent
+              {
+                  Ast.stmtFuncReturnType = snd $14,
+                  Ast.stmtFuncName = Token.FuncName $11,
+                  Ast.stmtFuncParams = snd (fst $14),
+                  Ast.stmtFuncBody = [$17],
+                  Ast.stmtFuncAnnotations = [],
+                  Ast.stmtFuncLocation = Token.location $11 
+              }
+        (p:_) -> Ast.StmtMethod $ Ast.StmtMethodContent
+                 {
+                     Ast.stmtMethodReturnType = snd $14,
+                     Ast.stmtMethodName = Token.MethdName $11,
+                     Ast.stmtMethodParams = snd (fst $14),
+                     Ast.stmtMethodBody = [$17],
+                     Ast.stmtMethodLocation = Token.location $11,
+                     Ast.hostingClassName = Token.ClassName (Token.getNominalTyToken (Ast.paramNominalType p)),
+                     Ast.hostingClassSupers = []
+                 }
 }
 
 stmt_decl:
