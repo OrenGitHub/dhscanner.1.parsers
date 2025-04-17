@@ -100,9 +100,14 @@ import Data.Map ( fromList, empty )
 '!=' { AlexTokenTag AlexRawToken_OP_NEQ _ }
 '!'  { AlexTokenTag AlexRawToken_OP_BANG _ }
 '&&' { AlexTokenTag AlexRawToken_OP_AND _ }
+'++' { AlexTokenTag AlexRawToken_OP_PLUSPLUS _ }
+'||' { AlexTokenTag AlexRawToken_OP_OR _ }
+'|'  { AlexTokenTag AlexRawToken_OP_BITWISE_OR _ }
 '>=' { AlexTokenTag AlexRawToken_OP_GEQ _ }
 '<=' { AlexTokenTag AlexRawToken_OP_LEQ _ }
 '==' { AlexTokenTag AlexRawToken_OP_EQEQ _ }
+'>' { AlexTokenTag AlexRawToken_OP_GT _ }
+'<-' { AlexTokenTag AlexRawToken_OP_LARROW _ }
 
 -- ************
 -- *          *
@@ -233,6 +238,26 @@ import Data.Map ( fromList, empty )
 'Len' { AlexTokenTag AlexRawToken_Len _ }
 '*ast.ArrayType' { AlexTokenTag AlexRawToken_astArrayType _ }
 '*ast.ParenExpr' { AlexTokenTag AlexRawToken_astParenExpr _ }
+'*ast.InterfaceType' { AlexTokenTag AlexRawToken_astInterfaceType _ }
+'Interface' { AlexTokenTag AlexRawToken_Interface _ }
+'Methods' { AlexTokenTag AlexRawToken_Methods _ }
+'For' { AlexTokenTag AlexRawToken_For _ }
+'Post' { AlexTokenTag AlexRawToken_Post _ }
+'*ast.ForStmt' { AlexTokenTag AlexRawToken_astForStmt _ }
+'*ast.IncDecStmt' { AlexTokenTag AlexRawToken_astIncDecStmt _ }
+'Label' { AlexTokenTag AlexRawToken_Label _ }
+'continue' { AlexTokenTag AlexRawToken_continue _ }
+'*ast.BranchStmt' { AlexTokenTag AlexRawToken_astBranchStmt _ }
+'Select' { AlexTokenTag AlexRawToken_Select _ }
+'*ast.SelectStmt' { AlexTokenTag AlexRawToken_astSelectStmt _ }
+'Comm' { AlexTokenTag AlexRawToken_Comm _ }
+'Case' { AlexTokenTag AlexRawToken_Case _ }
+'*ast.CommClause' { AlexTokenTag AlexRawToken_astCommClause _ }
+'break' { AlexTokenTag AlexRawToken_break _ }
+'Go' { AlexTokenTag AlexRawToken_Go _ }
+'Call' { AlexTokenTag AlexRawToken_Call _ }
+'*ast.GoStmt' { AlexTokenTag AlexRawToken_astGoStmt _ }
+'*ast.FuncLit' { AlexTokenTag AlexRawToken_astFuncLit _ }
 -- last keywords first part
 
 -- ************
@@ -271,6 +296,7 @@ optional(a): { Nothing } | a { Just $1 }
 -- *        *
 -- **********
 ornull(a): 'nil' { Nothing } | a { Just $1 }
+ordash(a): '-' { Nothing } | a { Just $1 }
 orempty(a): 'nil' { [] } | a { $1 }
 
 -- **********************
@@ -354,6 +380,13 @@ tokenID:
 
 stmts:
 '[' ']' 'ast.Decl' '(' 'len' '=' INT ')'
+'{'
+    numbered_stmts
+'}'
+{
+    $10
+} |
+'[' ']' 'ast.Stmt' '(' 'len' '=' INT ')'
 '{'
     numbered_stmts
 '}'
@@ -500,10 +533,15 @@ operator:
 '-'  { Nothing } |
 '!'  { Nothing } |
 '&'  { Nothing } |
+'++' { Nothing } |
 '&&' { Nothing } |
+'|'  { Nothing } |
+'||' { Nothing } |
 ':=' { Nothing } |
 '='  { Nothing } |
 '>=' { Nothing } |
+'>'  { Nothing } |
+'<-' { Nothing } |
 '<=' { Nothing } |
 '==' { Nothing } |
 '!=' { Nothing }
@@ -558,16 +596,18 @@ kv:
     $13
 }
 
-numbered_kv: INT ':' kv { $3 }
+element:
+INT ':' kv { $3 } |
+INT ':' exp { $3 }
 
-numbered_kvs:
-numbered_kv { [$1] } |
-numbered_kv numbered_kvs { $1:$2 }
+elements:
+element { [$1] } |
+element elements { $1:$2 }
 
 elts:
 '[' ']' 'ast.Expr' '(' 'len' '=' INT ')'
 '{'
-    numbered_kvs
+    elements
 '}'
 {
     $10
@@ -643,7 +683,43 @@ exp_paren:
     $10
 }
 
+exp_interface:
+'*ast.InterfaceType'
+'{'
+    'Interface' ':' filename ':' location
+    'Methods' ':' fields
+    'Incomplete' ':' 'false'
+'}'
+{
+    Ast.ExpNull $ Ast.ExpNullContent $ Token.ConstNull $7
+}
+
+exps:
+values
+{
+    case $1 of {
+        (v:_) -> v;
+        [] -> Ast.ExpNull $ Ast.ExpNullContent $ Token.ConstNull (Location "" 1 1 1 1)
+    }
+}
+
+exp_lambda:
+'*ast.FuncLit'
+'{'
+    'Type' ':' type_func
+    'Body' ':' stmt
+'}'
+{
+    Ast.ExpLambda $ Ast.ExpLambdaContent
+    {
+        Ast.expLambdaParams = [],
+        Ast.expLambdaBody = [$8],
+        Ast.expLambdaLocation = Location "" 1 1 1 1
+    }
+}
+
 exp:
+exps { $1 } |
 exp_str { Ast.ExpStr $ Ast.ExpStrContent $1 } |
 exp_int { Ast.ExpInt $ Ast.ExpIntContent $1 } |
 exp_var { $1 } |
@@ -654,8 +730,10 @@ exp_unop { $1 } |
 exp_slice { $1 } |
 exp_binop { $1 } |
 exp_paren { $1 } |
+exp_lambda { $1 } |
 exp_array { $1 } |
 exp_struct { $1 } |
+exp_interface { $1 } |
 exp_ty_assert { $1 }
 
 stmt_import:
@@ -763,17 +841,19 @@ fields_list: '[' ']' '*ast.Field' '(' 'len' '=' INT ')'
 '}'
 {
     catMaybes $10
-}
+} | 'nil' { [] }
+
+filename_location: filename ':' location { $3 }
 
 fields:
 '*ast.FieldList'
 '{'
-    'Opening' ':' filename ':' location
+    'Opening' ':' ordash(filename_location)
     'List' ':' fields_list
-    'Closing' ':' filename ':' location
+    'Closing' ':' ordash(filename_location)
 '}'
 {
-    $10
+    $8
 }
 
 exp_struct:
@@ -825,7 +905,7 @@ type_func:
     'Func' ':' filename ':' location
     'TypeParams' ':' 'nil'
     'Params' ':' fields
-    'Results' ':' 'nil'
+    'Results' ':' ornull(fields)
 '}'
 {
     $13
@@ -848,7 +928,7 @@ stmt_block:
     'Rbrace' ':' filename ':' location
 '}'
 {
-    $10
+    Ast.StmtBlock $ Ast.StmtBlockContent $10 $7
 }
 
 supers: fields { $1 }
@@ -860,7 +940,7 @@ stmt_func:
     'Recv' ':' orempty(supers)
     'Name' ':' identifier
     'Type' ':' type_func
-    'Body' ':' stmt_block
+    'Body' ':' stmt
 '}'
 {
     Ast.StmtFunc $ Ast.StmtFuncContent
@@ -868,7 +948,7 @@ stmt_func:
         Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" (Token.location $11)),
         Ast.stmtFuncName = Token.FuncName $11,
         Ast.stmtFuncParams = $14,
-        Ast.stmtFuncBody = $17,
+        Ast.stmtFuncBody = [],
         Ast.stmtFuncAnnotations = [],
         Ast.stmtFuncLocation = Token.location $11 
     }
@@ -889,14 +969,14 @@ stmt_if:
     'If' ':' filename ':' location
     'Init' ':' ornull(stmt)
     'Cond' ':' exp
-    'Body' ':' stmt_block
-    'Else' ':' orempty(stmt_block)
+    'Body' ':' stmt
+    'Else' ':' ornull(stmt)
 '}'
 {
     let stmt = Ast.StmtIf $ Ast.StmtIfContent {
         Ast.stmtIfCond = $13,
-        Ast.stmtIfBody = $16,
-        Ast.stmtElseBody = $19,
+        Ast.stmtIfBody = [$16],
+        Ast.stmtElseBody = case $19 of { Nothing -> []; Just s -> [s] },
         Ast.stmtIfLocation = $7
     } in case $10 of {
         Nothing -> stmt;
@@ -956,17 +1036,114 @@ stmt_obj:
     StmtExp $ ExpInt $ ExpIntContent $ Token.ConstInt 0 (Location "" 1 1 1 1)
 }
 
+stmt_for:
+'*ast.ForStmt'
+'{'
+    'For' ':' filename ':' location
+    'Init' ':' ornull(stmt)
+    'Cond' ':' ornull(exp)
+    'Post' ':' ornull(stmt)
+    'Body' ':' stmt
+'}'
+{
+    let true = Ast.ExpBool (Ast.ExpBoolContent (Token.ConstBool True $7)) in Ast.StmtWhile $ Ast.StmtWhileContent
+    {
+        Ast.stmtWhileCond = case $13 of { Nothing -> true; Just e -> e },
+        Ast.stmtWhileBody = [$19],
+        Ast.stmtWhileLocation = $7
+    }
+}
+
+stmt_incdec:
+'*ast.IncDecStmt'
+'{'
+    'X' ':' var
+    'TokPos' ':' filename ':' location
+    'Tok' ':' operator
+'}'
+{
+    Ast.StmtAssign $ Ast.StmtAssignContent
+    {
+        Ast.stmtAssignLhs = $5,
+        Ast.stmtAssignRhs = Ast.ExpVar $ Ast.ExpVarContent $5
+    }
+}
+
+stmt_continue:
+'*ast.BranchStmt'
+'{'
+    'TokPos' ':' filename ':' location
+    'Tok' ':' 'continue'
+    'Label' ':' 'nil'
+'}'
+{
+    Ast.StmtContinue $ Ast.StmtContinueContent $7
+}
+
+stmt_break:
+'*ast.BranchStmt'
+'{'
+    'TokPos' ':' filename ':' location
+    'Tok' ':' 'break'
+    'Label' ':' 'nil'
+'}'
+{
+    Ast.StmtContinue $ Ast.StmtContinueContent $7
+}
+
+
+stmt_switch:
+'*ast.SelectStmt'
+'{'
+    'Select' ':' filename ':' location
+    'Body' ':' stmt
+'}'
+{
+    $10
+}
+
+stmt_case:
+'*ast.CommClause'
+'{'
+    'Case' ':' filename ':' location
+    'Comm' ':' stmt
+    'Colon' ':' filename ':' location
+    'Body' ':' stmts
+'}'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent $18 $7
+}
+
+stmt_go:
+'*ast.GoStmt'
+'{'
+    'Go' ':' filename ':' location
+    'Call' ':' exp
+    
+'}'
+{
+    Ast.StmtExp $10
+}
+
 stmt:
 stmt_assign  { $1 } |
 stmt_gendecl { $1 } |
 stmt_type    { $1 } |
+stmt_switch  { $1 } |
+stmt_case    { $1 } |
+stmt_go      { $1 } |
 stmt_if      { $1 } |
+stmt_for     { $1 } |
 stmt_obj     { $1 } |
 stmt_exp     { $1 } |
 stmt_func    { $1 } |
+stmt_incdec  { $1 } |
 stmt_import  { $1 } |
+stmt_block   { $1 } |
 stmt_return  { $1 } |
 stmt_decl    { $1 } |
+stmt_continue { $1 } |
+stmt_break { $1 } |
 stmt_decvar  { $1 }
 
 numbered_stmt:

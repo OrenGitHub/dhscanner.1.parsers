@@ -190,6 +190,31 @@ import Location
 @OP_LEQ = "<="
 @astParenExpr = "*ast.ParenExpr"
 @OP_EQEQ = "=="
+@astInterfaceType = "*ast.InterfaceType"
+@Interface = Interface
+@Methods = Methods
+@OP_OR = "||"
+@For = For
+@Post = Post
+@astForStmt = "*ast.ForStmt"
+@astIncDecStmt = "*ast.IncDecStmt"
+@OP_PLUSPLUS = "++"
+@Label = Label
+@continue = continue
+@astBranchStmt = "*ast.BranchStmt"
+@OP_GT = ">"
+@Select = Select
+@astSelectStmt = "*ast.SelectStmt"
+@Comm = Comm
+@Case = Case
+@astCommClause = "*ast.CommClause"
+@OP_LARROW = "<-"
+@break = break
+@Go = Go
+@Call = Call
+@astGoStmt = "*ast.GoStmt"
+@astFuncLit = "*ast.FuncLit"
+@OP_BITWISE_OR = "|"
 -- last keywords first part
 
 -- ************
@@ -392,6 +417,31 @@ tokens :-
 @OP_LEQ {lex' AlexRawToken_OP_LEQ}
 @astParenExpr {lex' AlexRawToken_astParenExpr}
 @OP_EQEQ {lex' AlexRawToken_OP_EQEQ}
+@astInterfaceType {lex' AlexRawToken_astInterfaceType}
+@Interface {lex' AlexRawToken_Interface}
+@Methods {lex' AlexRawToken_Methods}
+@OP_OR {lex' AlexRawToken_OP_OR}
+@For {lex' AlexRawToken_For}
+@Post {lex' AlexRawToken_Post}
+@astForStmt {lex' AlexRawToken_astForStmt}
+@astIncDecStmt {lex' AlexRawToken_astIncDecStmt}
+@OP_PLUSPLUS {lex' AlexRawToken_OP_PLUSPLUS}
+@Label {lex' AlexRawToken_Label}
+@continue {lex' AlexRawToken_continue}
+@astBranchStmt {lex' AlexRawToken_astBranchStmt}
+@OP_GT {lex' AlexRawToken_OP_GT}
+@Select {lex' AlexRawToken_Select}
+@astSelectStmt {lex' AlexRawToken_astSelectStmt}
+@Comm {lex' AlexRawToken_Comm}
+@Case {lex' AlexRawToken_Case}
+@astCommClause {lex' AlexRawToken_astCommClause}
+@OP_LARROW {lex' AlexRawToken_OP_LARROW}
+@break {lex' AlexRawToken_break}
+@Go {lex' AlexRawToken_Go}
+@Call {lex' AlexRawToken_Call}
+@astGoStmt {lex' AlexRawToken_astGoStmt}
+@astFuncLit {lex' AlexRawToken_astFuncLit}
+@OP_BITWISE_OR {lex' AlexRawToken_OP_BITWISE_OR}
 -- last keywords second part
 
 -- ***************************
@@ -615,6 +665,31 @@ data AlexRawToken
      | AlexRawToken_OP_LEQ
      | AlexRawToken_astParenExpr
      | AlexRawToken_OP_EQEQ
+     | AlexRawToken_astInterfaceType
+     | AlexRawToken_Interface
+     | AlexRawToken_Methods
+     | AlexRawToken_OP_OR
+     | AlexRawToken_For
+     | AlexRawToken_Post
+     | AlexRawToken_astForStmt
+     | AlexRawToken_astIncDecStmt
+     | AlexRawToken_OP_PLUSPLUS
+     | AlexRawToken_Label
+     | AlexRawToken_continue
+     | AlexRawToken_astBranchStmt
+     | AlexRawToken_OP_GT
+     | AlexRawToken_Select
+     | AlexRawToken_astSelectStmt
+     | AlexRawToken_Comm
+     | AlexRawToken_Case
+     | AlexRawToken_astCommClause
+     | AlexRawToken_OP_LARROW
+     | AlexRawToken_break
+     | AlexRawToken_Go
+     | AlexRawToken_Call
+     | AlexRawToken_astGoStmt
+     | AlexRawToken_astFuncLit
+     | AlexRawToken_OP_BITWISE_OR
      -- last keywords third part
 
      -- ***************
