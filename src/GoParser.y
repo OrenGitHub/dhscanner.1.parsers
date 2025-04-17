@@ -441,7 +441,7 @@ exp_str:
     {
         Token.constStrValue = tokIDValue $13,
         Token.constStrLocation = $7 {
-            Location.colEnd = (Location.colEnd $7) + (fromIntegral (length (tokIDValue $13)))
+            Location.colEnd = 2 + (Location.colEnd $7) + (fromIntegral (length (tokIDValue $13)))
         }
     }
 }
@@ -712,9 +712,11 @@ exp_lambda:
 {
     Ast.ExpLambda $ Ast.ExpLambdaContent
     {
-        Ast.expLambdaParams = [],
+        Ast.expLambdaParams = snd $5,
         Ast.expLambdaBody = [$8],
-        Ast.expLambdaLocation = Location "" 1 1 1 1
+        Ast.expLambdaLocation = (fst $5) {
+            Location.colEnd = Location.colStart (fst $5) + (fromIntegral (length "func"))
+        }
     }
 }
 
@@ -908,7 +910,7 @@ type_func:
     'Results' ':' ornull(fields)
 '}'
 {
-    $13
+    ($7,$13)
 }
 
 block_stmts:
@@ -947,7 +949,7 @@ stmt_func:
     {
         Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" (Token.location $11)),
         Ast.stmtFuncName = Token.FuncName $11,
-        Ast.stmtFuncParams = $14,
+        Ast.stmtFuncParams = snd $14,
         Ast.stmtFuncBody = [$17],
         Ast.stmtFuncAnnotations = [],
         Ast.stmtFuncLocation = Token.location $11 
