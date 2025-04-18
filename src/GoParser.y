@@ -821,39 +821,40 @@ field:
         _ -> Nothing
     } in case $8 of {
         [] -> case param of {
-            Nothing -> Nothing;
-            Just nominalType -> Just Ast.Param {
+            Nothing -> [];
+            Just nominalType -> [Ast.Param {
                 Ast.paramName = Token.ParamName (Token.Named "_" (Location "" 1 1 1 1)),
                 Ast.paramNominalType = nominalType,
                 Ast.paramNominalTypeV2 = Nothing,
                 Ast.paramSerialIdx = 0
-            }
+            }]
         };
-        (name:_) -> case (nameExp $11) of {
-            Nothing -> Nothing;
-            Just nominalType -> Just Ast.Param {
-                Ast.paramName = Token.ParamName name,
-                Ast.paramNominalType = case param of { Nothing -> Token.NominalTy name; Just t -> t },
-                Ast.paramNominalTypeV2 = Just nominalType,
-                Ast.paramSerialIdx = 0
-            }
-        }
-    } 
+        names -> paramify param names
+        --(name:_) -> case (nameExp $11) of {
+        --    Nothing -> [];
+        --    Just nominalType -> [Ast.Param {
+        --        Ast.paramName = Token.ParamName name,
+        --        Ast.paramNominalType = case param of { Nothing -> Token.NominalTy name; Just t -> t },
+        --        Ast.paramNominalTypeV2 = Just nominalType,
+        --        Ast.paramSerialIdx = 0
+        --    }]
+        --}
+    }
 }
 
 numbered_field:
 INT ':' field { $3 }
 
 numbered_fields:
-numbered_field { [$1] } |
-numbered_field numbered_fields { $1:$2 }
+numbered_field { $1 } |
+numbered_field numbered_fields { $1 ++ $2 }
 
 fields_list: '[' ']' '*ast.Field' '(' 'len' '=' INT ')'
 '{'
     numbered_fields
 '}'
 {
-    catMaybes $10
+    $10
 } | 'nil' { [] }
 
 filename_location: filename ':' location { $3 }
@@ -1271,24 +1272,6 @@ startloc (Ast.ExpVar (Ast.ExpVarContent (Ast.VarField (Ast.VarFieldContent e _ _
 startloc (Ast.ExpCall (Ast.ExpCallContent callee _ _)) = startloc callee
 startloc _ = Nothing
 
-methodify :: Token.ClassName -> [ Ast.Var ] -> [ Ast.Stmt ] -> [(Token.MethdName, Ast.StmtMethodContent)]
-methodify c vars stmts = catMaybes $ Data.List.map (methodify' c vars) stmts
-
-methodify' :: Token.ClassName -> [ Ast.Var ] -> Ast.Stmt -> Maybe (Token.MethdName, Ast.StmtMethodContent)
-methodify' c vars (Ast.StmtFunc f) = Just (methodify'' c vars f)
-methodify' _ _ _ = Nothing
-
-methodify'' :: Token.ClassName -> [ Ast.Var ] -> Ast.StmtFuncContent -> (Token.MethdName, Ast.StmtMethodContent)
-methodify'' c vars f = let m = Token.MethdName $ Token.getFuncNameToken (Ast.stmtFuncName f) in (m, Ast.StmtMethodContent {
-    Ast.stmtMethodReturnType = (Ast.stmtFuncReturnType f),
-    Ast.stmtMethodName = m,
-    Ast.stmtMethodParams = (Ast.stmtFuncParams f),
-    Ast.stmtMethodBody = (Ast.stmtFuncBody f),
-    Ast.stmtMethodLocation = (Ast.stmtFuncLocation f),
-    Ast.hostingClassName = c,
-    Ast.hostingClassSupers = superify vars
-})
-
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
 
@@ -1304,6 +1287,32 @@ nameExp' :: Ast.Var -> Maybe Ast.Var
 nameExp' (Ast.VarField v) = Just (Ast.VarField v)
 nameExp' (Ast.VarSimple v) = Just (Ast.VarSimple v)
 nameExp' _ = Nothing
+
+paramify :: (Maybe Token.NominalTy) -> [ Token.Named ] -> [ Ast.Param ]
+paramify Nothing names = paramify' names
+paramify (Just nominalType) names = paramify'' nominalType names
+
+paramify'' :: Token.NominalTy -> [ Token.Named ] -> [ Ast.Param]
+paramify'' nominalType = Data.List.map (paramifyName' nominalType)
+
+paramifyName' :: Token.NominalTy -> Token.Named -> Ast.Param
+paramifyName' nominalType n = Ast.Param {
+    Ast.paramName = Token.ParamName n,
+    Ast.paramNominalType = nominalType,
+    Ast.paramNominalTypeV2 = Nothing,
+    Ast.paramSerialIdx = 0
+} 
+
+paramify' :: [ Token.Named ] -> [ Ast.Param ]
+paramify' = Data.List.map paramifyName
+
+paramifyName :: Token.Named -> Ast.Param
+paramifyName n = Ast.Param {
+    Ast.paramName = Token.ParamName n,
+    Ast.paramNominalType = Token.NominalTy (Token.Named "any" (Token.location n)),
+    Ast.paramNominalTypeV2 = Nothing,
+    Ast.paramSerialIdx = 0
+}
 
 nameExp :: Ast.Exp -> Maybe Ast.Var
 nameExp (Ast.ExpVar (Ast.ExpVarContent v)) = nameExp' v
@@ -1391,12 +1400,6 @@ vardecify :: [ Token.Named ] -> [ Ast.Exp ] -> [ Ast.Stmt ]
 vardeicfy [] [] = []
 vardecify _ [] = []
 vardecify (name:names) (exp:exps) = (vardecify' name exp):(vardeicfy names exps)
-
-paramify :: [ Either Token.ParamName Token.NominalTy ] -> Location -> Maybe Ast.Param
-paramify attrs l = let
-    name = extractParamSingleName attrs
-    nominalType = extractParamNominalType attrs
-    in case (name, nominalType) of { (Just n, Just t) -> Just $ Ast.Param n t Nothing 0; _ -> Nothing }
 
 getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
 getFuncNameAttr = undefined
