@@ -806,41 +806,41 @@ stmt_decvar:
     }
 }
 
-field:
+field_1:
 '*ast.Field'
 '{'
     'Doc' ':' 'nil'
-    'Names' ':' orempty(names)
+    'Names' ':' names
     'Type' ':' exp
     'Tag' ':' ornull(exp_str)
     'Comment' ':' 'nil'
 '}'
 {
-    let param = case (nameExp $11) of {
-        Just (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName t))) -> Just (Token.NominalTy t);
-        _ -> Nothing
-    } in case $8 of {
-        [] -> case param of {
-            Nothing -> [];
-            Just nominalType -> [Ast.Param {
-                Ast.paramName = Token.ParamName (Token.Named "_" (Location "" 1 1 1 1)),
-                Ast.paramNominalType = nominalType,
-                Ast.paramNominalTypeV2 = Nothing,
-                Ast.paramSerialIdx = 0
-            }]
-        };
-        names -> paramify param names
-        --(name:_) -> case (nameExp $11) of {
-        --    Nothing -> [];
-        --    Just nominalType -> [Ast.Param {
-        --        Ast.paramName = Token.ParamName name,
-        --        Ast.paramNominalType = case param of { Nothing -> Token.NominalTy name; Just t -> t },
-        --        Ast.paramNominalTypeV2 = Just nominalType,
-        --        Ast.paramSerialIdx = 0
-        --    }]
-        --}
-    }
+    paramify (nameExp $11) $8
 }
+
+field_2:
+'*ast.Field'
+'{'
+    'Doc' ':' 'nil'
+    'Names' ':' 'nil'
+    'Type' ':' exp
+    'Tag' ':' ornull(exp_str)
+    'Comment' ':' 'nil'
+'}'
+{
+    [Ast.Param {
+        Ast.paramName = Token.ParamName (Token.Named "_" (Location "" 1 1 1 1)),
+        Ast.paramNominalType = Token.NominalTy (Token.Named "any" (Location "" 1 1 1 1)),
+        Ast.paramNominalTypeV2 = nameExp $11,
+        Ast.paramSerialIdx = 0
+    }]
+}
+
+
+field:
+field_1 { $1 } |
+field_2 { $1 }
 
 numbered_field:
 INT ':' field { $3 }
@@ -1288,29 +1288,23 @@ nameExp' (Ast.VarField v) = Just (Ast.VarField v)
 nameExp' (Ast.VarSimple v) = Just (Ast.VarSimple v)
 nameExp' _ = Nothing
 
-paramify :: (Maybe Token.NominalTy) -> [ Token.Named ] -> [ Ast.Param ]
-paramify Nothing names = paramify' names
-paramify (Just nominalType) names = paramify'' nominalType names
+paramify :: Maybe Ast.Var -> [ Token.Named ] -> [ Ast.Param ]
+paramify Nothing names = Data.List.map paramifySingleNoType names
+paramify (Just v) names = Data.List.map (paramifySingleWithType v) names
 
-paramify'' :: Token.NominalTy -> [ Token.Named ] -> [ Ast.Param]
-paramify'' nominalType = Data.List.map (paramifyName' nominalType)
-
-paramifyName' :: Token.NominalTy -> Token.Named -> Ast.Param
-paramifyName' nominalType n = Ast.Param {
-    Ast.paramName = Token.ParamName n,
-    Ast.paramNominalType = nominalType,
+paramifySingleNoType :: Token.Named -> Ast.Param
+paramifySingleNoType name = Ast.Param {
+    Ast.paramName = Token.ParamName name,
+    Ast.paramNominalType = Token.NominalTy (Token.Named "any" (Token.location name)),
     Ast.paramNominalTypeV2 = Nothing,
     Ast.paramSerialIdx = 0
-} 
+}
 
-paramify' :: [ Token.Named ] -> [ Ast.Param ]
-paramify' = Data.List.map paramifyName
-
-paramifyName :: Token.Named -> Ast.Param
-paramifyName n = Ast.Param {
-    Ast.paramName = Token.ParamName n,
-    Ast.paramNominalType = Token.NominalTy (Token.Named "any" (Token.location n)),
-    Ast.paramNominalTypeV2 = Nothing,
+paramifySingleWithType :: Ast.Var -> Token.Named -> Ast.Param
+paramifySingleWithType nominalType name = Ast.Param {
+    Ast.paramName = Token.ParamName name,
+    Ast.paramNominalType = Token.NominalTy (Token.Named "any" (Token.location name)),
+    Ast.paramNominalTypeV2 = Just nominalType,
     Ast.paramSerialIdx = 0
 }
 
