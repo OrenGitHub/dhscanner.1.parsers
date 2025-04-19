@@ -974,7 +974,7 @@ stmt_func:
                  {
                      Ast.stmtMethodReturnType = snd $14,
                      Ast.stmtMethodName = Token.MethdName $11,
-                     Ast.stmtMethodParams = snd (fst $14),
+                     Ast.stmtMethodParams = [p] ++ (snd (fst $14)),
                      Ast.stmtMethodBody = [$17],
                      Ast.stmtMethodLocation = Token.location $11,
                      Ast.hostingClassName = Token.ClassName (Token.getNominalTyToken (Ast.paramNominalType p)),
@@ -1301,6 +1301,12 @@ paramifySingleNoType name = Ast.Param {
 }
 
 paramifySingleWithType :: Ast.Var -> Token.Named -> Ast.Param
+paramifySingleWithType t@(Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))) name = Ast.Param {
+    Ast.paramName = Token.ParamName name,
+    Ast.paramNominalType = Token.NominalTy v,
+    Ast.paramNominalTypeV2 = Just t,
+    Ast.paramSerialIdx = 0
+}
 paramifySingleWithType nominalType name = Ast.Param {
     Ast.paramName = Token.ParamName name,
     Ast.paramNominalType = Token.NominalTy (Token.Named "any" (Token.location name)),
