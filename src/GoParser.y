@@ -829,14 +829,16 @@ field_2:
     'Comment' ':' 'nil'
 '}'
 {
-    [Ast.Param {
+    let nominalType = case (nameExp $11) of {
+        (Just (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v)))) -> Token.NominalTy v;
+        _ -> Token.NominalTy (Token.Named "any" (Location "" 1 1 1 1))
+    } in [Ast.Param {
         Ast.paramName = Token.ParamName (Token.Named "_" (Location "" 1 1 1 1)),
-        Ast.paramNominalType = Token.NominalTy (Token.Named "any" (Location "" 1 1 1 1)),
+        Ast.paramNominalType = nominalType,
         Ast.paramNominalTypeV2 = nameExp $11,
         Ast.paramSerialIdx = 0
     }]
 }
-
 
 field:
 field_1 { $1 } |
