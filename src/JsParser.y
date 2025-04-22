@@ -162,6 +162,21 @@ import Data.Map ( fromList )
 'method' { AlexTokenTag AlexRawToken_method _ }
 'Property' { AlexTokenTag AlexRawToken_Property _ }
 'AssignmentPattern' { AlexTokenTag AlexRawToken_AssignmentPattern _ }
+'LogicalExpression' { AlexTokenTag AlexRawToken_LogicalExpression _ }
+'ArrayPattern' { AlexTokenTag AlexRawToken_ArrayPattern _ }
+'elements' { AlexTokenTag AlexRawToken_elements _ }
+'ObjectPattern' { AlexTokenTag AlexRawToken_ObjectPattern _ }
+'TryStatement' { AlexTokenTag AlexRawToken_TryStatement _ }
+'block' { AlexTokenTag AlexRawToken_block _ }
+'handler' { AlexTokenTag AlexRawToken_handler _ }
+'finalizer' { AlexTokenTag AlexRawToken_finalizer _ }
+'AwaitExpression' { AlexTokenTag AlexRawToken_AwaitExpression _ }
+'CatchClause' { AlexTokenTag AlexRawToken_CatchClause _ }
+'param' { AlexTokenTag AlexRawToken_param _ }
+'ArrayExpression' { AlexTokenTag AlexRawToken_ArrayExpression _ }
+'UnaryExpression' { AlexTokenTag AlexRawToken_UnaryExpression _ }
+'declaration' { AlexTokenTag AlexRawToken_declaration _ }
+'ExportDefaultDeclaration' { AlexTokenTag AlexRawToken_ExportDefaultDeclaration _ }
 -- last keywords first part
 
 -- *********
@@ -173,6 +188,7 @@ import Data.Map ( fromList )
 QUOTED_INT  { AlexTokenTag AlexRawToken_QUOTED_INT  _ }
 QUOTED_STR  { AlexTokenTag AlexRawToken_QUOTED_STR  _ }
 QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
+QUOTED_NULL { AlexTokenTag AlexRawToken_QUOTED_NULL _ }
 
 -- ***************
 -- *             *
@@ -234,6 +250,11 @@ QUOTED_BOOL { AlexTokenTag AlexRawToken_QUOTED_BOOL _ }
 '='  { AlexTokenTag AlexRawToken_OP_ASSIGN   _ }
 '*'  { AlexTokenTag AlexRawToken_OP_TIMES    _ }
 '++' { AlexTokenTag AlexRawToken_OP_PLUSPLUS _ }
+'||' { AlexTokenTag AlexRawToken_OP_OR _ }
+'&&' { AlexTokenTag AlexRawToken_OP_AND _ }
+'!'  { AlexTokenTag AlexRawToken_bang _ }
+'!==' { AlexTokenTag AlexRawToken_OP_NEQ _ }
+'in' { AlexTokenTag AlexRawToken_OP_IN _ }
 
 -- ****************************
 -- *                          *
@@ -259,6 +280,13 @@ ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
 listof(a):      a { [$1] } | a          listof(a) { $1:$2 }
 commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
 
+-- ***********************
+-- *                     *
+-- * parametrized maybes *
+-- *                     *
+-- ***********************
+ornull(a): 'null' { Nothing } | a { Just $1 }
+
 -- *********************
 -- *                   *
 -- * Ast root: program *
@@ -275,7 +303,7 @@ program:
     Ast.Root
     {
         Ast.filename = "DDD",
-        stmts = $9
+        Ast.stmts = $9
     }
 }
 
@@ -292,11 +320,11 @@ stmt { Right $1 }
 -- * dec_var_tag *
 -- *             *
 -- ***************
-dec_var_tag:
+dec_var_tag_1:
 '{'
     'type' ':' 'VariableDeclarator' ','
     'id' ':' identifier ','
-    'init' ':' exp ','
+    'init' ':' ornull(exp) ','
     'loc' ':' location
 '}'
 {
@@ -304,10 +332,41 @@ dec_var_tag:
     {
         Ast.stmtVardecName = Token.VarName $8,
         Ast.stmtVardecNominalType = Token.NominalTy $ Token.Named "auto" $16,
+        Ast.stmtVardecInitValue = $12,
+        Ast.stmtVardecLocation = $16
+    }
+}
+
+array_pattern_vars:
+'{'
+    'type' ':' 'ArrayPattern' ','
+    'elements' ':' '[' commalistof(identifier) ']' ','
+    'loc' ':' location
+'}'
+{
+    case $9 of { (v:_) -> Token.VarName v ; _ -> Token.VarName (Token.Named "v" $14) }
+}
+
+dec_var_tag_2:
+'{'
+    'type' ':' 'VariableDeclarator' ','
+    'id' ':' array_pattern_vars ','
+    'init' ':' exp ','
+    'loc' ':' location
+'}'
+{
+    Ast.StmtVardecContent
+    {
+        Ast.stmtVardecName = $8,
+        Ast.stmtVardecNominalType = Token.NominalTy $ Token.Named "any" $16,
         Ast.stmtVardecInitValue = Just $12,
         Ast.stmtVardecLocation = $16
     }
 }
+
+dec_var_tag:
+dec_var_tag_1 { $1 } |
+dec_var_tag_2 { $1 }
 
 -- ***********
 -- *         *
@@ -354,6 +413,8 @@ location:
 tokenID:
 ID       { tokIDValue $1 } |
 'end'    { "end"         } |
+'name'   { "name"        } |
+'type'   { "type"        } |
 'start'  { "start"       } |
 'object' { "object"      }
 
@@ -419,9 +480,31 @@ param_2:
     }
 }
 
+-- *********
+-- *       *
+-- * param *
+-- *       *
+-- *********
+param_3:
+'{'
+    'type' ':' 'ObjectPattern' ','
+    'properties' ':' '[' commalistof(property) ']' ','
+    'loc' ':' location
+'}'
+{
+    Ast.Param
+    {
+        Ast.paramName = Token.ParamName ( Token.Named "Moshe" $14),
+        Ast.paramNominalType = Token.NominalTy (Token.Named "any" $14),
+        Ast.paramNominalTypeV2 = Nothing,
+        Ast.paramSerialIdx = 0
+    }
+}
+
 param:
 param_1 { $1 } |
-param_2 { $1 }
+param_2 { $1 } |
+param_3 { $1 }
 
 -- ***********
 -- *         *
@@ -465,20 +548,20 @@ exp_binop:
 -- * field variable *
 -- *                *
 -- ******************
-var_field:
+var_subscript:
 '{'
     'type' ':' 'MemberExpression' ','
     'computed' ':' bool ','
     'object' ':' exp ','
-    'property' ':' identifier ','
+    'property' ':' exp ','
     'loc' ':' location
 '}'
 {
-    Ast.VarField $ Ast.VarFieldContent
+    Ast.VarSubscript $ Ast.VarSubscriptContent
     {
-        varFieldLhs = $12,
-        varFieldName = Token.FieldName $16,
-        varFieldLocation = $20
+        Ast.varSubscriptLhs = $12,
+        Ast.varSubscriptIdx = $16,
+        Ast.varSubscriptLocation = $20
     }
 }
 
@@ -503,7 +586,7 @@ identifier
 -- ************
 var:
 var_simple { $1 } |
-var_field  { $1 }
+var_subscript  { $1 }
 
 -- **************
 -- *            *
@@ -605,12 +688,16 @@ exp_bool:
     }
 }
 
--- ************
--- *          *
--- * exp_null *
--- *          *
--- ************
-exp_null: 'null' { Nothing }
+exp_null:
+'{'
+    'type' ':' 'Literal' ','
+    'value' ':' 'null' ','
+    'raw' ':' QUOTED_NULL ','
+    'loc' ':' location
+'}'
+{
+    Ast.ExpNull (Ast.ExpNullContent (Token.ConstNull $16))
+}
 
 -- ***************
 -- *             *
@@ -650,7 +737,7 @@ exp_lambda:
     'type' ':' 'LambdaExpression' ','
     'id' ':' 'null' ','
     'params' ':' params ','
-    'body' ':' stmts ','
+    'body' ':' stmt ','
     'generator' ':' bool ','
     'expression' ':' bool ','
     'async' ':' bool ','
@@ -660,7 +747,7 @@ exp_lambda:
     Ast.ExpLambda $ Ast.ExpLambdaContent
     {
         expLambdaParams = $12,
-        expLambdaBody = $16,
+        expLambdaBody = [$16],
         expLambdaLocation = $32
     }
 }
@@ -737,7 +824,7 @@ property:
     'value' ':' exp ','
     'kind' ':' 'init' ','
     'method' ':' 'false' ','
-    'shorthand' ':' 'false' ','
+    'shorthand' ':' bool ','
     'loc' ':' location
 '}'
 {
@@ -763,6 +850,61 @@ exp_object:
     }
 }
 
+exp_relop:
+'{'
+    'type' ':' 'LogicalExpression' ','
+    'operator' ':' operator ','
+    'left' ':' exp ','
+    'right' ':' exp ','
+    'loc' ':' location
+'}'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $12,
+        Ast.expBinopRight = $16,
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $20
+    }
+}
+
+exp_await:
+'{'
+    'type' ':' 'AwaitExpression' ','
+    'argument' ':' exp ','
+    'loc' ':' location
+'}'
+{
+    $8
+}
+
+exp_array:
+'{'
+    'type' ':' 'ArrayExpression' ','
+    'elements' ':' '[' commalistof(exp) ']' ','
+    'loc' ':' location
+'}'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "arrayify" $14,
+        Ast.args = $9,
+        Ast.expCallLocation = $14
+    }
+}
+
+exp_unary:
+'{'
+    'type' ':' 'UnaryExpression' ','
+    'operator' ':' operator ','
+    'argument' ':' exp ','
+    'prefix' ':' bool ','
+    'loc' ':' location
+'}'
+{
+    $12
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -774,9 +916,14 @@ exp_str     { $1 } |
 exp_var     { $1 } |
 exp_new     { $1 } |
 exp_bool    { $1 } |
+exp_null    { $1 } |
 exp_call    { $1 } |
 exp_binop   { $1 } |
+exp_array   { $1 } |
+exp_relop   { $1 } |
+exp_await   { $1 } |
 exp_lambda  { $1 } |
+exp_unary   { $1 } |
 exp_object  { $1 } |
 exp_fstring { $1 }
 
@@ -791,14 +938,14 @@ stmt_for:
     'init' ':' exp ','
     'test' ':' exp ','
     'update' ':' stmt ','
-    'body' ':' stmts ','
+    'body' ':' stmt ','
     'loc' ':' location
 '}'
 {
     Ast.StmtWhile $ Ast.StmtWhileContent
     {
         Ast.stmtWhileCond = $12,
-        Ast.stmtWhileBody = $20,
+        Ast.stmtWhileBody = [$20],
         Ast.stmtWhileLocation = $24
     }
 }
@@ -811,7 +958,12 @@ stmt_for:
 operator:
 '++' { Ast.TIMES } |
 '==' { Ast.TIMES } |
+'!==' { Ast.TIMES } |
+'&&' { Ast.TIMES } |
+'in' { Ast.TIMES } |
+'||' { Ast.TIMES } |
 '*'  { Ast.TIMES } |
+'!'  { Ast.TIMES } |
 '<'  { Ast.TIMES } |
 '='  { Ast.TIMES }
 
@@ -883,16 +1035,16 @@ stmt_if:
 '{'
     'type' ':' 'IfStatement' ','
     'test' ':' exp ','
-    'consequent' ':' stmts ','
-    'alternate' ':' stmts ','
+    'consequent' ':' stmt ','
+    'alternate' ':' ornull(stmt) ','
     'loc' ':' location
 '}'
 {
     Ast.StmtIf $ Ast.StmtIfContent
     {
         Ast.stmtIfCond = $8,
-        Ast.stmtIfBody = $12,
-        Ast.stmtElseBody = $16,
+        Ast.stmtIfBody = [$12],
+        Ast.stmtElseBody = case $16 of { Nothing -> []; Just s -> [s] },
         Ast.stmtIfLocation = $20
     }
 }
@@ -902,10 +1054,10 @@ stmt_if:
 -- * stmt_call *
 -- *           *
 -- *************
-stmt_call:
+stmt_exp:
 '{'
     'type' ':' 'ExpressionStatement' ','
-    'expression' ':' exp_call ','
+    'expression' ':' exp ','
     'loc' ':' location
 '}'
 {
@@ -971,6 +1123,63 @@ stmt_import:
     Ast.StmtBlock $ Ast.StmtBlockContent (importify $18 (Token.constStrValue $14) $9) $18
 }
 
+stmt_try:
+'{'
+    'type' ':' 'TryStatement' ','
+    'block' ':' stmt ','
+    'handler' ':' stmt ','
+    'finalizer' ':' 'null' ','
+    'loc' ':' location
+'}'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = [$8],
+        Ast.stmtBlockLocation = $20
+    }
+}
+
+stmt_block:
+'{'
+    'type' ':' 'BlockStatement' ','
+    'body' ':' '[' commalistof(stmt) ']' ','
+    'loc' ':' location
+'}'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = $9,
+        Ast.stmtBlockLocation = $14
+    }
+}
+
+stmt_catch:
+'{'
+    'type' ':' 'CatchClause' ','
+    'param' ':' param ','
+    'body' ':' stmt ','
+    'loc' ':' location
+'}'
+{
+    $12
+}
+
+stmt_export:
+'{'
+    'type' ':' 'ExportDefaultDeclaration' ','
+    'declaration' ':' exp ','
+    'loc' ':' location
+'}'
+{
+    Ast.StmtVardec $ Ast.StmtVardecContent
+    {
+        Ast.stmtVardecName = Token.VarName (Token.Named "default" $12),
+        Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" $12),
+        Ast.stmtVardecInitValue = Just $8,
+        Ast.stmtVardecLocation = $12
+    }
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -979,28 +1188,16 @@ stmt_import:
 stmt:
 stmt_if     { $1 } |
 stmt_for    { $1 } |
-stmt_call   { $1 } |
+stmt_exp    { $1 } |
+stmt_try    { $1 } |
+stmt_block  { $1 } |
+stmt_catch  { $1 } |
 stmt_assign { $1 } |
 stmt_import { $1 } |
+stmt_export { $1 } |
 stmt_decvar { $1 } |
 stmt_return { $1 } |
 dec_function { $1 }
-
--- *********
--- *       *
--- * stmts *
--- *       *
--- *********
-stmts:
-'{'
-    'type' ':' 'BlockStatement' ','
-    'body' ':' '[' commalistof(stmt) ']' ','
-    'loc' ':' location
-'}'
-{
-    $9
-} |
-'null' { [] }
 
 -- **********
 -- *        *
@@ -1019,7 +1216,7 @@ dec_function:
     'type' ':' 'FunctionDeclaration' ','
     'id' ':' identifier ','
     'params' ':' params ','
-    'body' ':' stmts ','
+    'body' ':' stmt ','
     'generator' ':' bool ','
     'expression' ':' bool ','
     'async' ':' bool ','
@@ -1031,7 +1228,7 @@ dec_function:
         Ast.stmtFuncReturnType = Token.NominalTy $ Token.Named "any" $32,
         Ast.stmtFuncName = Token.FuncName $8,
         Ast.stmtFuncParams = $12,
-        Ast.stmtFuncBody = $16,
+        Ast.stmtFuncBody = [$16],
         Ast.stmtFuncAnnotations = [],
         Ast.stmtFuncLocation = $32
     }

@@ -149,6 +149,26 @@ import Location
 @method = \"method\"
 @Property = \"Property\"
 @AssignmentPattern = \"AssignmentPattern\"
+@LogicalExpression = \"LogicalExpression\"
+@ArrayPattern = \"ArrayPattern\"
+@elements = \"elements\"
+@ObjectPattern = \"ObjectPattern\"
+@TryStatement = \"TryStatement\"
+@block = \"block\"
+@handler = \"handler\"
+@finalizer = \"finalizer\"
+@AwaitExpression = \"AwaitExpression\"
+@CatchClause = \"CatchClause\"
+@param = \"param\"
+@ArrayExpression = \"ArrayExpression\"
+@OP_AND = \"&&\"
+@UnaryExpression = \"UnaryExpression\"
+@bang = \"!\"
+@OP_NEQ = \"!==\"
+@OP_IN = \"in\"
+@QUOTED_NULL = \"null\"
+@declaration = \"declaration\"
+@ExportDefaultDeclaration = \"ExportDefaultDeclaration\"
 -- last keywords first part
 
 -- **************
@@ -188,6 +208,7 @@ import Location
 @KW_OP_ASSIGN   = \"=\"
 @KW_OP_TIMES    = \"\*\"
 @KW_OP_PLUSPLUS = \"\+\+\"
+@KW_OP_OR       = \"\|\|\"
 
 -- ************
 -- *          *
@@ -343,6 +364,26 @@ tokens :-
 @method {lex' AlexRawToken_method}
 @Property {lex' AlexRawToken_Property}
 @AssignmentPattern {lex' AlexRawToken_AssignmentPattern}
+@LogicalExpression {lex' AlexRawToken_LogicalExpression}
+@ArrayPattern {lex' AlexRawToken_ArrayPattern}
+@elements {lex' AlexRawToken_elements}
+@ObjectPattern {lex' AlexRawToken_ObjectPattern}
+@TryStatement {lex' AlexRawToken_TryStatement}
+@block {lex' AlexRawToken_block}
+@handler {lex' AlexRawToken_handler}
+@finalizer {lex' AlexRawToken_finalizer}
+@AwaitExpression {lex' AlexRawToken_AwaitExpression}
+@CatchClause {lex' AlexRawToken_CatchClause}
+@param {lex' AlexRawToken_param}
+@ArrayExpression {lex' AlexRawToken_ArrayExpression}
+@OP_AND {lex' AlexRawToken_OP_AND}
+@UnaryExpression {lex' AlexRawToken_UnaryExpression}
+@bang {lex' AlexRawToken_bang}
+@OP_NEQ {lex' AlexRawToken_OP_NEQ}
+@OP_IN {lex' AlexRawToken_OP_IN}
+@QUOTED_NULL {lex' AlexRawToken_QUOTED_NULL}
+@declaration {lex' AlexRawToken_declaration}
+@ExportDefaultDeclaration {lex' AlexRawToken_ExportDefaultDeclaration}
 -- last keywords second part
 
 -- *********
@@ -393,6 +434,7 @@ tokens :-
 @KW_OP_ASSIGN   { lex' AlexRawToken_OP_ASSIGN   }
 @KW_OP_TIMES    { lex' AlexRawToken_OP_TIMES    }
 @KW_OP_PLUSPLUS { lex' AlexRawToken_OP_PLUSPLUS }
+@KW_OP_OR       { lex' AlexRawToken_OP_OR       }
 
 -- ***************************
 -- *                         *
@@ -564,6 +606,26 @@ data AlexRawToken
      | AlexRawToken_method
      | AlexRawToken_Property
      | AlexRawToken_AssignmentPattern
+     | AlexRawToken_LogicalExpression
+     | AlexRawToken_ArrayPattern
+     | AlexRawToken_elements
+     | AlexRawToken_ObjectPattern
+     | AlexRawToken_TryStatement
+     | AlexRawToken_block
+     | AlexRawToken_handler
+     | AlexRawToken_finalizer
+     | AlexRawToken_AwaitExpression
+     | AlexRawToken_CatchClause
+     | AlexRawToken_param
+     | AlexRawToken_ArrayExpression
+     | AlexRawToken_OP_AND
+     | AlexRawToken_UnaryExpression
+     | AlexRawToken_bang
+     | AlexRawToken_OP_NEQ
+     | AlexRawToken_OP_IN
+     | AlexRawToken_QUOTED_NULL
+     | AlexRawToken_declaration
+     | AlexRawToken_ExportDefaultDeclaration
      -- last keywords third part
 
      -- *********
@@ -587,6 +649,7 @@ data AlexRawToken
      | AlexRawToken_OP_ASSIGN       -- ^ Reserved Keyword
      | AlexRawToken_OP_TIMES        -- ^ Reserved Keyword
      | AlexRawToken_OP_PLUSPLUS     -- ^ Reserved Keyword
+     | AlexRawToken_OP_OR           -- ^ Reserved Keyword
 
      -- ***************
      -- *             *
