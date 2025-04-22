@@ -135,6 +135,21 @@ import Location
 @KW_EXPR_BINOP_PLUS = "Expr_BinaryOp_Plus"
 @KW_VAR_DECLARATION = \"VariableDeclaration\"
 @KW_VAR_DECLARATOR  = \"VariableDeclarator\"
+@local = \"local\"
+@source = \"source\"
+@specifiers = \"specifiers\"
+@imported = \"imported\"
+@ImportDeclaration = \"ImportDeclaration\"
+@ImportSpecifier = \"ImportSpecifier\"
+@ImportDefaultSpecifier = \"ImportDefaultSpecifier\"
+@key = \"key\"
+@properties = \"properties\"
+@ObjectExpression = \"ObjectExpression\"
+@shorthand = \"shorthand\"
+@method = \"method\"
+@Property = \"Property\"
+@AssignmentPattern = \"AssignmentPattern\"
+-- last keywords first part
 
 -- **************
 -- *            *
@@ -314,7 +329,21 @@ tokens :-
 @KW_EXPR_BINOP_PLUS { lex' AlexRawToken_EXPR_BINOP_PLUS }
 @KW_VAR_DECLARATION { lex' AlexRawToken_VAR_DECLARATION }
 @KW_VAR_DECLARATOR  { lex' AlexRawToken_VAR_DECLARATOR  }
-
+@local {lex' AlexRawToken_local}
+@source {lex' AlexRawToken_source}
+@specifiers {lex' AlexRawToken_specifiers}
+@imported {lex' AlexRawToken_imported}
+@ImportDeclaration {lex' AlexRawToken_ImportDeclaration}
+@ImportSpecifier {lex' AlexRawToken_ImportSpecifier}
+@ImportDefaultSpecifier {lex' AlexRawToken_ImportDefaultSpecifier}
+@key {lex' AlexRawToken_key}
+@properties {lex' AlexRawToken_properties}
+@ObjectExpression {lex' AlexRawToken_ObjectExpression}
+@shorthand {lex' AlexRawToken_shorthand}
+@method {lex' AlexRawToken_method}
+@Property {lex' AlexRawToken_Property}
+@AssignmentPattern {lex' AlexRawToken_AssignmentPattern}
+-- last keywords second part
 
 -- *********
 -- *       *
@@ -521,6 +550,21 @@ data AlexRawToken
      | AlexRawToken_EXPR_BINOP_PLUS -- ^ Reserved Keyword
      | AlexRawToken_VAR_DECLARATION -- ^ Reserved Keyword
      | AlexRawToken_VAR_DECLARATOR  -- ^ Reserved Keyword
+     | AlexRawToken_local
+     | AlexRawToken_source
+     | AlexRawToken_specifiers
+     | AlexRawToken_imported
+     | AlexRawToken_ImportDeclaration
+     | AlexRawToken_ImportSpecifier
+     | AlexRawToken_ImportDefaultSpecifier
+     | AlexRawToken_key
+     | AlexRawToken_properties
+     | AlexRawToken_ObjectExpression
+     | AlexRawToken_shorthand
+     | AlexRawToken_method
+     | AlexRawToken_Property
+     | AlexRawToken_AssignmentPattern
+     -- last keywords third part
 
      -- *********
      -- *       *

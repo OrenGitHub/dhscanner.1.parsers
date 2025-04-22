@@ -148,6 +148,21 @@ import Data.Map ( fromList )
 'FunctionDeclaration'   { AlexTokenTag AlexRawToken_FUNCTION_DEC    _ }
 'VariableDeclaration'   { AlexTokenTag AlexRawToken_VAR_DECLARATION _ }
 'VariableDeclarator'    { AlexTokenTag AlexRawToken_VAR_DECLARATOR  _ }
+'local' { AlexTokenTag AlexRawToken_local _ }
+'source' { AlexTokenTag AlexRawToken_source _ }
+'specifiers' { AlexTokenTag AlexRawToken_specifiers _ }
+'imported' { AlexTokenTag AlexRawToken_imported _ }
+'ImportDeclaration' { AlexTokenTag AlexRawToken_ImportDeclaration _ }
+'ImportSpecifier' { AlexTokenTag AlexRawToken_ImportSpecifier _ }
+'ImportDefaultSpecifier' { AlexTokenTag AlexRawToken_ImportDefaultSpecifier _ }
+'key' { AlexTokenTag AlexRawToken_key _ }
+'properties' { AlexTokenTag AlexRawToken_properties _ }
+'ObjectExpression' { AlexTokenTag AlexRawToken_ObjectExpression _ }
+'shorthand' { AlexTokenTag AlexRawToken_shorthand _ }
+'method' { AlexTokenTag AlexRawToken_method _ }
+'Property' { AlexTokenTag AlexRawToken_Property _ }
+'AssignmentPattern' { AlexTokenTag AlexRawToken_AssignmentPattern _ }
+-- last keywords first part
 
 -- *********
 -- *       *
@@ -252,7 +267,7 @@ commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
 program:
 '{'
     'type' ':' 'Program' ','
-    'body' ':' '[' commalistof(dec_or_stmt) ']' ','
+    'body' ':' '[' commalistof(stmt) ']' ','
     'sourceType' ':' ID ','
     'loc' ':' location
 '}'
@@ -260,7 +275,7 @@ program:
     Ast.Root
     {
         Ast.filename = "DDD",
-        stmts = rights $9
+        stmts = $9
     }
 }
 
@@ -337,9 +352,10 @@ location:
 -- *          *
 -- ************
 tokenID:
-ID      { tokIDValue $1 } |
-'end'   { "end"         } |
-'start' { "start"       }
+ID       { tokIDValue $1 } |
+'end'    { "end"         } |
+'start'  { "start"       } |
+'object' { "object"      }
 
 -- **************
 -- *            *
@@ -365,7 +381,7 @@ identifier:
 -- * param *
 -- *       *
 -- *********
-param:
+param_1:
 '{'
     'type' ':' 'Identifier' ','
     'name' ':' tokenID ','
@@ -374,12 +390,38 @@ param:
 {
     Ast.Param
     {
-        Ast.paramName = Token.ParamName $ Token.Named (unquote $8) $12,
+        Ast.paramName = Token.ParamName $ Token.Named $8 $12,
         Ast.paramNominalType = Token.NominalTy $ Token.Named "any" $12,
         Ast.paramNominalTypeV2 = Nothing,
         Ast.paramSerialIdx = 156
     }
 }
+
+-- *********
+-- *       *
+-- * param *
+-- *       *
+-- *********
+param_2:
+'{'
+    'type' ':' 'AssignmentPattern' ','
+    'left' ':' identifier ','
+    'right' ':' exp ','
+    'loc' ':' location
+'}'
+{
+    Ast.Param
+    {
+        Ast.paramName = Token.ParamName $8,
+        Ast.paramNominalType = Token.NominalTy $ Token.Named "any" $16,
+        Ast.paramNominalTypeV2 = Nothing,
+        Ast.paramSerialIdx = 0
+    }
+}
+
+param:
+param_1 { $1 } |
+param_2 { $1 }
 
 -- ***********
 -- *         *
@@ -427,14 +469,14 @@ var_field:
 '{'
     'type' ':' 'MemberExpression' ','
     'computed' ':' bool ','
-    'object' ':' var ','
+    'object' ':' exp ','
     'property' ':' identifier ','
     'loc' ':' location
 '}'
 {
     Ast.VarField $ Ast.VarFieldContent
     {
-        varFieldLhs = Ast.ExpVar (Ast.ExpVarContent $12),
+        varFieldLhs = $12,
         varFieldName = Token.FieldName $16,
         varFieldLocation = $20
     }
@@ -504,7 +546,7 @@ exp_assign_tag:
 -- * exp_str *
 -- *         *
 -- ***********
-exp_str:
+str:
 '{'
     'type' ':' 'Literal' ','
     'value' ':' ID ','
@@ -512,16 +554,10 @@ exp_str:
     'loc' ':' location
 '}'
 {
-    Ast.ExpStr $ Ast.ExpStrContent
-    {
-        expStrValue = Token.ConstStr
-        {
-            Token.constStrValue = unquote (tokIDValue $8),
-            Token.constStrLocation = $16
-        }
-    }
+    Token.ConstStr (unquote (tokIDValue $8)) $16
 }
 
+exp_str: str { Ast.ExpStr $ Ast.ExpStrContent $1 }
 
 -- ***********
 -- *         *
@@ -693,6 +729,40 @@ exp_new:
     }
 }
 
+property:
+'{'
+    'type' ':' 'Property' ','
+    'key' ':' identifier ','
+    'computed' ':' 'false' ','
+    'value' ':' exp ','
+    'kind' ':' 'init' ','
+    'method' ':' 'false' ','
+    'shorthand' ':' 'false' ','
+    'loc' ':' location
+'}'
+{
+    $16
+}
+
+exp_object:
+'{'
+    'type' ':' 'ObjectExpression' ','
+    'properties' ':' '[' commalistof(property) ']' ','
+    'loc' ':' location
+'}'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "dictify",
+            Token.location = $14
+        },
+        Ast.args = $9,
+        Ast.expCallLocation = $14
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -707,8 +777,8 @@ exp_bool    { $1 } |
 exp_call    { $1 } |
 exp_binop   { $1 } |
 exp_lambda  { $1 } |
+exp_object  { $1 } |
 exp_fstring { $1 }
--- exp_assign { Nothing }
 
 -- ************
 -- *          *
@@ -853,6 +923,54 @@ dec_var
     Ast.StmtVardec $1
 }
 
+specifier_default:
+'{'
+    'type' ':' 'ImportDefaultSpecifier' ','
+    'local' ':' identifier ','
+    'loc' ':' location
+'}'
+{
+    Ast.StmtImportContent
+    {
+        Ast.stmtImportSource = "",
+        Ast.stmtImportFromSource = Just "default",
+        Ast.stmtImportAlias = Just (Token.content $8),
+        Ast.stmtImportLocation = $12
+    } 
+}
+
+specifier_named:
+'{'
+    'type' ':' 'ImportSpecifier' ','
+    'local' ':' identifier ','
+    'imported' ':' identifier ','
+    'loc' ':' location
+'}'
+{
+    Ast.StmtImportContent
+    {
+        Ast.stmtImportSource = "",
+        Ast.stmtImportFromSource = Just (Token.content $8),
+        Ast.stmtImportAlias = Just (Token.content $8),
+        Ast.stmtImportLocation = $16
+    }
+}
+
+specifier:
+specifier_default { $1 } |
+specifier_named   { $1 }
+
+stmt_import:
+'{'
+    'type' ':' 'ImportDeclaration' ','
+    'specifiers' ':' '[' commalistof(specifier) ']' ','
+    'source' ':' str ','
+    'loc' ':' location
+'}'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent (importify $18 (Token.constStrValue $14) $9) $18
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -863,6 +981,7 @@ stmt_if     { $1 } |
 stmt_for    { $1 } |
 stmt_call   { $1 } |
 stmt_assign { $1 } |
+stmt_import { $1 } |
 stmt_decvar { $1 } |
 stmt_return { $1 } |
 dec_function { $1 }
@@ -974,6 +1093,18 @@ enumerateParams (i,(p:ps)) =
 -- ***********
 lexwrap :: (AlexTokenTag -> Alex a) -> Alex a
 lexwrap = (alexMonadScan >>=)
+
+
+importify :: Location -> String -> [ Ast.StmtImportContent ] -> [ Ast.Stmt ]
+importify l src = Data.List.map (importifySingle l src)
+
+importifySingle :: Location -> String -> Ast.StmtImportContent -> Ast.Stmt
+importifySingle l src stmt = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = src,
+    Ast.stmtImportFromSource = Ast.stmtImportFromSource stmt,
+    Ast.stmtImportAlias = Ast.stmtImportAlias stmt,
+    Ast.stmtImportLocation = l
+}
 
 -- **************
 -- *            *
