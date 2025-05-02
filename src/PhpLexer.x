@@ -674,13 +674,20 @@ location = tokenLoc
 tokIntValue :: AlexTokenTag -> Int
 tokIntValue t = case (tokenRaw t) of { AlexRawToken_INT i -> i; _ -> 0; }
 
+normalizeChar :: Char -> String
+normalizeChar '\\' = "\\\\"
+normalizeChar c = [c]
+
+normalize :: String -> String
+normalize = concatMap normalizeChar
+
 -- **************
 -- *            *
 -- * tokIDValue *
 -- *            *
 -- **************
 tokIDValue :: AlexTokenTag -> String
-tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> s; _ -> ""; }
+tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> (normalize s); _ -> ""; }
 
 -- **************
 -- *            *
