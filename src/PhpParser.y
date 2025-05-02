@@ -290,8 +290,8 @@ stmt_function:
     {
         Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" $2),
         Ast.stmtFuncName = Token.FuncName $14,
-        Ast.stmtFuncParams = [],
-        Ast.stmtFuncBody = [],
+        Ast.stmtFuncParams = $17,
+        Ast.stmtFuncBody = $23,
         Ast.stmtFuncAnnotations = [],
         Ast.stmtFuncLocation = $2
     }
@@ -858,6 +858,7 @@ stmt_class:
 -- *************
 stmt_exp:
 'Stmt_Expression' loc '(' 'expr' ':' exp ')' { Ast.StmtExp $6 } |
+'Stmt_Expression' loc '(' 'expr' ':' assign ')' { $6 } |
 exp { Ast.StmtExp $1 }
 
 -- *************
@@ -1489,22 +1490,17 @@ err_suppress:
     $6
 }
 
--- **************
--- *            *
--- * exp_assign *
--- *            *
--- **************
-exp_assign:
+assign:
 assign_op loc
 '('
     'var' ':' var
     'expr' ':' exp
 ')'
 {
-    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    Ast.StmtAssign $ Ast.StmtAssignContent
     {
-        Token.constIntValue = 999,
-        Token.constIntLocation = $2
+        Ast.stmtAssignLhs = $6,
+        Ast.stmtAssignRhs = $9
     }
 }
 
@@ -1572,7 +1568,6 @@ exp_unop    { $1 } |
 exp_isset   { $1 } |
 exp_empty   { $1 } |
 exp_array   { $1 } |
-exp_assign  { $1 } |
 exp_import  { $1 } |
 err_suppress  { $1 } |
 exp_lambda  { $1 } |
