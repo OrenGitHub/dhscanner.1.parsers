@@ -185,6 +185,9 @@ import Location
 @KW_EXPR_BINOP_OR   = "Expr_BinaryOp_BooleanOr"
 @KW_EXPR_BINOP_OR2  = "Expr_BinaryOp_BitwiseOr"
 @KW_EXPR_BINOP_AND  = "Expr_BinaryOp_BooleanAnd"
+@Expr_NullsafePropertyFetch = Expr_NullsafePropertyFetch
+@Expr_BinaryOp_LogicalAnd = Expr_BinaryOp_LogicalAnd
+-- last keywords first part
 
 -- ************
 -- *          *
@@ -379,6 +382,9 @@ tokens :-
 @KW_EXPR_BINOP_LOR  { lex' AlexRawToken_EXPR_BINOP_LOR  }
 @KW_EXPR_BINOP_AND  { lex' AlexRawToken_EXPR_BINOP_AND  }
 @KW_EXPR_UNOP_NOT   { lex' AlexRawToken_EXPR_UNOP_NOT   }
+@Expr_NullsafePropertyFetch {lex' AlexRawToken_Expr_NullsafePropertyFetch}
+@Expr_BinaryOp_LogicalAnd {lex' AlexRawToken_Expr_BinaryOp_LogicalAnd}
+-- last keywords second part
 
 -- ***************************
 -- *                         *
@@ -584,6 +590,9 @@ data AlexRawToken
      | AlexRawToken_EXPR_BINOP_LOR  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_BINOP_AND  -- ^ Reserved Keyword
      | AlexRawToken_EXPR_UNOP_NOT   -- ^ Reserved Keyword
+     | AlexRawToken_Expr_NullsafePropertyFetch
+     | AlexRawToken_Expr_BinaryOp_LogicalAnd
+     -- last keywords third part
 
      | AlexRawToken_COLON           -- ^ Punctuation __:__
      | AlexRawToken_SLASH           -- ^ Punctuation __:__

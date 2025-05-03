@@ -200,6 +200,9 @@ import Data.Map ( empty, fromList )
 'Expr_BinaryOp_Coalesce' { AlexTokenTag AlexRawToken_EXPR_BINOP_CO   _ }
 'Expr_BinaryOp_Identical' { AlexTokenTag AlexRawToken_EXPR_BINOP_IS _ }
 'Expr_BinaryOp_NotIdentical' { AlexTokenTag AlexRawToken_EXPR_BINOP_ISNOT _ }
+'Expr_NullsafePropertyFetch' { AlexTokenTag AlexRawToken_Expr_NullsafePropertyFetch _ }
+'Expr_BinaryOp_LogicalAnd' { AlexTokenTag AlexRawToken_Expr_BinaryOp_LogicalAnd _ }
+-- last keywords first part
 
 -- ****************************
 -- *                          *
@@ -719,6 +722,7 @@ tokenID loc
 
 flag:
 ID             { Nothing } |
+INT            { Nothing } |
 ID '(' INT ')' { Nothing }
 
 flags:
@@ -1544,6 +1548,21 @@ exp_kwclass:
     } 
 }
 
+exp_null_safe_prop_fetch:
+'Expr_NullsafePropertyFetch' loc
+'('
+    'var' ':' var
+    'name' ':' identifier
+')'
+{
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = Ast.ExpVar (Ast.ExpVarContent $6),
+        Ast.varFieldName = Token.FieldName $9,
+        Ast.varFieldLocation = $2
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1567,6 +1586,7 @@ exp_file    { $1 } |
 exp_unop    { $1 } |
 exp_isset   { $1 } |
 exp_empty   { $1 } |
+exp_null_safe_prop_fetch { $1 } |
 exp_array   { $1 } |
 exp_import  { $1 } |
 err_suppress  { $1 } |
@@ -1772,6 +1792,7 @@ operator:
 'Expr_BinaryOp_Concat'       { Nothing } |
 'Expr_BinaryOp_Identical'    { Nothing } |
 'Expr_BinaryOp_NotIdentical' { Nothing } |
+'Expr_BinaryOp_LogicalAnd'   { Nothing } |
 'Expr_BinaryOp_BooleanOr'    { Nothing } |
 'Expr_BinaryOp_BitwiseOr'    { Nothing } |
 'Expr_BinaryOp_LogicalOr'    { Nothing } |
@@ -1782,7 +1803,7 @@ operator:
 -- * exp_binop *
 -- *           *
 -- *************
-exp_binop:
+exp_binop_1:
 operator loc
 '('
     'left' ':' exp
@@ -1797,6 +1818,31 @@ operator loc
         Ast.expBinopLocation = $2
     }
 } 
+
+-- *************
+-- *           *
+-- * exp_binop *
+-- *           *
+-- *************
+exp_binop_2:
+operator loc
+'('
+    'left' ':' exp
+    'right' ':' assign
+')'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $6,
+        Ast.expBinopRight = case $9 of { (Ast.StmtAssign a) -> Ast.stmtAssignRhs a; _ -> $6 },
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $2
+    }
+} 
+
+exp_binop:
+exp_binop_1 { $1 } |
+exp_binop_2 { $1 }
 
 -- ***********
 -- *         *
