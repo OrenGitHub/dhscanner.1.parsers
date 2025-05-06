@@ -230,14 +230,9 @@ import Location
 -- * strings *
 -- *         *
 -- ***********
-@NON_WHITE = . # $white
-@LOC = (@INT)(":")(@INT)
-@DASH = ($white)(\-)($white)
-@RANGE = (@LOC)(@DASH)(@LOC)
-$no_newline = [ $printable $white ] # \n 
-@STR1 = "Scalar_String"(@LBRACK)(@RANGE)(@RBRACK)(@LPAREN)($white+)("value: ")($no_newline*)\n($white+)(@RPAREN)
-@STR2 = "InterpolatedStringPart"(@LBRACK)(@RANGE)(@RBRACK)(@LPAREN)($white+)("value: ")($no_newline*)\n($white+)(@RPAREN)
-@STR=(@STR1)|(@STR2)
+@QUOTE = \"
+--@STR = (@QUOTE)params(@QUOTE)
+@STR = (@QUOTE)([^"]*)(@QUOTE)
 
 -- ***************
 -- *             *
@@ -757,69 +752,13 @@ tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> (normalize s); _ -> "
 findString :: String -> String -> Maybe Int
 findString needle haystack = Data.List.findIndex (Data.List.isPrefixOf needle) (Data.List.tails haystack)
 
--- ******************
--- *                *
--- * tokStrLocation *
--- *                *
--- ******************
-tokStrLocation' :: AlexTokenTag -> String -> Maybe Location
-tokStrLocation' t s = case (findString "[" s) of
-    Nothing -> Nothing
-    Just i1 -> let s1 = drop (i1 + 1) s in case (findString ":" s1) of
-        Nothing -> Nothing
-        Just i2 -> let { startLine = read (take i2 s1); s2 = (drop (i2 + 1) s1) } in case (findString " - " s2) of
-            Nothing -> Nothing
-            Just i3 -> let { startCol = read (take i3 s2); s3 = drop (i3 + 3) s2 } in case (findString ":" s3) of
-                Nothing -> Nothing
-                Just i4 -> let { endLine = read (take i4 s3); s4 = drop (i4 + 1) s3 } in case (findString "]" s4) of
-                    Nothing -> Nothing
-                    Just i5 -> let { endCol = read (take i5 s4) } in Just $ Location {
-                        Location.filename = Location.filename (tokenLoc t),
-                        Location.lineStart = startLine,
-                        Location.lineEnd = endLine,
-                        Location.colStart = startCol,
-                        Location.colEnd = endCol
-                    }
-
--- ******************
--- *                *
--- * tokStrLocation *
--- *                *
--- ******************
-tokStrLocation :: AlexTokenTag -> Maybe Location
-tokStrLocation t = case (tokenRaw t) of { (AlexRawToken_STR s) -> tokStrLocation' t s; _ -> Nothing }
-
 -- ***************
 -- *             *
 -- * tokStrValue *
 -- *             *
 -- ***************
-tokStrValue'' :: AlexTokenTag -> String -> Maybe String
-tokStrValue'' t s = case (findString "value: " s) of
-    Nothing -> Nothing
-    Just i1 -> let s1 = drop (i1 + 7) s in case (findString "\n" s1) of
-        Nothing -> Nothing
-        Just i2 -> Just (take i2 s1)
-
--- ***************
--- *             *
--- * tokStrValue *
--- *             *
--- ***************
-tokStrValue' :: AlexTokenTag -> String -> Maybe (String,Location)
-tokStrValue' t s = case (tokStrLocation t) of 
-    Nothing -> Nothing
-    Just location -> case (tokStrValue'' t s) of
-        Nothing -> Nothing
-        Just constStrValue -> Just (constStrValue,location)
-
--- ***************
--- *             *
--- * tokStrValue *
--- *             *
--- ***************
-tokStrValue :: AlexTokenTag -> Maybe (String,Location)
-tokStrValue t = case (tokenRaw t) of { (AlexRawToken_STR s) -> tokStrValue' t s; _ -> Nothing; }
+tokStrValue :: AlexTokenTag -> String
+tokStrValue t = case (tokenRaw t) of { (AlexRawToken_STR s) -> s; _ -> "" }
 
 -- ************
 -- *          *

@@ -1815,40 +1815,19 @@ exp_float: 'Scalar_Float' loc '(' 'value' ':' float_value ')'
     }
 }
 
--- ***********
--- *         *
--- * exp_str *
--- *         *
--- ***********
-exp_str_1: STR
-{
-    Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
-    {
-        Token.constStrValue = case (tokStrValue $1) of { Nothing -> "LLL"; Just (s,_) -> s },
-        Token.constStrLocation = case (tokStrLocation $1) of {
-            Nothing -> Location (Location.filename (tokenLoc $1)) 6 6 6 6;
-            Just loc -> loc
-        }
-    }
-}
-
-exp_str_2:
+exp_str:
 'Scalar_String' loc
 '('
-    STR
+    'value' ':' STR
 ')'
 {
     Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
     {
-        Token.constStrValue = case (tokStrValue $4) of { Nothing -> "LLL"; Just (s,_) -> s },
+        Token.constStrValue = tokStrValue $6,
         Token.constStrLocation = $2
     }
    
 }
-
-exp_str:
-exp_str_1 { $1 } |
-exp_str_2 { $1 }
 
 -- ************
 -- *          *
