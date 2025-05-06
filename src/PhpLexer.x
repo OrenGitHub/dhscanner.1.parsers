@@ -187,6 +187,23 @@ import Location
 @KW_EXPR_BINOP_AND  = "Expr_BinaryOp_BooleanAnd"
 @Expr_NullsafePropertyFetch = Expr_NullsafePropertyFetch
 @Expr_BinaryOp_LogicalAnd = Expr_BinaryOp_LogicalAnd
+@attrGroups = attrGroups
+@flags = flags
+@extends = extends
+@implements = implements
+@false = false
+@byRef = byRef
+@params = params
+@default = default
+@variadic = variadic
+@unpack = unpack
+@key = key
+@keyVar = keyVar
+@valueVar = valueVar
+@consts = consts
+@static = static
+@Expr_PreInc = Expr_PreInc
+@Scalar_String = Scalar_String
 -- last keywords first part
 
 -- ************
@@ -384,6 +401,23 @@ tokens :-
 @KW_EXPR_UNOP_NOT   { lex' AlexRawToken_EXPR_UNOP_NOT   }
 @Expr_NullsafePropertyFetch {lex' AlexRawToken_Expr_NullsafePropertyFetch}
 @Expr_BinaryOp_LogicalAnd {lex' AlexRawToken_Expr_BinaryOp_LogicalAnd}
+@attrGroups {lex' AlexRawToken_attrGroups}
+@flags {lex' AlexRawToken_flags}
+@extends {lex' AlexRawToken_extends}
+@implements {lex' AlexRawToken_implements}
+@false {lex' AlexRawToken_false}
+@byRef {lex' AlexRawToken_byRef}
+@params {lex' AlexRawToken_params}
+@default {lex' AlexRawToken_default}
+@variadic {lex' AlexRawToken_variadic}
+@unpack {lex' AlexRawToken_unpack}
+@key {lex' AlexRawToken_key}
+@keyVar {lex' AlexRawToken_keyVar}
+@valueVar {lex' AlexRawToken_valueVar}
+@consts {lex' AlexRawToken_consts}
+@static {lex' AlexRawToken_static}
+@Expr_PreInc {lex' AlexRawToken_Expr_PreInc}
+@Scalar_String {lex' AlexRawToken_Scalar_String}
 -- last keywords second part
 
 -- ***************************
@@ -592,6 +626,23 @@ data AlexRawToken
      | AlexRawToken_EXPR_UNOP_NOT   -- ^ Reserved Keyword
      | AlexRawToken_Expr_NullsafePropertyFetch
      | AlexRawToken_Expr_BinaryOp_LogicalAnd
+     | AlexRawToken_attrGroups
+     | AlexRawToken_flags
+     | AlexRawToken_extends
+     | AlexRawToken_implements
+     | AlexRawToken_false
+     | AlexRawToken_byRef
+     | AlexRawToken_params
+     | AlexRawToken_default
+     | AlexRawToken_variadic
+     | AlexRawToken_unpack
+     | AlexRawToken_key
+     | AlexRawToken_keyVar
+     | AlexRawToken_valueVar
+     | AlexRawToken_consts
+     | AlexRawToken_static
+     | AlexRawToken_Expr_PreInc
+     | AlexRawToken_Scalar_String
      -- last keywords third part
 
      | AlexRawToken_COLON           -- ^ Punctuation __:__

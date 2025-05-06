@@ -202,6 +202,23 @@ import Data.Map ( empty, fromList )
 'Expr_BinaryOp_NotIdentical' { AlexTokenTag AlexRawToken_EXPR_BINOP_ISNOT _ }
 'Expr_NullsafePropertyFetch' { AlexTokenTag AlexRawToken_Expr_NullsafePropertyFetch _ }
 'Expr_BinaryOp_LogicalAnd' { AlexTokenTag AlexRawToken_Expr_BinaryOp_LogicalAnd _ }
+'attrGroups' { AlexTokenTag AlexRawToken_attrGroups _ }
+'flags' { AlexTokenTag AlexRawToken_flags _ }
+'extends' { AlexTokenTag AlexRawToken_extends _ }
+'implements' { AlexTokenTag AlexRawToken_implements _ }
+'false' { AlexTokenTag AlexRawToken_false _ }
+'byRef' { AlexTokenTag AlexRawToken_byRef _ }
+'params' { AlexTokenTag AlexRawToken_params _ }
+'default' { AlexTokenTag AlexRawToken_default _ }
+'variadic' { AlexTokenTag AlexRawToken_variadic _ }
+'unpack' { AlexTokenTag AlexRawToken_unpack _ }
+'key' { AlexTokenTag AlexRawToken_key _ }
+'keyVar' { AlexTokenTag AlexRawToken_keyVar _ }
+'valueVar' { AlexTokenTag AlexRawToken_valueVar _ }
+'consts' { AlexTokenTag AlexRawToken_consts _ }
+'static' { AlexTokenTag AlexRawToken_static _ }
+'Expr_PreInc' { AlexTokenTag AlexRawToken_Expr_PreInc _ }
+'Scalar_String' { AlexTokenTag AlexRawToken_Scalar_String _ }
 -- last keywords first part
 
 -- ****************************
@@ -240,12 +257,16 @@ tokenID:
 ID      { tokIDValue $1 } |
 'array' { "array"       } |
 'value' { "value"       } |
+'params' { "params"     } |
+'false' { "false"       } |
 'Name'  { "Name"        } |
 'name'  { "name"        } |
+'key'   { "key"         } |
 'type'  { "type"        } |
 'args'  { "args"        } |
 'null'  { "null"        }
 
+empty_array: 'array' '(' ')' { Nothing }
 
 -- **********************
 -- *                    *
@@ -255,23 +276,28 @@ ID      { tokIDValue $1 } |
 optional(a): { Nothing } | a { Just $1 }
 listof(a): a { [$1] } | a listof(a) { $1:$2 }
 ornull(a): 'null' { Nothing } | a { Just $1 }
-possibly_empty_arrayof(a): 'array' '(' ')' { [] } | 'array' '(' listof(a) ')' { $3 }
+possibly_empty_arrayof(a): empty_array { [] } | 'array' '(' listof(a) ')' { $3 }
 
 -- *********
 -- *       *
 -- * stmts *
 -- *       *
 -- *********
-stmts:
-'array' '('                       ')' { [] } |
-'array' '(' listof(numbered_stmt) ')' { $3 }
+stmts: possibly_empty_arrayof(numbered_stmt) { $1 }
 
 -- *****************
 -- *               *
 -- * numbered_stmt *
 -- *               *
 -- *****************
-numbered_stmt: INT ':' stmt { $3 }
+numbered_stmt_1: INT ':' stmt { $3 }
+numbered_stmt_2: INT ':' assign { $3 }
+
+numbered_stmt:
+numbered_stmt_1 { $1 } |
+numbered_stmt_2 { $1 }
+
+attrGroups: empty_array { Nothing }
 
 -- *****************
 -- *               *
@@ -281,10 +307,10 @@ numbered_stmt: INT ':' stmt { $3 }
 stmt_function:
 'Stmt_Function' loc
 '('
-    ID ':' 'array' '(' ')'
-    ID ':' ID
+    'attrGroups' ':' attrGroups
+    'byRef' ':' byRef
     'name' ':' identifier
-    ID ':' params
+    'params' ':' params
     'returnType' ':' type
     'stmts' ':' stmts
 ')'
@@ -292,9 +318,9 @@ stmt_function:
     Ast.StmtFunc $ Ast.StmtFuncContent
     {
         Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" $2),
-        Ast.stmtFuncName = Token.FuncName $14,
-        Ast.stmtFuncParams = $17,
-        Ast.stmtFuncBody = $23,
+        Ast.stmtFuncName = Token.FuncName $12,
+        Ast.stmtFuncParams = $15,
+        Ast.stmtFuncBody = $21,
         Ast.stmtFuncAnnotations = [],
         Ast.stmtFuncLocation = $2
     }
@@ -549,16 +575,14 @@ stmt_static:
 stmt_namespace:
 'Stmt_Namespace' loc
 '('
-    'name' ':' 'Name' loc '(' 'name' ':' tokenID ')'
+    'name' ':' Name
     'stmts' ':' stmts 
 ')'
 {
-    Ast.StmtIf $ Ast.StmtIfContent
+    Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtIfCond = Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool True $2,
-        Ast.stmtIfBody = $15,
-        Ast.stmtElseBody = [],
-        Ast.stmtIfLocation = $2
+        Ast.stmtBlockContent = $9,
+        Ast.stmtBlockLocation = $2
     }
 }
 
@@ -595,18 +619,16 @@ stmt_trait:
 stmt_class_const:
 'Stmt_ClassConst' loc
 '('
-    ID ':' possibly_empty_arrayof(exp)
-    ID ':' INT
+    'attrGroups' ':' possibly_empty_arrayof(exp)
+    'flags' ':' flags
     'type' ':' type
-    ID ':' stmts 
+    'consts' ':' stmts 
 ')'
 {
-    Ast.StmtIf $ Ast.StmtIfContent
+    Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtIfCond = Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool True $2,
-        Ast.stmtIfBody = $15,
-        Ast.stmtElseBody = [],
-        Ast.stmtIfLocation = $2
+        Ast.stmtBlockContent = $15,
+        Ast.stmtBlockLocation = $2
     }
 }
 
@@ -692,6 +714,19 @@ stmt_use:
     }
 } 
 
+Name:
+'Name' loc
+'('
+    'name' ':' tokenID
+')'
+{
+    Token.Named
+    {
+        Token.content = $6,
+        Token.location = $2
+    }
+}
+
 -- **************
 -- *            *
 -- * identifier *
@@ -752,7 +787,7 @@ type:
 tokenID { Token.Named $1 dummyLoc } |
 identifier { $1 } |
 'Name_FullyQualified' loc '(' 'name' ':' tokenID ')' { Token.Named $6 $2 } |
-'Name' loc '(' 'name' ':' ID ')' { Token.Named (tokIDValue $6) $2 }
+Name { $1 }
 
 param_default_value:
 tokenID { Nothing } |
@@ -761,16 +796,18 @@ exp     { Nothing }
 hooks:
 ID ':' 'array' '(' ')' { Nothing }
 
+variadic: 'false' { Nothing }
+
 param:
 'Param' loc
 '('
-    ID ':' 'array' '(' ')'
-    ID ':' INT
+    'attrGroups' ':' 'array' '(' ')'
+    'flags' ':' INT
     'type' ':' type
-    ID ':' ID
-    ID ':' ID
+    'byRef' ':' byRef
+    'variadic' ':' variadic
     'var' ':' 'Expr_Variable' loc '(' 'name' ':' tokenID ')'
-    ID ':' param_default_value
+    'default' ':' param_default_value
     optional(hooks)
 ')'
 {
@@ -787,15 +824,19 @@ numbered_param: INT ':' param { $3 }
 
 params: 'array' '(' ')' { [] } | 'array' '(' listof(numbered_param) ')' { $3 }
 
+byRef: 'false' { Nothing }
+
+returnType: tokenID { $1 }
+
 stmt_method:
 'Stmt_ClassMethod' loc
 '('
-    ID ':' 'array' '(' ')'
-    ID ':' flags
-    ID ':' ID
+    'attrGroups' ':' 'array' '(' ')'
+    'flags' ':' flags
+    'byRef' ':' byRef
     'name' ':' identifier
-    ID ':' params
-    'returnType' ':' tokenID
+    'params' ':' params
+    'returnType' ':' returnType
     'stmts' ':' ornull(stmts)
 ')'
 {
@@ -829,8 +870,7 @@ stmt_interface:
     }
 } 
 
-implements:
-'Name' loc '(' 'name' ':' tokenID ')' { Nothing }
+implements: Name { $1 }
 
 numbered_implements:
 INT ':' implements { Nothing }
@@ -838,18 +878,18 @@ INT ':' implements { Nothing }
 stmt_class:
 'Stmt_Class' loc
 '('
-    tokenID ':' 'array' '(' ')'
-    ID ':' INT
+    'attrGroups' ':' 'array' '(' ')'
+    'flags' ':' INT
     'name' ':' identifier
-    ID ':' type
-    ID ':' possibly_empty_arrayof(numbered_implements)
+    'extends' ':' type
+    'implements' ':' possibly_empty_arrayof(numbered_implements)
     'stmts' ':' stmts 
 ')'
 {
     Ast.StmtClass $ Ast.StmtClassContent
     {
         Ast.stmtClassName = Token.ClassName $14,
-        Ast.stmtClassSupers = [],
+        Ast.stmtClassSupers = [Token.SuperName $17],
         Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
         Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $14) $23
     }
@@ -891,26 +931,50 @@ elseif:
 
 numbered_elseif: INT ':' elseif { $3 }
 
-elseifs:
-'array' '(' ')' { [] } | 'array' '(' listof(numbered_elseif) ')' { [] }
-
 -- ***********
 -- *         *
 -- * stmt_if *
 -- *         *
 -- ***********
-stmt_if:
+stmt_if_1:
 'Stmt_If' loc
 '('
     'cond' ':' exp
     'stmts' ':' stmts
-    ID ':' elseifs
+    ID ':' possibly_empty_arrayof(numbered_elseif)
     ID ':' ornull(stmt_else)
 ')'
 {
     Ast.StmtIf $ Ast.StmtIfContent
     {
         Ast.stmtIfCond = $6,
+        Ast.stmtIfBody = $9,
+        Ast.stmtElseBody = [],
+        Ast.stmtIfLocation = $2
+    }
+}
+
+stmt_if:
+stmt_if_1 { $1 } |
+stmt_if_2 { $1 }
+
+-- ***********
+-- *         *
+-- * stmt_if *
+-- *         *
+-- ***********
+stmt_if_2:
+'Stmt_If' loc
+'('
+    'cond' ':' assign
+    'stmts' ':' stmts
+    ID ':' possibly_empty_arrayof(numbered_elseif)
+    ID ':' ornull(stmt_else)
+')'
+{
+    let t = Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool True $2 in Ast.StmtIf $ Ast.StmtIfContent
+    {
+        Ast.stmtIfCond = case $6 of { Ast.StmtAssign a -> Ast.stmtAssignRhs a; _ -> t } ,
         Ast.stmtIfBody = $9,
         Ast.stmtElseBody = [],
         Ast.stmtIfLocation = $2
@@ -1563,6 +1627,16 @@ exp_null_safe_prop_fetch:
     }
 }
 
+
+exp_preinc:
+'Expr_PreInc' loc
+'('
+    'var' ':' var
+')'
+{
+    Ast.ExpVar $ Ast.ExpVarContent $6
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1572,6 +1646,7 @@ exp:
 exp_int     { $1 } |
 exp_float   { $1 } |
 exp_str     { $1 } |
+exp_preinc  { $1 } |
 exp_new     { $1 } |
 exp_not     { $1 } |
 exp_bool    { $1 } |
@@ -1600,10 +1675,10 @@ exp_kwclass { $1 }
 array_item:
 'ArrayItem' loc
 '('
-    ID ':' ornull(exp)
+    'key' ':' ornull(exp)
     'value' ':' exp 
-    ID ':' ID
-    ID ':' ID
+    'byRef' ':' byRef
+    'unpack' ':' unpack
 ')'
 {
     $9
@@ -1673,13 +1748,15 @@ closure_use:
 'ClosureUse' loc
 '('
     'var' ':' var
-    ID ':' ID
+    'byRef' ':' byRef
 ')'
 {
     Nothing
 }
 
 numbered_closure_use: INT ':' closure_use { Nothing }
+
+static: 'false' { Nothing }
 
 -- **************
 -- *            *
@@ -1689,19 +1766,19 @@ numbered_closure_use: INT ':' closure_use { Nothing }
 exp_lambda:
 'Expr_Closure' loc
 '('
-    ID ':' 'array' '(' ')'
-    ID ':' ID
-    ID ':' ID
-    ID ':' params
-    'uses' ':' 'array' '(' optional(listof(numbered_closure_use)) ')'
-    'returnType' ':' tokenID
+    'attrGroups' ':' attrGroups
+    'static' ':' static
+    'byRef' ':' byRef
+    'params' ':' params
+    'uses' ':' possibly_empty_arrayof(numbered_closure_use)
+    'returnType' ':' returnType
     'stmts' ':' stmts
 ')'
 {
     Ast.ExpLambda $ Ast.ExpLambdaContent
     {
-        Ast.expLambdaParams = $17,
-        Ast.expLambdaBody = $29,
+        Ast.expLambdaParams = $15,
+        Ast.expLambdaBody = $24,
         Ast.expLambdaLocation = $2
     }
 }
@@ -1743,7 +1820,7 @@ exp_float: 'Scalar_Float' loc '(' 'value' ':' float_value ')'
 -- * exp_str *
 -- *         *
 -- ***********
-exp_str: STR
+exp_str_1: STR
 {
     Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
     {
@@ -1754,6 +1831,24 @@ exp_str: STR
         }
     }
 }
+
+exp_str_2:
+'Scalar_String' loc
+'('
+    STR
+')'
+{
+    Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
+    {
+        Token.constStrValue = case (tokStrValue $4) of { Nothing -> "LLL"; Just (s,_) -> s },
+        Token.constStrLocation = $2
+    }
+   
+}
+
+exp_str:
+exp_str_1 { $1 } |
+exp_str_2 { $1 }
 
 -- ************
 -- *          *
@@ -1840,9 +1935,32 @@ operator loc
     }
 } 
 
+-- *************
+-- *           *
+-- * exp_binop *
+-- *           *
+-- *************
+exp_binop_3:
+operator loc
+'('
+    'left' ':' assign
+    'right' ':' exp
+')'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = case $6 of { (Ast.StmtAssign a) -> Ast.stmtAssignRhs a; _ -> $9 },
+        Ast.expBinopRight = $9,
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $2
+    }
+} 
+
+
 exp_binop:
 exp_binop_1 { $1 } |
-exp_binop_2 { $1 }
+exp_binop_2 { $1 } |
+exp_binop_3 { $1 }
 
 -- ***********
 -- *         *
@@ -1969,17 +2087,20 @@ args:
 -- ****************
 numbered_arg: INT ':' arg { $3 }
 
+unpack: 'false' { Nothing }
+
 -- *******
 -- *     *
 -- * arg *
 -- *     *
 -- *******
-arg: 'Arg' loc
+arg:
+'Arg' loc
 '('
     'name' ':' tokenID
     'value' ':' exp
-    ID ':' ID
-    ID ':' ID
+    'byRef' ':' byRef
+    'unpack' ':' unpack
 ')'
 {
     $9
@@ -1994,7 +2115,14 @@ exps { head $1 }
 -- * stmt_for *
 -- *          *
 -- ************
-stmt_for: 'Stmt_For' loc '(' 'init' ':' stmts 'cond' ':' exps 'loop' ':' stmt_for_loop 'stmts' ':' stmts ')'
+stmt_for:
+'Stmt_For' loc
+'('
+    'init' ':' stmts
+    'cond' ':' exps
+    'loop' ':' stmt_for_loop
+    'stmts' ':' stmts
+')'
 {
     Ast.StmtWhile $ Ast.StmtWhileContent
     {
@@ -2013,9 +2141,9 @@ stmt_foreach:
 'Stmt_Foreach' loc
 '('
     'expr' ':' exp
-    ID ':' ornull(exp)
-    ID ':' ID 
-    ID ':' exp
+    'keyVar' ':' ornull(exp)
+    'byRef' ':' byRef 
+    'valueVar' ':' exp
     'stmts' ':' stmts
 ')'
 {
