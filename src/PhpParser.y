@@ -219,6 +219,30 @@ import Data.Map ( empty, fromList )
 'static' { AlexTokenTag AlexRawToken_static _ }
 'Expr_PreInc' { AlexTokenTag AlexRawToken_Expr_PreInc _ }
 'Scalar_String' { AlexTokenTag AlexRawToken_Scalar_String _ }
+'traits' { AlexTokenTag AlexRawToken_traits _ }
+'adaptations' { AlexTokenTag AlexRawToken_adaptations _ }
+'props' { AlexTokenTag AlexRawToken_props _ }
+'VarLikeIdentifier' { AlexTokenTag AlexRawToken_VarLikeIdentifier _ }
+'PropertyItem' { AlexTokenTag AlexRawToken_PropertyItem _ }
+'Expr_BinaryOp_Pow' { AlexTokenTag AlexRawToken_Expr_BinaryOp_Pow _ }
+'Expr_ArrowFunction' { AlexTokenTag AlexRawToken_Expr_ArrowFunction _ }
+'parts' { AlexTokenTag AlexRawToken_parts _ }
+'InterpolatedStringPart' { AlexTokenTag AlexRawToken_InterpolatedStringPart _ }
+'true' { AlexTokenTag AlexRawToken_true _ }
+'Expr_BinaryOp_BitwiseAnd' { AlexTokenTag AlexRawToken_Expr_BinaryOp_BitwiseAnd _ }
+'Expr_BinaryOp_ShiftRight' { AlexTokenTag AlexRawToken_Expr_BinaryOp_ShiftRight _ }
+'Expr_BinaryOp_ShiftLeft' { AlexTokenTag AlexRawToken_Expr_BinaryOp_ShiftLeft _ }
+'Expr_AssignOp_BitwiseXor' { AlexTokenTag AlexRawToken_Expr_AssignOp_BitwiseXor _ }
+'Expr_BinaryOp_BitwiseXor' { AlexTokenTag AlexRawToken_Expr_BinaryOp_BitwiseXor _ }
+'Expr_AssignOp_ShiftRight' { AlexTokenTag AlexRawToken_Expr_AssignOp_ShiftRight _ }
+'Expr_AssignOp_BitwiseAnd' { AlexTokenTag AlexRawToken_Expr_AssignOp_BitwiseAnd _ }
+'Expr_AssignOp_BitwiseOr' { AlexTokenTag AlexRawToken_Expr_AssignOp_BitwiseOr _ }
+'NullableType' { AlexTokenTag AlexRawToken_NullableType _ }
+'MatchArm' { AlexTokenTag AlexRawToken_MatchArm _ }
+'conds' { AlexTokenTag AlexRawToken_conds _ }
+'body' { AlexTokenTag AlexRawToken_body _ }
+'arms' { AlexTokenTag AlexRawToken_arms _ }
+'Expr_Match' { AlexTokenTag AlexRawToken_Expr_Match _ }
 -- last keywords first part
 
 -- ****************************
@@ -256,11 +280,15 @@ program: stmts
 tokenID:
 ID      { tokIDValue $1 } |
 'array' { "array"       } |
+'static' { "static"     } |
 'value' { "value"       } |
 'params' { "params"     } |
+'true'  { "true"        } |
 'false' { "false"       } |
 'Name'  { "Name"        } |
 'name'  { "name"        } |
+'body'  { "body"        } |
+'flags' { "flags"       } |
 'key'   { "key"         } |
 'type'  { "type"        } |
 'args'  { "args"        } |
@@ -273,24 +301,19 @@ empty_array: 'array' '(' ')' { Nothing }
 -- * parametrized lists *
 -- *                    *
 -- **********************
+numbered(a): INT ':' a { $3 }
 optional(a): { Nothing } | a { Just $1 }
 listof(a): a { [$1] } | a listof(a) { $1:$2 }
 ornull(a): 'null' { Nothing } | a { Just $1 }
-possibly_empty_arrayof(a): empty_array { [] } | 'array' '(' listof(a) ')' { $3 }
+arrayof(a): 'array' '(' listof(a) ')' { $3 }
+possibly_empty_arrayof(a): empty_array { [] } | arrayof(a) { $1 }
 
 -- *********
 -- *       *
 -- * stmts *
 -- *       *
 -- *********
-stmts: possibly_empty_arrayof(numbered_stmt) { $1 }
-
--- *****************
--- *               *
--- * numbered_stmt *
--- *               *
--- *****************
-numbered_stmt: INT ':' stmt { $3 }
+stmts: possibly_empty_arrayof(numbered(stmt)) { $1 }
 
 attrGroups: empty_array { Nothing }
 
@@ -504,15 +527,14 @@ stmt_catch:
 'Stmt_Catch' loc
 '('
     ID ':' catch_types
-    'var' ':' exp
+    'var' ':' ornull(exp)
     'stmts' ':' stmts
 ')'
 {
-    Ast.StmtWhile $ Ast.StmtWhileContent
+    Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtWhileCond = $9,
-        Ast.stmtWhileBody = $12,
-        Ast.stmtWhileLocation = $2
+        Ast.stmtBlockContent = $12,
+        Ast.stmtBlockLocation = $2
     }
 }
 
@@ -584,8 +606,8 @@ stmt_namespace:
 stmt_traituse:
 'Stmt_TraitUse' loc
 '('
-    ID ':' possibly_empty_arrayof(numbered_exp) 
-    ID ':' possibly_empty_arrayof(exp) 
+    'traits' ':' possibly_empty_arrayof(numbered_exp) 
+    'adaptations' ':' possibly_empty_arrayof(exp) 
 ')'
 {
     case $6 of {
@@ -735,18 +757,32 @@ identifier: 'Identifier' loc '(' 'name' ':' tokenID ')'
         Token.location = $2
     }
 }
-
-dec_var:
-tokenID loc
+var_like_identifier:
+'VarLikeIdentifier' loc
 '('
-    'name' ':' ID loc '(' 'name' ':' tokenID ')'
-    ID ':' ornull(exp)
+    'name' ':' tokenID
 ')'
 {
     Token.Named
     {
-        Token.content = $11,
+        Token.content = $6,
         Token.location = $2
+    }
+}
+
+property_item:
+'PropertyItem' loc
+'('
+    'name' ':' var_like_identifier
+    'default' ':' ornull(exp)
+')'
+{
+    Ast.StmtVardec $ Ast.StmtVardecContent
+    {
+        Ast.stmtVardecName = Token.VarName $6,
+        Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" $2),
+        Ast.stmtVardecInitValue = $9,
+        Ast.stmtVardecLocation = $2
     }
 }
 
@@ -762,25 +798,20 @@ flag '|' flags { Nothing }
 stmt_data_member:
 'Stmt_Property' loc
 '('
-    ID ':' 'array' '(' ')'
-    ID ':' flags
+    'attrGroups' ':' attrGroups
+    'flags' ':' flags
     'type' ':' type
-    ID ':' 'array' '(' INT ':' dec_var ')'
+    'props' ':' 'array' '(' numbered(property_item) ')'
     optional(hooks)
 ')'
 {
-    Ast.StmtVardec $ Ast.StmtVardecContent
-    {
-        Ast.stmtVardecName = Token.VarName $21,
-        Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" $2),
-        Ast.stmtVardecInitValue = Nothing,
-        Ast.stmtVardecLocation = $2
-    }
+    $17
 }
 
 type:
 tokenID { Token.Named $1 dummyLoc } |
 identifier { $1 } |
+'NullableType' loc '(' 'type' ':' type ')' { $6 } |
 'Name_FullyQualified' loc '(' 'name' ':' tokenID ')' { Token.Named $6 $2 } |
 Name { $1 }
 
@@ -791,7 +822,11 @@ exp     { Nothing }
 hooks:
 ID ':' 'array' '(' ')' { Nothing }
 
-variadic: 'false' { Nothing }
+bool:
+'true'  { Nothing } |
+'false' { Nothing }
+
+variadic: bool { Nothing }
 
 param:
 'Param' loc
@@ -821,7 +856,7 @@ params: 'array' '(' ')' { [] } | 'array' '(' listof(numbered_param) ')' { $3 }
 
 byRef: 'false' { Nothing }
 
-returnType: tokenID { $1 }
+returnType: type { $1 }
 
 stmt_method:
 'Stmt_ClassMethod' loc
@@ -850,18 +885,18 @@ stmt_method:
 stmt_interface:
 'Stmt_Interface' loc
 '('
-    tokenID ':' 'array' '(' ')'
+    'attrGroups' ':' empty_array
     'name' ':' identifier
-    ID ':' 'array' '(' ')'
+    'extends' ':' empty_array
     'stmts' ':' stmts
 ')'
 {
     Ast.StmtClass $ Ast.StmtClassContent
     {
-        Ast.stmtClassName = Token.ClassName $11,
+        Ast.stmtClassName = Token.ClassName $9,
         Ast.stmtClassSupers = [],
         Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
-        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $11) $19
+        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $9) $15
     }
 } 
 
@@ -1142,7 +1177,11 @@ assign_op:
 'Expr_AssignOp_Div'    { Nothing } |
 'Expr_AssignOp_Plus'   { Nothing } |
 'Expr_AssignOp_Minus'  { Nothing } |
-'Expr_AssignOp_Concat' { Nothing }
+'Expr_AssignOp_Concat' { Nothing } |
+'Expr_AssignOp_ShiftRight' { Nothing } |
+'Expr_AssignOp_BitwiseAnd' { Nothing } |
+'Expr_AssignOp_BitwiseOr'  { Nothing } |
+'Expr_AssignOp_BitwiseXor' { Nothing }
 
 -- *************
 -- *           *
@@ -1402,13 +1441,14 @@ exp_empty:
     $6
 }
 
-interpolated_string_part: exp { $1 }
-
-numbered_interpolated_string_part:
-INT ':' interpolated_string_part { $3 }
-
-interpolated_string_parts:
-'array' '(' listof(numbered_interpolated_string_part) ')' { $3 }
+exp_fstring_element:
+'InterpolatedStringPart' loc
+'('
+    'value' ':' STR
+')'
+{
+    Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr (tokStrValue $6) $2
+}
 
 -- ***************
 -- *             *
@@ -1418,7 +1458,7 @@ interpolated_string_parts:
 exp_fstring:
 'Scalar_InterpolatedString' loc
 '('
-    ID ':' interpolated_string_parts
+    'parts' ':' arrayof(numbered(exp))
 ')'
 {
     Ast.ExpCall $ Ast.ExpCallContent
@@ -1630,6 +1670,62 @@ exp_preinc:
     Ast.ExpVar $ Ast.ExpVarContent $6
 }
 
+exp_arrow:
+'Expr_ArrowFunction' loc
+'('
+    'attrGroups' ':' attrGroups
+    'static' ':' static
+    'byRef' ':' byRef
+    'params' ':' params
+    'returnType' ':' returnType
+    'expr' ':' exp
+')'
+{
+    Ast.ExpLambda $ Ast.ExpLambdaContent
+    {
+        Ast.expLambdaParams = $15,
+        Ast.expLambdaBody = [Ast.StmtExp $21],
+        Ast.expLambdaLocation = $2
+    }
+}
+
+match_arm:
+'MatchArm' loc
+'('
+    'conds' ':' ornull(arrayof(numbered(exp)))
+    'body' ':' exp
+')'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "<instrumented-case>",
+            Token.location = $2
+        },
+        Ast.args = $9:(case $6 of { Just es -> es; _ -> [] }),
+        Ast.expCallLocation = $2
+    }
+}
+
+exp_match:
+'Expr_Match' loc
+'('
+    'cond' ':' exp
+    'arms' ':' arrayof(numbered(match_arm))
+')'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "<instrumented-switch>",
+            Token.location = $2
+        },
+        Ast.args = $6:$9
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1638,6 +1734,7 @@ exp_preinc:
 exp:
 exp_int     { $1 } |
 exp_float   { $1 } |
+exp_match   { $1 } |
 exp_str     { $1 } |
 exp_preinc  { $1 } |
 exp_assign  { $1 } |
@@ -1660,8 +1757,10 @@ exp_array   { $1 } |
 exp_import  { $1 } |
 err_suppress  { $1 } |
 exp_lambda  { $1 } |
+exp_arrow   { $1 } |
 exp_ternary { $1 } |
 exp_fstring { $1 } |
+exp_fstring_element { $1 } |
 exp_instof  { $1 } |
 exp_var     { $1 } |
 exp_kwclass { $1 }
@@ -1750,7 +1849,7 @@ closure_use:
 
 numbered_closure_use: INT ':' closure_use { Nothing }
 
-static: 'false' { Nothing }
+static: bool { Nothing }
 
 -- **************
 -- *            *
@@ -1854,6 +1953,7 @@ operator:
 'Expr_BinaryOp_Div'          { Nothing } |
 'Expr_BinaryOp_Plus'         { Nothing } |
 'Expr_BinaryOp_Minus'        { Nothing } |
+'Expr_BinaryOp_Pow'          { Nothing } |
 'Expr_BinaryOp_Greater'      { Nothing } |
 'Expr_BinaryOp_GreaterOrEqual' { Nothing } |
 'Expr_BinaryOp_Coalesce'     { Nothing } |
@@ -1862,7 +1962,11 @@ operator:
 'Expr_BinaryOp_NotIdentical' { Nothing } |
 'Expr_BinaryOp_LogicalAnd'   { Nothing } |
 'Expr_BinaryOp_BooleanOr'    { Nothing } |
+'Expr_BinaryOp_ShiftRight'   { Nothing } |
+'Expr_BinaryOp_ShiftLeft'    { Nothing } |
 'Expr_BinaryOp_BitwiseOr'    { Nothing } |
+'Expr_BinaryOp_BitwiseAnd'   { Nothing } |
+'Expr_BinaryOp_BitwiseXor'   { Nothing } |
 'Expr_BinaryOp_LogicalOr'    { Nothing } |
 'Expr_BinaryOp_BooleanAnd'   { Nothing }
 
@@ -2014,6 +2118,10 @@ numbered_arg: INT ':' arg { $3 }
 
 unpack: 'false' { Nothing }
 
+argname:
+tokenID    { Nothing } |
+identifier { Nothing }
+
 -- *******
 -- *     *
 -- * arg *
@@ -2022,7 +2130,7 @@ unpack: 'false' { Nothing }
 arg:
 'Arg' loc
 '('
-    'name' ':' tokenID
+    'name' ':' argname
     'value' ':' exp
     'byRef' ':' byRef
     'unpack' ':' unpack

@@ -204,6 +204,30 @@ import Location
 @static = static
 @Expr_PreInc = Expr_PreInc
 @Scalar_String = Scalar_String
+@traits = traits
+@adaptations = adaptations
+@props = props
+@VarLikeIdentifier = VarLikeIdentifier
+@PropertyItem = PropertyItem
+@Expr_BinaryOp_Pow = Expr_BinaryOp_Pow
+@Expr_ArrowFunction = Expr_ArrowFunction
+@parts = parts
+@InterpolatedStringPart = InterpolatedStringPart
+@true = true
+@Expr_BinaryOp_BitwiseAnd = Expr_BinaryOp_BitwiseAnd
+@Expr_BinaryOp_ShiftRight = Expr_BinaryOp_ShiftRight
+@Expr_BinaryOp_ShiftLeft = Expr_BinaryOp_ShiftLeft
+@Expr_AssignOp_BitwiseXor = Expr_AssignOp_BitwiseXor
+@Expr_BinaryOp_BitwiseXor = Expr_BinaryOp_BitwiseXor
+@Expr_AssignOp_ShiftRight = Expr_AssignOp_ShiftRight
+@Expr_AssignOp_BitwiseAnd = Expr_AssignOp_BitwiseAnd
+@Expr_AssignOp_BitwiseOr = Expr_AssignOp_BitwiseOr
+@NullableType = NullableType
+@MatchArm = MatchArm
+@conds = conds
+@body = body
+@arms = arms
+@Expr_Match = Expr_Match
 -- last keywords first part
 
 -- ************
@@ -413,6 +437,30 @@ tokens :-
 @static {lex' AlexRawToken_static}
 @Expr_PreInc {lex' AlexRawToken_Expr_PreInc}
 @Scalar_String {lex' AlexRawToken_Scalar_String}
+@traits {lex' AlexRawToken_traits}
+@adaptations {lex' AlexRawToken_adaptations}
+@props {lex' AlexRawToken_props}
+@VarLikeIdentifier {lex' AlexRawToken_VarLikeIdentifier}
+@PropertyItem {lex' AlexRawToken_PropertyItem}
+@Expr_BinaryOp_Pow {lex' AlexRawToken_Expr_BinaryOp_Pow}
+@Expr_ArrowFunction {lex' AlexRawToken_Expr_ArrowFunction}
+@parts {lex' AlexRawToken_parts}
+@InterpolatedStringPart {lex' AlexRawToken_InterpolatedStringPart}
+@true {lex' AlexRawToken_true}
+@Expr_BinaryOp_BitwiseAnd {lex' AlexRawToken_Expr_BinaryOp_BitwiseAnd}
+@Expr_BinaryOp_ShiftRight {lex' AlexRawToken_Expr_BinaryOp_ShiftRight}
+@Expr_BinaryOp_ShiftLeft {lex' AlexRawToken_Expr_BinaryOp_ShiftLeft}
+@Expr_AssignOp_BitwiseXor {lex' AlexRawToken_Expr_AssignOp_BitwiseXor}
+@Expr_BinaryOp_BitwiseXor {lex' AlexRawToken_Expr_BinaryOp_BitwiseXor}
+@Expr_AssignOp_ShiftRight {lex' AlexRawToken_Expr_AssignOp_ShiftRight}
+@Expr_AssignOp_BitwiseAnd {lex' AlexRawToken_Expr_AssignOp_BitwiseAnd}
+@Expr_AssignOp_BitwiseOr {lex' AlexRawToken_Expr_AssignOp_BitwiseOr}
+@NullableType {lex' AlexRawToken_NullableType}
+@MatchArm {lex' AlexRawToken_MatchArm}
+@conds {lex' AlexRawToken_conds}
+@body {lex' AlexRawToken_body}
+@arms {lex' AlexRawToken_arms}
+@Expr_Match {lex' AlexRawToken_Expr_Match}
 -- last keywords second part
 
 -- ***************************
@@ -638,6 +686,30 @@ data AlexRawToken
      | AlexRawToken_static
      | AlexRawToken_Expr_PreInc
      | AlexRawToken_Scalar_String
+     | AlexRawToken_traits
+     | AlexRawToken_adaptations
+     | AlexRawToken_props
+     | AlexRawToken_VarLikeIdentifier
+     | AlexRawToken_PropertyItem
+     | AlexRawToken_Expr_BinaryOp_Pow
+     | AlexRawToken_Expr_ArrowFunction
+     | AlexRawToken_parts
+     | AlexRawToken_InterpolatedStringPart
+     | AlexRawToken_true
+     | AlexRawToken_Expr_BinaryOp_BitwiseAnd
+     | AlexRawToken_Expr_BinaryOp_ShiftRight
+     | AlexRawToken_Expr_BinaryOp_ShiftLeft
+     | AlexRawToken_Expr_AssignOp_BitwiseXor
+     | AlexRawToken_Expr_BinaryOp_BitwiseXor
+     | AlexRawToken_Expr_AssignOp_ShiftRight
+     | AlexRawToken_Expr_AssignOp_BitwiseAnd
+     | AlexRawToken_Expr_AssignOp_BitwiseOr
+     | AlexRawToken_NullableType
+     | AlexRawToken_MatchArm
+     | AlexRawToken_conds
+     | AlexRawToken_body
+     | AlexRawToken_arms
+     | AlexRawToken_Expr_Match
      -- last keywords third part
 
      | AlexRawToken_COLON           -- ^ Punctuation __:__
