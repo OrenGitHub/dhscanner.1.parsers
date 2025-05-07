@@ -290,12 +290,7 @@ stmts: possibly_empty_arrayof(numbered_stmt) { $1 }
 -- * numbered_stmt *
 -- *               *
 -- *****************
-numbered_stmt_1: INT ':' stmt { $3 }
-numbered_stmt_2: INT ':' assign { $3 }
-
-numbered_stmt:
-numbered_stmt_1 { $1 } |
-numbered_stmt_2 { $1 }
+numbered_stmt: INT ':' stmt { $3 }
 
 attrGroups: empty_array { Nothing }
 
@@ -895,15 +890,39 @@ stmt_class:
     }
 } 
 
--- *************
--- *           *
--- * stmt_call *
--- *           *
--- *************
+-- ************
+-- *          *
+-- * stmt_exp *
+-- *          *
+-- ************
+stmt_exp_1:
+'Stmt_Expression' loc
+'('
+    'expr' ':' exp
+')'
+{
+    Ast.StmtExp $6
+}
+
+-- ************
+-- *          *
+-- * stmt_exp *
+-- *          *
+-- ************
+stmt_exp_2:
+exp
+{
+    Ast.StmtExp $1
+}
+
+-- ************
+-- *          *
+-- * stmt_exp *
+-- *          *
+-- ************
 stmt_exp:
-'Stmt_Expression' loc '(' 'expr' ':' exp ')' { Ast.StmtExp $6 } |
-'Stmt_Expression' loc '(' 'expr' ':' assign ')' { $6 } |
-exp { Ast.StmtExp $1 }
+stmt_exp_1 { $1 } |
+stmt_exp_2 { $1 }
 
 -- *************
 -- *           *
@@ -936,7 +955,7 @@ numbered_elseif: INT ':' elseif { $3 }
 -- * stmt_if *
 -- *         *
 -- ***********
-stmt_if_1:
+stmt_if:
 'Stmt_If' loc
 '('
     'cond' ':' exp
@@ -948,33 +967,6 @@ stmt_if_1:
     Ast.StmtIf $ Ast.StmtIfContent
     {
         Ast.stmtIfCond = $6,
-        Ast.stmtIfBody = $9,
-        Ast.stmtElseBody = [],
-        Ast.stmtIfLocation = $2
-    }
-}
-
-stmt_if:
-stmt_if_1 { $1 } |
-stmt_if_2 { $1 }
-
--- ***********
--- *         *
--- * stmt_if *
--- *         *
--- ***********
-stmt_if_2:
-'Stmt_If' loc
-'('
-    'cond' ':' assign
-    'stmts' ':' stmts
-    ID ':' possibly_empty_arrayof(numbered_elseif)
-    ID ':' ornull(stmt_else)
-')'
-{
-    let t = Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool True $2 in Ast.StmtIf $ Ast.StmtIfContent
-    {
-        Ast.stmtIfCond = case $6 of { Ast.StmtAssign a -> Ast.stmtAssignRhs a; _ -> t } ,
         Ast.stmtIfBody = $9,
         Ast.stmtElseBody = [],
         Ast.stmtIfLocation = $2
@@ -1558,17 +1550,18 @@ err_suppress:
     $6
 }
 
-assign:
+exp_assign:
 assign_op loc
 '('
     'var' ':' var
     'expr' ':' exp
 ')'
 {
-    Ast.StmtAssign $ Ast.StmtAssignContent
+    Ast.ExpAssign $ Ast.ExpAssignContent
     {
-        Ast.stmtAssignLhs = $6,
-        Ast.stmtAssignRhs = $9
+        Ast.expAssignLhs = $6,
+        Ast.expAssignRhs = $9,
+        Ast.expAssignLocation = $2
     }
 }
 
@@ -1647,6 +1640,7 @@ exp_int     { $1 } |
 exp_float   { $1 } |
 exp_str     { $1 } |
 exp_preinc  { $1 } |
+exp_assign  { $1 } |
 exp_new     { $1 } |
 exp_not     { $1 } |
 exp_bool    { $1 } |
@@ -1877,69 +1871,21 @@ operator:
 -- * exp_binop *
 -- *           *
 -- *************
-exp_binop_1:
-operator loc
-'('
-    'left' ':' exp
-    'right' ':' exp
-')'
-{
-    Ast.ExpBinop $ Ast.ExpBinopContent
-    {
-        Ast.expBinopLeft = $6,
-        Ast.expBinopRight = $9,
-        Ast.expBinopOperator = Ast.PLUS,
-        Ast.expBinopLocation = $2
-    }
-} 
-
--- *************
--- *           *
--- * exp_binop *
--- *           *
--- *************
-exp_binop_2:
-operator loc
-'('
-    'left' ':' exp
-    'right' ':' assign
-')'
-{
-    Ast.ExpBinop $ Ast.ExpBinopContent
-    {
-        Ast.expBinopLeft = $6,
-        Ast.expBinopRight = case $9 of { (Ast.StmtAssign a) -> Ast.stmtAssignRhs a; _ -> $6 },
-        Ast.expBinopOperator = Ast.PLUS,
-        Ast.expBinopLocation = $2
-    }
-} 
-
--- *************
--- *           *
--- * exp_binop *
--- *           *
--- *************
-exp_binop_3:
-operator loc
-'('
-    'left' ':' assign
-    'right' ':' exp
-')'
-{
-    Ast.ExpBinop $ Ast.ExpBinopContent
-    {
-        Ast.expBinopLeft = case $6 of { (Ast.StmtAssign a) -> Ast.stmtAssignRhs a; _ -> $9 },
-        Ast.expBinopRight = $9,
-        Ast.expBinopOperator = Ast.PLUS,
-        Ast.expBinopLocation = $2
-    }
-} 
-
-
 exp_binop:
-exp_binop_1 { $1 } |
-exp_binop_2 { $1 } |
-exp_binop_3 { $1 }
+operator loc
+'('
+    'left' ':' exp
+    'right' ':' exp
+')'
+{
+    Ast.ExpBinop $ Ast.ExpBinopContent
+    {
+        Ast.expBinopLeft = $6,
+        Ast.expBinopRight = $9,
+        Ast.expBinopOperator = Ast.PLUS,
+        Ast.expBinopLocation = $2
+    }
+} 
 
 -- ***********
 -- *         *
