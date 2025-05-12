@@ -745,10 +745,12 @@ lex' :: AlexRawToken -> AlexInput -> Int -> Alex AlexTokenTag
 lex' = lex . const
 
 -- **************
+-- *            *
 -- * alexError' *
+-- *            *
 -- **************
 alexError' :: Location -> Alex a
-alexError' location = alexError $ "ERROR[" ++ show location ++ "]\n"
+alexError' location = alexError (show location)
 
 -- ************
 -- *          *

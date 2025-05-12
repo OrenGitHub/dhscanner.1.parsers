@@ -11,6 +11,7 @@ import Prelude
 import Data.Aeson()
 import GHC.Generics
 import Data.Text
+import Text.Read (readMaybe)
 import Data.Time
 import Yesod.Core.Types
 import System.Log.FastLogger
@@ -23,6 +24,7 @@ import qualified Network.HTTP.Types.Status
 import qualified Network.Wai.Middleware.RequestLogger as Wai
 
 -- project imports
+import qualified Location
 import qualified Ast
 
 -- project imports
@@ -44,10 +46,13 @@ data SourceFile
 
 data Healthy = Healthy Bool deriving ( Generic )
 
-data Error = Error String String String deriving ( Generic )
-
--- | indicate a parse error 
-instance ToJSON Error where toJSON (Error status message _filename) = object [ "status" .= status, "message" .= message, "filename" .= _filename ]
+data Error
+   = Error
+     {
+         status :: String,
+         location :: Location.Location
+     }
+     deriving ( Generic, ToJSON )
 
 -- | This is just for the health check ...
 instance ToJSON Healthy where toJSON (Healthy status) = object [ "healthy" .= status ]
@@ -96,7 +101,9 @@ postFromTsR = post TsParser.parseProgram
 postFailed :: String -> String -> Handler Value
 postFailed errorMsg _filename = do
     $logInfoS "(Parser)" (Data.Text.pack errorMsg)
-    returnJson (Error "FAILED" errorMsg _filename)
+    let defaultLoc = Location.Location _filename 1 1 1 1
+    let loc = case (readMaybe errorMsg :: Maybe Location.Location) of { Just l -> l; _ -> defaultLoc }
+    returnJson (Error "FAILED" loc)
 
 postSucceeded :: Ast.Root -> Handler Value
 postSucceeded = returnJson
