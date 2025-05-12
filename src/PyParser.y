@@ -1360,11 +1360,10 @@ stmt_try:
     loc
 ')'
 {
-    Ast.StmtTry $ Ast.StmtTryContent
+    Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtTryPart = $5,
-        Ast.stmtCatchPart = [],
-        Ast.stmtTryLocation = $19
+        Ast.stmtBlockContent = $5,
+        Ast.stmtBlockLocation = $19
     }
 }
 
