@@ -170,6 +170,7 @@ import Location
 @KW_FALSE           = False
 @KW_LIST            = List
 @KW_SET             = Set
+@KW_SET_COMP        = SetComp
 @KW_LIST_COMP       = ListComp
 @KW_DICT_COMP       = DictComp
 @KW_GENERATOR_EXP   = GeneratorExp
@@ -210,6 +211,8 @@ import Location
 @KW_EXPR_CONST      = Constant
 @KW_EXPR_UNOP       = UnaryOp
 @KW_EXPR_BINOP      = BinOp
+@msg = msg
+-- last keywords first part
 
 -- **************
 -- *            *
@@ -425,6 +428,7 @@ tokens :-
 @KW_FALSE           { lex' AlexRawToken_FALSE           }
 @KW_LIST            { lex' AlexRawToken_LIST            }
 @KW_SET             { lex' AlexRawToken_SET             }
+@KW_SET_COMP        { lex' AlexRawToken_SET_COMP        }
 @KW_LIST_COMP       { lex' AlexRawToken_LIST_COMP       }
 @KW_DICT_COMP       { lex' AlexRawToken_DICT_COMP       }
 @KW_GENERATOR_EXP   { lex' AlexRawToken_GENERATOR_EXP   }
@@ -457,6 +461,8 @@ tokens :-
 @KW_EXPR_CONST      { lex' AlexRawToken_EXPR_CONST      }
 @KW_EXPR_UNOP       { lex' AlexRawToken_EXPR_UNOP       }
 @KW_EXPR_BINOP      { lex' AlexRawToken_EXPR_BINOP      }
+@msg {lex' AlexRawToken_msg}
+-- last keywords second part
 
 -- **************
 -- *            *
@@ -694,6 +700,7 @@ data AlexRawToken
      | AlexRawToken_FALSE           -- ^ Reserved Keyword
      | AlexRawToken_LIST            -- ^ Reserved Keyword
      | AlexRawToken_SET             -- ^ Reserved Keyword
+     | AlexRawToken_SET_COMP        -- ^ Reserved Keyword
      | AlexRawToken_LIST_COMP       -- ^ Reserved Keyword
      | AlexRawToken_DICT_COMP       -- ^ Reserved Keyword
      | AlexRawToken_GENERATOR_EXP   -- ^ Reserved Keyword
@@ -758,6 +765,8 @@ data AlexRawToken
      | AlexRawToken_EXPR_BINOP_PLUS -- ^ Reserved Keyword
      | AlexRawToken_VAR_DECLARATION -- ^ Reserved Keyword
      | AlexRawToken_VAR_DECLARATOR  -- ^ Reserved Keyword
+     | AlexRawToken_msg
+     -- last keywords third part
 
      -- *********
      -- *       *
@@ -892,10 +901,12 @@ lexicalError :: AlexInput -> Int -> Alex AlexTokenTag
 lexicalError ((AlexPn _ l c),_,_,str) i = alexEOF
 
 -- **************
+-- *            *
 -- * alexError' *
+-- *            *
 -- **************
 alexError' :: Location -> Alex a
-alexError' location = alexError $ "Error[ " ++ show location ++ " ]"
+alexError' location = alexError (show location)
 
 -- ************
 -- *          *

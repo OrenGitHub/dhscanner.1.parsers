@@ -122,6 +122,7 @@ import Data.Map ( fromList, empty )
 'items'                     { AlexTokenTag AlexRawToken_ITEMS           _ }
 'List'                      { AlexTokenTag AlexRawToken_LIST            _ }
 'Set'                       { AlexTokenTag AlexRawToken_SET             _ }
+'SetComp'                   { AlexTokenTag AlexRawToken_SET_COMP        _ }
 'ListComp'                  { AlexTokenTag AlexRawToken_LIST_COMP       _ }
 'DictComp'                  { AlexTokenTag AlexRawToken_DICT_COMP       _ }
 'GeneratorExp'              { AlexTokenTag AlexRawToken_GENERATOR_EXP   _ }
@@ -222,6 +223,8 @@ import Data.Map ( fromList, empty )
 'annotation'                { AlexTokenTag AlexRawToken_ANNOTATION      _ }
 'Module'                    { AlexTokenTag AlexRawToken_MODULE          _ }
 'module'                    { AlexTokenTag AlexRawToken_MODULE2         _ }
+'msg' { AlexTokenTag AlexRawToken_msg _ }
+-- last keywords first part
 
 -- ************
 -- *          *
@@ -851,9 +854,11 @@ exps: possibly_empty_listof(exp) { $1 }
 
 none: 'None' { Nothing }
 
-dict_keys:
-exps { $1 } |
-nonempty_listof(none) { [] }
+dict_key:
+exp  { Nothing } |
+none { Nothing }
+
+dict_keys: possibly_empty_listof(dict_key) { $1 }
 
 -- ************
 -- *          *
@@ -930,6 +935,18 @@ comprehension:
 {
     Nothing
 }
+
+exp_setcomp:
+'SetComp'
+'('
+    'elt' '=' exp ','
+    'generators' '=' nonempty_listof(comprehension) ','
+    loc
+')'
+{
+    $5
+}
+
 
 exp_listcomp:
 'ListComp'
@@ -1029,6 +1046,7 @@ exp_bool      { $1 } |
 exp_set       { $1 } |
 exp_list      { $1 } |
 generator     { $1 } |
+exp_setcomp   { $1 } |
 exp_listcomp  { $1 } |
 exp_dictcomp  { $1 } |
 exp_tuple     { $1 } |
@@ -1247,7 +1265,7 @@ stmt_class:
 '('
     'name' '=' tokenID ','
     'bases' '=' possibly_empty_listof(var) ','
-    'keywords' '=' '[' ']' ','
+    'keywords' '=' keywords ','
     'body' '=' stmts ','
     'decorator_list' '=' exps ','
     'type_params' '=' '[' ']' ','
@@ -1256,10 +1274,10 @@ stmt_class:
 {
     Ast.StmtClass $ Ast.StmtClassContent
     {
-        Ast.stmtClassName = Token.ClassName (Token.Named $5 $29),
+        Ast.stmtClassName = Token.ClassName (Token.Named $5 $28),
         Ast.stmtClassSupers = superify $9,
         Ast.stmtClassDataMembers = Ast.DataMembers empty,
-        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $ Token.Named $5 $29) $9 $18 
+        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $ Token.Named $5 $28) $9 $17 
     }
 }
 
@@ -1445,6 +1463,12 @@ stmt_continue:
     }
 }
 
+assert_msg:
+'msg' '=' exp ','
+{
+    Nothing
+}
+
 -- ***************
 -- *             *
 -- * stmt_assert *
@@ -1454,12 +1478,13 @@ stmt_assert:
 'Assert'
 '('
     'test' '=' exp ','
+    optional(assert_msg)
     loc
 ')'
 {
     Ast.StmtContinue $ Ast.StmtContinueContent
     {
-        Ast.stmtContinueLocation = $7
+        Ast.stmtContinueLocation = $8
     }
 }
 
@@ -1597,9 +1622,8 @@ defaults:
 
 kw_default: exp { Nothing } | none { Nothing }
 
-vararg: 'vararg' '=' 'arg' '(' 'arg' '=' tokenID ',' loc ')' ',' { Nothing }
-
-kwarg: 'kwarg' '=' 'arg' '(' 'arg' '=' tokenID ',' loc ')' ',' { Nothing } 
+vararg: 'vararg' '=' param ',' { $3 }
+kwarg:  'kwarg'  '=' param ',' { $3 } 
 
 -- **********
 -- *        *
