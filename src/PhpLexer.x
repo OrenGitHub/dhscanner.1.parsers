@@ -228,6 +228,8 @@ import Location
 @body = body
 @arms = arms
 @Expr_Match = Expr_Match
+@class = class
+@Stmt_InlineHTML = Stmt_InlineHTML
 -- last keywords first part
 
 -- ************
@@ -461,6 +463,8 @@ tokens :-
 @body {lex' AlexRawToken_body}
 @arms {lex' AlexRawToken_arms}
 @Expr_Match {lex' AlexRawToken_Expr_Match}
+@class {lex' AlexRawToken_class}
+@Stmt_InlineHTML {lex' AlexRawToken_Stmt_InlineHTML}
 -- last keywords second part
 
 -- ***************************
@@ -710,6 +714,8 @@ data AlexRawToken
      | AlexRawToken_body
      | AlexRawToken_arms
      | AlexRawToken_Expr_Match
+     | AlexRawToken_class
+     | AlexRawToken_Stmt_InlineHTML
      -- last keywords third part
 
      | AlexRawToken_COLON           -- ^ Punctuation __:__
@@ -772,10 +778,12 @@ lexicalError :: AlexInput -> Int -> Alex AlexTokenTag
 lexicalError ((AlexPn _ l c),_,_,str) i = alexEOF 
 
 -- **************
+-- *            *
 -- * alexError' *
+-- *            *
 -- **************
 alexError' :: Location -> Alex a
-alexError' location = alexError $ "Error[ " ++ show location ++ " ]"
+alexError' location = alexError (show location)
 
 -- ************
 -- *          *

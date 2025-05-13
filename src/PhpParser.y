@@ -243,6 +243,8 @@ import Data.Map ( empty, fromList )
 'body' { AlexTokenTag AlexRawToken_body _ }
 'arms' { AlexTokenTag AlexRawToken_arms _ }
 'Expr_Match' { AlexTokenTag AlexRawToken_Expr_Match _ }
+'class' { AlexTokenTag AlexRawToken_class _ }
+'Stmt_InlineHTML' { AlexTokenTag AlexRawToken_Stmt_InlineHTML _ }
 -- last keywords first part
 
 -- ****************************
@@ -284,6 +286,7 @@ ID      { tokIDValue $1 } |
 'value' { "value"       } |
 'params' { "params"     } |
 'true'  { "true"        } |
+'init'  { "init"        } |
 'false' { "false"       } |
 'Name'  { "Name"        } |
 'name'  { "name"        } |
@@ -490,33 +493,14 @@ stmt_do:
     }
 }
 
-
-catch_type_1:
-'Name' loc
-'('
-    'name' ':' tokenID
-')'
-{
-    Nothing
-}
-
-catch_type_2:
+Name_FullyQualified:
 'Name_FullyQualified' loc
 '('
     'name' ':' tokenID
 ')'
 {
-    Nothing
+    Token.Named $6 $2
 }
-
-
-catch_type:
-catch_type_1 { $1 } |
-catch_type_2 { $1 }
-
-numbered_catch_type: INT ':' catch_type { Nothing }
-
-catch_types: 'array' '(' listof(numbered_catch_type) ')' { Nothing }
 
 -- **************
 -- *            *
@@ -526,7 +510,7 @@ catch_types: 'array' '(' listof(numbered_catch_type) ')' { Nothing }
 stmt_catch:
 'Stmt_Catch' loc
 '('
-    ID ':' catch_types
+    ID ':' arrayof(numbered(named))
     'var' ':' ornull(exp)
     'stmts' ':' stmts
 ')'
@@ -663,6 +647,15 @@ stmt_dec_const:
     }
 }
 
+stmt_html:
+'Stmt_InlineHTML' loc
+'('
+    'value' ':' 'null'
+')'
+{
+    Ast.StmtContinue $ Ast.StmtContinueContent $2
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -672,6 +665,7 @@ stmt:
 stmt_if        { $1 } | 
 stmt_use       { $1 } |
 stmt_for       { $1 } |
+stmt_html      { $1 } |
 stmt_while     { $1 } |
 stmt_do        { $1 } |
 stmt_nop       { $1 } |
@@ -700,17 +694,31 @@ stmt_return    { $1 }
 
 importee: tokenID { [$1] } | tokenID '\\' importee { $1:$3 }
 
-name: 'Name' loc '(' 'name' ':' importee ')' { $6 }
-
-alias:
-'alias' ':' type { Nothing }
+name:
+'Name' loc
+'('
+    'name' ':' importee
+')'
+{
+    Data.List.foldl' (\x y -> x ++ "." ++ y) "" $6
+}
 
 use_item:
-'UseItem' loc '(' 'type' ':' stmt_use_type 'name' ':' name alias ')' { $9 }
-
-numbered_use_item: INT ':' use_item { $3 }
-
-use_items: listof(numbered_use_item) { head $1 }
+'UseItem' loc
+'('
+    'type' ':' stmt_use_type
+    'name' ':' name
+    'alias' ':' type
+')'
+{
+    Ast.StmtImport $ Ast.StmtImportContent
+    {
+        Ast.stmtImportSource = $9,
+        Ast.stmtImportFromSource = Nothing,
+        Ast.stmtImportAlias = Nothing,
+        Ast.stmtImportLocation = $2
+    }
+}
 
 stmt_use_type: tokenID '(' INT ')' { Nothing }
 
@@ -720,15 +728,13 @@ stmt_use_type: tokenID '(' INT ')' { Nothing }
 -- *          *
 -- ************
 stmt_use:
-'Stmt_Use' loc '(' 'type' ':' stmt_use_type 'uses' ':' 'array' '(' use_items ')' ')'
+'Stmt_Use' loc
+'('
+    'type' ':' stmt_use_type
+    'uses' ':' arrayof(numbered(use_item))
+')'
 {
-    Ast.StmtImport $ Ast.StmtImportContent
-    {
-        Ast.stmtImportSource = (Data.List.foldl' (\x y -> x ++ "." ++ y) "" $11),
-        Ast.stmtImportFromSource = Just (last $11),
-        Ast.stmtImportAlias = Just (last $11),
-        Ast.stmtImportLocation = $2
-    }
+    Ast.StmtBlock (Ast.StmtBlockContent $9 $2)
 } 
 
 Name:
@@ -1062,6 +1068,10 @@ var_field1:
     }
 }
 
+named:
+Name                { $1 } |
+Name_FullyQualified { $1 }
+
 -- **************
 -- *            *
 -- * var_field2 *
@@ -1070,22 +1080,14 @@ var_field1:
 var_field2:
 'Expr_StaticPropertyFetch' loc
 '('
-    tokenID ':' tokenID loc '(' 'name' ':' tokenID ')'
-    tokenID ':' tokenID loc '(' 'name' ':' tokenID ')'
+    'class' ':' named
+    'name' ':' var_like_identifier
 ')'
 {
     Ast.VarField $ Ast.VarFieldContent
     {
-        Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
-        {
-            Token.content = $11,
-            Token.location = $7
-        },
-        Ast.varFieldName = Token.FieldName $ Token.Named
-        {
-            Token.content = $20,
-            Token.location = $16
-        },
+        Ast.varFieldLhs = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $6,
+        Ast.varFieldName = Token.FieldName $9,
         Ast.varFieldLocation = $2
     }
 }
@@ -1118,7 +1120,7 @@ var_field3:
 var_field4:
 'Expr_ClassConstFetch' loc
 '('
-    ID ':' exp
+    'class' ':' exp
     'name' ':' identifier 
 ')'
 {
@@ -1999,7 +2001,7 @@ operator loc
 exp_new:
 'Expr_New' loc
 '('
-    ID ':' exp
+    'class' ':' exp
     'args' ':' args
 ')' 
 {
@@ -2051,7 +2053,7 @@ exp_method_call:
 'Expr_MethodCall' loc
 '('
     'var' ':' exp
-    'name' ':' 'Identifier' loc '(' 'name' ':' tokenID ')'
+    'name' ':' identifier
     'args' ':' args
 ')' 
 {
@@ -2060,16 +2062,10 @@ exp_method_call:
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent
         {
             Ast.varFieldLhs = $6,
-            Ast.varFieldName = Token.FieldName $ Token.Named { Token.content = $14, Token.location = $10 },
-            Ast.varFieldLocation = Location {
-                Location.filename = getFilename $1,
-                lineStart = lineStart $2,
-                colStart = colStart $2,
-                lineEnd = lineEnd $10,
-                colEnd = colEnd $10
-            }
+            Ast.varFieldName = Token.FieldName $9,
+            Ast.varFieldLocation = $2
         },
-        Ast.args = $18,
+        Ast.args = $12,
         Ast.expCallLocation = $2
     }
 }
@@ -2082,7 +2078,7 @@ exp_method_call:
 exp_static_method_call:
 'Expr_StaticCall' loc
 '('
-    ID ':' exp
+    'class' ':' exp
     'name' ':' identifier
     'args' ':' args
 ')'
