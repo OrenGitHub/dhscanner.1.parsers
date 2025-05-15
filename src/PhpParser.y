@@ -245,6 +245,7 @@ import Data.Map ( empty, fromList )
 'Expr_Match' { AlexTokenTag AlexRawToken_Expr_Match _ }
 'class' { AlexTokenTag AlexRawToken_class _ }
 'Stmt_InlineHTML' { AlexTokenTag AlexRawToken_Stmt_InlineHTML _ }
+'Expr_Cast_Array' { AlexTokenTag AlexRawToken_Expr_Cast_Array _ }
 -- last keywords first part
 
 -- ****************************
@@ -288,6 +289,7 @@ ID      { tokIDValue $1 } |
 'true'  { "true"        } |
 'init'  { "init"        } |
 'false' { "false"       } |
+'props' { "props"       } |
 'Name'  { "Name"        } |
 'name'  { "name"        } |
 'body'  { "body"        } |
@@ -807,11 +809,11 @@ stmt_data_member:
     'attrGroups' ':' attrGroups
     'flags' ':' flags
     'type' ':' type
-    'props' ':' 'array' '(' numbered(property_item) ')'
+    'props' ':' arrayof(numbered(property_item))
     optional(hooks)
 ')'
 {
-    $17
+    Ast.StmtBlock $ Ast.StmtBlockContent $15 $2
 }
 
 type:
@@ -1416,6 +1418,19 @@ exp_cast5:
     $6
 }
 
+-- ************
+-- *          *
+-- * exp_cast *
+-- *          *
+-- ************
+exp_cast6:
+'Expr_Cast_Array' loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+}
 
 -- ************
 -- *          *
@@ -1427,7 +1442,8 @@ exp_cast1 { $1 } |
 exp_cast2 { $1 } |
 exp_cast3 { $1 } |
 exp_cast4 { $1 } |
-exp_cast5 { $1 }
+exp_cast5 { $1 } |
+exp_cast6 { $1 }
 
 -- *************
 -- *           *

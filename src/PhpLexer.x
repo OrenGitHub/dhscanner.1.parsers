@@ -230,6 +230,7 @@ import Location
 @Expr_Match = Expr_Match
 @class = class
 @Stmt_InlineHTML = Stmt_InlineHTML
+@Expr_Cast_Array = Expr_Cast_Array
 -- last keywords first part
 
 -- ************
@@ -465,6 +466,7 @@ tokens :-
 @Expr_Match {lex' AlexRawToken_Expr_Match}
 @class {lex' AlexRawToken_class}
 @Stmt_InlineHTML {lex' AlexRawToken_Stmt_InlineHTML}
+@Expr_Cast_Array {lex' AlexRawToken_Expr_Cast_Array}
 -- last keywords second part
 
 -- ***************************
@@ -716,6 +718,7 @@ data AlexRawToken
      | AlexRawToken_Expr_Match
      | AlexRawToken_class
      | AlexRawToken_Stmt_InlineHTML
+     | AlexRawToken_Expr_Cast_Array
      -- last keywords third part
 
      | AlexRawToken_COLON           -- ^ Punctuation __:__
