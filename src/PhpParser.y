@@ -254,6 +254,9 @@ import Data.Map ( empty, fromList )
 'Expr_Clone' { AlexTokenTag AlexRawToken_Expr_Clone _ }
 'Expr_BinaryOp_Spaceship' { AlexTokenTag AlexRawToken_Expr_BinaryOp_Spaceship _ }
 'Expr_BinaryOp_Mod' { AlexTokenTag AlexRawToken_Expr_BinaryOp_Mod _ }
+'Stmt_Block' { AlexTokenTag AlexRawToken_Stmt_Block _ }
+'Expr_AssignOp_Mul' { AlexTokenTag AlexRawToken_Expr_AssignOp_Mul _ }
+'Expr_Eval' { AlexTokenTag AlexRawToken_Expr_Eval _ }
 -- last keywords first part
 
 -- ****************************
@@ -619,7 +622,7 @@ stmt_traituse:
 stmt_trait:
 'Stmt_Trait' loc
 '('
-    ID ':' possibly_empty_arrayof(exp) 
+    'attrGroups' ':' attrGroups
     'name' ':' type
     'stmts' ':' stmts 
 ')'
@@ -672,6 +675,15 @@ stmt_html:
     Ast.StmtContinue $ Ast.StmtContinueContent $2
 }
 
+stmt_block:
+'Stmt_Block' loc
+'('
+    'stmts' ':' stmts
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent $6 $2
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -683,6 +695,7 @@ stmt_use       { $1 } |
 stmt_for       { $1 } |
 stmt_html      { $1 } |
 stmt_while     { $1 } |
+stmt_block     { $1 } |
 stmt_do        { $1 } |
 stmt_nop       { $1 } |
 stmt_foreach   { $1 } |
@@ -1211,6 +1224,7 @@ assign_op:
 'Expr_Assign'          { Nothing } |
 'Expr_AssignOp_Div'    { Nothing } |
 'Expr_AssignOp_Plus'   { Nothing } |
+'Expr_AssignOp_Mul'    { Nothing } |
 'Expr_AssignOp_Minus'  { Nothing } |
 'Expr_AssignOp_Concat' { Nothing } |
 'Expr_AssignOp_ShiftRight' { Nothing } |
@@ -1620,7 +1634,7 @@ exp_instof:
 'Expr_Instanceof' loc
 '('
     'expr' ':' exp
-    'class' ':' Name
+    'class' ':' named
 ')'
 {
     $6
@@ -1801,6 +1815,24 @@ exp_clone:
     $6
 }
 
+exp_eval:
+'Expr_Eval' loc
+'('
+    'expr' ':' exp
+')'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+        {
+            Token.content = "eval",
+            Token.location = $2
+        },
+        Ast.args = [$6],
+        Ast.expCallLocation = $2
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1818,6 +1850,7 @@ exp_assign  { $1 } |
 exp_new     { $1 } |
 exp_not     { $1 } |
 exp_bool    { $1 } |
+exp_eval    { $1 } |
 exp_exit    { $1 } |
 exp_cast    { $1 } |
 exp_call    { Ast.ExpCall $1 } |

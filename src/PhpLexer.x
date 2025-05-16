@@ -239,6 +239,9 @@ import Location
 @Expr_Clone = Expr_Clone
 @Expr_BinaryOp_Spaceship = Expr_BinaryOp_Spaceship
 @Expr_BinaryOp_Mod = Expr_BinaryOp_Mod
+@Stmt_Block = Stmt_Block
+@Expr_AssignOp_Mul = Expr_AssignOp_Mul
+@Expr_Eval = Expr_Eval
 -- last keywords first part
 
 -- ************
@@ -483,6 +486,9 @@ tokens :-
 @Expr_Clone {lex' AlexRawToken_Expr_Clone}
 @Expr_BinaryOp_Spaceship {lex' AlexRawToken_Expr_BinaryOp_Spaceship}
 @Expr_BinaryOp_Mod {lex' AlexRawToken_Expr_BinaryOp_Mod}
+@Stmt_Block {lex' AlexRawToken_Stmt_Block}
+@Expr_AssignOp_Mul {lex' AlexRawToken_Expr_AssignOp_Mul}
+@Expr_Eval {lex' AlexRawToken_Expr_Eval}
 -- last keywords second part
 
 -- ***************************
@@ -743,6 +749,9 @@ data AlexRawToken
      | AlexRawToken_Expr_Clone
      | AlexRawToken_Expr_BinaryOp_Spaceship
      | AlexRawToken_Expr_BinaryOp_Mod
+     | AlexRawToken_Stmt_Block
+     | AlexRawToken_Expr_AssignOp_Mul
+     | AlexRawToken_Expr_Eval
      -- last keywords third part
 
      | AlexRawToken_COLON           -- ^ Punctuation __:__
