@@ -246,6 +246,14 @@ import Data.Map ( empty, fromList )
 'class' { AlexTokenTag AlexRawToken_class _ }
 'Stmt_InlineHTML' { AlexTokenTag AlexRawToken_Stmt_InlineHTML _ }
 'Expr_Cast_Array' { AlexTokenTag AlexRawToken_Expr_Cast_Array _ }
+'Scalar_MagicConst_Function' { AlexTokenTag AlexRawToken_Scalar_MagicConst_Function _ }
+'Stmt_GroupUse' { AlexTokenTag AlexRawToken_Stmt_GroupUse _ }
+'prefix' { AlexTokenTag AlexRawToken_prefix _ }
+'Scalar_MagicConst_Method' { AlexTokenTag AlexRawToken_Scalar_MagicConst_Method _ }
+'Expr_PreDec' { AlexTokenTag AlexRawToken_Expr_PreDec _ }
+'Expr_Clone' { AlexTokenTag AlexRawToken_Expr_Clone _ }
+'Expr_BinaryOp_Spaceship' { AlexTokenTag AlexRawToken_Expr_BinaryOp_Spaceship _ }
+'Expr_BinaryOp_Mod' { AlexTokenTag AlexRawToken_Expr_BinaryOp_Mod _ }
 -- last keywords first part
 
 -- ****************************
@@ -285,16 +293,22 @@ ID      { tokIDValue $1 } |
 'array' { "array"       } |
 'static' { "static"     } |
 'value' { "value"       } |
+'class' { "class"       } |
 'params' { "params"     } |
+'default' { "default"   } |
 'true'  { "true"        } |
 'init'  { "init"        } |
 'false' { "false"       } |
 'props' { "props"       } |
+'prefix' { "prefix"     } |
+'implements' { "implements" } |
 'Name'  { "Name"        } |
 'name'  { "name"        } |
+'parts' { "parts"       } |
 'body'  { "body"        } |
 'flags' { "flags"       } |
 'key'   { "key"         } |
+'var'   { "var"         } |
 'type'  { "type"        } |
 'args'  { "args"        } |
 'null'  { "null"        }
@@ -528,7 +542,7 @@ static_vardec:
 'StaticVar' loc
 '('
     'var' ':' var
-    ID ':' ornull(exp)
+    'default' ':' ornull(exp)
 ')'
 {
     Ast.StmtAssign $ Ast.StmtAssignContent
@@ -713,7 +727,7 @@ use_item:
     'alias' ':' type
 ')'
 {
-    Ast.StmtImport $ Ast.StmtImportContent
+    Ast.StmtImportContent
     {
         Ast.stmtImportSource = $9,
         Ast.stmtImportFromSource = Nothing,
@@ -729,15 +743,30 @@ stmt_use_type: tokenID '(' INT ')' { Nothing }
 -- * stmt_use *
 -- *          *
 -- ************
-stmt_use:
+stmt_use_1:
 'Stmt_Use' loc
 '('
     'type' ':' stmt_use_type
     'uses' ':' arrayof(numbered(use_item))
 ')'
 {
-    Ast.StmtBlock (Ast.StmtBlockContent $9 $2)
-} 
+    Ast.StmtBlock (Ast.StmtBlockContent (Data.List.map Ast.StmtImport $9) $2)
+}
+
+stmt_use_2:
+'Stmt_GroupUse' loc
+'('
+    'type' ':' stmt_use_type
+    'prefix' ':' name
+    'uses' ':' arrayof(numbered(use_item))
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent (importify $2 $9 $12) $2
+}
+
+stmt_use:
+stmt_use_1 { $1 } |
+stmt_use_2 { $1 }
 
 Name:
 'Name' loc
@@ -862,7 +891,7 @@ numbered_param: INT ':' param { $3 }
 
 params: 'array' '(' ')' { [] } | 'array' '(' listof(numbered_param) ')' { $3 }
 
-byRef: 'false' { Nothing }
+byRef: bool { Nothing }
 
 returnType: type { $1 }
 
@@ -895,20 +924,20 @@ stmt_interface:
 '('
     'attrGroups' ':' empty_array
     'name' ':' identifier
-    'extends' ':' empty_array
+    'extends' ':' possibly_empty_arrayof(numbered(Name))
     'stmts' ':' stmts
 ')'
 {
     Ast.StmtClass $ Ast.StmtClassContent
     {
         Ast.stmtClassName = Token.ClassName $9,
-        Ast.stmtClassSupers = [],
+        Ast.stmtClassSupers = Data.List.map Token.SuperName $12,
         Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
         Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $9) $15
     }
 } 
 
-implements: Name { $1 }
+implements: named { $1 }
 
 numbered_implements:
 INT ':' implements { Nothing }
@@ -916,8 +945,8 @@ INT ':' implements { Nothing }
 stmt_class:
 'Stmt_Class' loc
 '('
-    'attrGroups' ':' 'array' '(' ')'
-    'flags' ':' INT
+    'attrGroups' ':' attrGroups
+    'flags' ':' flags
     'name' ':' identifier
     'extends' ':' type
     'implements' ':' possibly_empty_arrayof(numbered_implements)
@@ -926,10 +955,10 @@ stmt_class:
 {
     Ast.StmtClass $ Ast.StmtClassContent
     {
-        Ast.stmtClassName = Token.ClassName $14,
-        Ast.stmtClassSupers = [Token.SuperName $17],
+        Ast.stmtClassName = Token.ClassName $12,
+        Ast.stmtClassSupers = [Token.SuperName $15],
         Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
-        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $14) $23
+        Ast.stmtClassMethods = Ast.Methods $ Data.Map.fromList $ methodify (Token.ClassName $12) $21
     }
 } 
 
@@ -1072,6 +1101,8 @@ var_field1:
 
 named:
 Name                { $1 } |
+identifier          { $1 } |
+exp_variable        { $1 } |
 Name_FullyQualified { $1 }
 
 -- **************
@@ -1494,6 +1525,7 @@ exp_fstring:
 unop_operator:
 'Expr_UnaryMinus' { Nothing } |
 'Expr_PostInc'    { Nothing } |
+'Expr_PreDec'     { Nothing } |
 'Expr_PostDec'    { Nothing }
 
 -- ************
@@ -1588,7 +1620,7 @@ exp_instof:
 'Expr_Instanceof' loc
 '('
     'expr' ':' exp
-    ID ':' 'Name' loc '(' 'name' ':' tokenID ')'
+    'class' ':' Name
 ')'
 {
     $6
@@ -1744,6 +1776,31 @@ exp_match:
     }
 }
 
+exp_magic_1:
+'Scalar_MagicConst_Function' loc '(' ')'
+{
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "__FUNCTION__" $2
+}
+
+exp_magic_2:
+'Scalar_MagicConst_Method' loc '(' ')'
+{
+    Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "__METHOD__" $2
+}
+
+exp_magic:
+exp_magic_1 { $1 } |
+exp_magic_2 { $1 }
+
+exp_clone:
+'Expr_Clone' loc
+'('
+    'expr' ':' exp
+')'
+{
+    $6
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1753,8 +1810,10 @@ exp:
 exp_int     { $1 } |
 exp_float   { $1 } |
 exp_match   { $1 } |
+exp_clone   { $1 } |
 exp_str     { $1 } |
 exp_preinc  { $1 } |
+exp_magic   { $1 } |
 exp_assign  { $1 } |
 exp_new     { $1 } |
 exp_not     { $1 } |
@@ -1967,6 +2026,8 @@ operator:
 'Expr_BinaryOp_SmallerOrEqual' { Nothing } |
 'Expr_BinaryOp_Equal'        { Nothing } |
 'Expr_BinaryOp_NotEqual'     { Nothing } |
+'Expr_BinaryOp_Mod'          { Nothing } |
+'Expr_BinaryOp_Spaceship'    { Nothing } |
 'Expr_BinaryOp_Mul'          { Nothing } |
 'Expr_BinaryOp_Div'          { Nothing } |
 'Expr_BinaryOp_Plus'         { Nothing } |
@@ -2069,7 +2130,7 @@ exp_method_call:
 'Expr_MethodCall' loc
 '('
     'var' ':' exp
-    'name' ':' identifier
+    'name' ':' named
     'args' ':' args
 ')' 
 {
@@ -2086,6 +2147,19 @@ exp_method_call:
     }
 }
 
+exp_variable:
+'Expr_Variable' loc
+'('
+    'name' ':' tokenID
+')'
+{
+    Token.Named $6 $2
+}
+
+exp_static_call_name:
+identifier   { $1 } |
+exp_variable { $1 }
+
 -- **************************
 -- *                        *
 -- * exp_static_method_call *
@@ -2095,7 +2169,7 @@ exp_static_method_call:
 'Expr_StaticCall' loc
 '('
     'class' ':' exp
-    'name' ':' identifier
+    'name' ':' exp_static_call_name
     'args' ':' args
 ')'
 {
@@ -2128,7 +2202,7 @@ args:
 -- ****************
 numbered_arg: INT ':' arg { $3 }
 
-unpack: 'false' { Nothing }
+unpack: bool { Nothing }
 
 argname:
 tokenID    { Nothing } |
@@ -2231,6 +2305,17 @@ extractParamNominalType' ts = case ts of { [t] -> Just t; _ -> Nothing }
  
 extractParamNominalType :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.NominalTy
 extractParamNominalType = extractParamNominalType' . rights 
+
+importify' :: Location -> String -> Ast.StmtImportContent -> Ast.Stmt
+importify' loc src content = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = src,
+    Ast.stmtImportFromSource = Just (Ast.stmtImportSource content),
+    Ast.stmtImportAlias = Ast.stmtImportAlias content,
+    Ast.stmtImportLocation = loc
+}
+
+importify :: Location -> String -> [ Ast.StmtImportContent ] -> [ Ast.Stmt ]
+importify loc f = Data.List.map (importify' loc f)
 
 paramify :: [ Either Token.ParamName Token.NominalTy ] -> Location -> Maybe Ast.Param
 paramify attrs l = let

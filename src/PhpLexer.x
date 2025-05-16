@@ -231,6 +231,14 @@ import Location
 @class = class
 @Stmt_InlineHTML = Stmt_InlineHTML
 @Expr_Cast_Array = Expr_Cast_Array
+@Scalar_MagicConst_Function = Scalar_MagicConst_Function
+@Stmt_GroupUse = Stmt_GroupUse
+@prefix = prefix
+@Scalar_MagicConst_Method = Scalar_MagicConst_Method
+@Expr_PreDec = Expr_PreDec
+@Expr_Clone = Expr_Clone
+@Expr_BinaryOp_Spaceship = Expr_BinaryOp_Spaceship
+@Expr_BinaryOp_Mod = Expr_BinaryOp_Mod
 -- last keywords first part
 
 -- ************
@@ -467,6 +475,14 @@ tokens :-
 @class {lex' AlexRawToken_class}
 @Stmt_InlineHTML {lex' AlexRawToken_Stmt_InlineHTML}
 @Expr_Cast_Array {lex' AlexRawToken_Expr_Cast_Array}
+@Scalar_MagicConst_Function {lex' AlexRawToken_Scalar_MagicConst_Function}
+@Stmt_GroupUse {lex' AlexRawToken_Stmt_GroupUse}
+@prefix {lex' AlexRawToken_prefix}
+@Scalar_MagicConst_Method {lex' AlexRawToken_Scalar_MagicConst_Method}
+@Expr_PreDec {lex' AlexRawToken_Expr_PreDec}
+@Expr_Clone {lex' AlexRawToken_Expr_Clone}
+@Expr_BinaryOp_Spaceship {lex' AlexRawToken_Expr_BinaryOp_Spaceship}
+@Expr_BinaryOp_Mod {lex' AlexRawToken_Expr_BinaryOp_Mod}
 -- last keywords second part
 
 -- ***************************
@@ -719,6 +735,14 @@ data AlexRawToken
      | AlexRawToken_class
      | AlexRawToken_Stmt_InlineHTML
      | AlexRawToken_Expr_Cast_Array
+     | AlexRawToken_Scalar_MagicConst_Function
+     | AlexRawToken_Stmt_GroupUse
+     | AlexRawToken_prefix
+     | AlexRawToken_Scalar_MagicConst_Method
+     | AlexRawToken_Expr_PreDec
+     | AlexRawToken_Expr_Clone
+     | AlexRawToken_Expr_BinaryOp_Spaceship
+     | AlexRawToken_Expr_BinaryOp_Mod
      -- last keywords third part
 
      | AlexRawToken_COLON           -- ^ Punctuation __:__
