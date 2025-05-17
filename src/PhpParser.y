@@ -1033,8 +1033,6 @@ elseif:
     $9
 }
 
-numbered_elseif: INT ':' elseif { $3 }
-
 -- ***********
 -- *         *
 -- * stmt_if *
@@ -1045,7 +1043,7 @@ stmt_if:
 '('
     'cond' ':' exp
     'stmts' ':' stmts
-    ID ':' possibly_empty_arrayof(numbered_elseif)
+    ID ':' possibly_empty_arrayof(numbered(elseif))
     ID ':' ornull(stmt_else)
 ')'
 {
@@ -1053,7 +1051,7 @@ stmt_if:
     {
         Ast.stmtIfCond = $6,
         Ast.stmtIfBody = $9,
-        Ast.stmtElseBody = [],
+        Ast.stmtElseBody = case $15 of { Just s -> s; _ -> [] },
         Ast.stmtIfLocation = $2
     }
 }
