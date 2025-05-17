@@ -257,6 +257,7 @@ import Data.Map ( empty, fromList )
 'Stmt_Block' { AlexTokenTag AlexRawToken_Stmt_Block _ }
 'Expr_AssignOp_Mul' { AlexTokenTag AlexRawToken_Expr_AssignOp_Mul _ }
 'Expr_Eval' { AlexTokenTag AlexRawToken_Expr_Eval _ }
+'items' { AlexTokenTag AlexRawToken_items _ }
 -- last keywords first part
 
 -- ****************************
@@ -295,6 +296,7 @@ tokenID:
 ID      { tokIDValue $1 } |
 'array' { "array"       } |
 'static' { "static"     } |
+'items' { "items"       } |
 'value' { "value"       } |
 'class' { "class"       } |
 'params' { "params"     } |
@@ -1885,11 +1887,6 @@ array_item:
     $9
 }
 
-numbered_array_item: INT ':' array_item { $3 }
-
-array_items:
-'array' '(' ')' { [] } | 'array' '(' listof(numbered_array_item) ')' { $3 }
-
 -- *************
 -- *           *
 -- * exp_array *
@@ -1898,19 +1895,10 @@ array_items:
 exp_array:
 'Expr_Array' loc
 '('
-    ID ':' array_items
+    'items' ':' possibly_empty_arrayof(numbered(array_item))
 ')'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
-    { 
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
-        {
-            Token.content = "arrayify",
-            Token.location = $2
-        },
-        Ast.args = $6,
-        Ast.expCallLocation = $2
-    }
+    normalize_expr_array "arrayify" $2 $6
 }
 
 -- ************
@@ -1921,7 +1909,7 @@ exp_array:
 var_list:
 'Expr_List' loc
 '('
-    ID ':' array_items
+    ID ':' possibly_empty_arrayof(numbered(array_item))
 ')'
 {
     Ast.VarField $ Ast.VarFieldContent
@@ -2347,6 +2335,50 @@ importify' loc src content = Ast.StmtImport $ Ast.StmtImportContent {
 
 importify :: Location -> String -> [ Ast.StmtImportContent ] -> [ Ast.Stmt ]
 importify loc f = Data.List.map (importify' loc f)
+
+arr_snd :: Ast.Exp -> Maybe Token.Named
+arr_snd e@(Ast.ExpStr (Ast.ExpStrContent (Token.ConstStr v loc))) = Just (Token.Named v loc)
+arr_snd _ = Nothing
+
+arr_helper' :: Location -> Ast.Exp -> Ast.Exp -> Maybe Ast.Exp
+arr_helper' loc obj e2 = case (arr_snd e2) of {
+    Nothing -> Nothing;
+    Just field -> Just $ Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent {
+        Ast.varFieldLhs = obj,
+        Ast.varFieldName = Token.FieldName field,
+        Ast.varFieldLocation = loc {
+            Location.lineEnd = Location.lineEnd (Token.location field),
+            Location.colEnd = Location.colEnd (Token.location field)
+        }
+    }
+}
+
+arr_fst :: Ast.Exp -> Maybe (Ast.Exp, Location)
+arr_fst obj@(Ast.ExpVar (Ast.ExpVarContent (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName (Token.Named _ l)))))) = Just (obj,l)
+arr_fst _ = Nothing
+
+arr_helper :: Ast.Exp -> Ast.Exp -> Maybe Ast.Exp
+arr_helper e1 e2 = case (arr_fst e1) of { Just (obj,loc) -> arr_helper' loc obj e2; _ -> Nothing }
+
+normalize_expr_array_method :: [Ast.Exp] -> Maybe Ast.Exp
+normalize_expr_array_method [e1,e2] = arr_helper e1 e2
+normalize_expr_array_method _ = Nothing
+
+normalize_expr_array_normal :: String -> Location -> [Ast.Exp] -> Ast.Exp
+normalize_expr_array_normal name loc args = Ast.ExpCall $ Ast.ExpCallContent {
+    Ast.callee = callify (Token.Named name loc),
+    Ast.args = args,
+    Ast.expCallLocation = loc
+}
+
+normalize_expr_array :: String -> Location -> [Ast.Exp] -> Ast.Exp
+normalize_expr_array name loc args = case (normalize_expr_array_method args) of {
+    Nothing -> normalize_expr_array_normal name loc args;
+    Just method -> method
+}
+
+callify :: Token.Named -> Ast.Exp
+callify = Ast.ExpVar . Ast.ExpVarContent . Ast.VarSimple . Ast.VarSimpleContent . Token.VarName
 
 paramify :: [ Either Token.ParamName Token.NominalTy ] -> Location -> Maybe Ast.Param
 paramify attrs l = let

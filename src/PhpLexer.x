@@ -242,6 +242,7 @@ import Location
 @Stmt_Block = Stmt_Block
 @Expr_AssignOp_Mul = Expr_AssignOp_Mul
 @Expr_Eval = Expr_Eval
+@items = items
 -- last keywords first part
 
 -- ************
@@ -489,6 +490,7 @@ tokens :-
 @Stmt_Block {lex' AlexRawToken_Stmt_Block}
 @Expr_AssignOp_Mul {lex' AlexRawToken_Expr_AssignOp_Mul}
 @Expr_Eval {lex' AlexRawToken_Expr_Eval}
+@items {lex' AlexRawToken_items}
 -- last keywords second part
 
 -- ***************************
@@ -752,6 +754,7 @@ data AlexRawToken
      | AlexRawToken_Stmt_Block
      | AlexRawToken_Expr_AssignOp_Mul
      | AlexRawToken_Expr_Eval
+     | AlexRawToken_items
      -- last keywords third part
 
      | AlexRawToken_COLON           -- ^ Punctuation __:__
@@ -868,13 +871,16 @@ tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> (normalize s); _ -> "
 findString :: String -> String -> Maybe Int
 findString needle haystack = Data.List.findIndex (Data.List.isPrefixOf needle) (Data.List.tails haystack)
 
+unquote :: String -> String
+unquote = filter (/= '"')
+
 -- ***************
 -- *             *
 -- * tokStrValue *
 -- *             *
 -- ***************
 tokStrValue :: AlexTokenTag -> String
-tokStrValue t = case (tokenRaw t) of { (AlexRawToken_STR s) -> s; _ -> "" }
+tokStrValue t = case (tokenRaw t) of { (AlexRawToken_STR s) -> (unquote s); _ -> "" }
 
 -- ************
 -- *          *
