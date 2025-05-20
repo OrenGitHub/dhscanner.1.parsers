@@ -243,6 +243,7 @@ import Location
 @Expr_AssignOp_Mul = Expr_AssignOp_Mul
 @Expr_Eval = Expr_Eval
 @items = items
+@dim = dim
 -- last keywords first part
 
 -- ************
@@ -491,6 +492,7 @@ tokens :-
 @Expr_AssignOp_Mul {lex' AlexRawToken_Expr_AssignOp_Mul}
 @Expr_Eval {lex' AlexRawToken_Expr_Eval}
 @items {lex' AlexRawToken_items}
+@dim {lex' AlexRawToken_dim}
 -- last keywords second part
 
 -- ***************************
@@ -755,6 +757,7 @@ data AlexRawToken
      | AlexRawToken_Expr_AssignOp_Mul
      | AlexRawToken_Expr_Eval
      | AlexRawToken_items
+     | AlexRawToken_dim
      -- last keywords third part
 
      | AlexRawToken_COLON           -- ^ Punctuation __:__

@@ -258,6 +258,7 @@ import Data.Map ( empty, fromList )
 'Expr_AssignOp_Mul' { AlexTokenTag AlexRawToken_Expr_AssignOp_Mul _ }
 'Expr_Eval' { AlexTokenTag AlexRawToken_Expr_Eval _ }
 'items' { AlexTokenTag AlexRawToken_items _ }
+'dim' { AlexTokenTag AlexRawToken_dim _ }
 -- last keywords first part
 
 -- ****************************
@@ -313,6 +314,7 @@ ID      { tokIDValue $1 } |
 'body'  { "body"        } |
 'flags' { "flags"       } |
 'key'   { "key"         } |
+'dim'   { "dim"         } |
 'var'   { "var"         } |
 'type'  { "type"        } |
 'args'  { "args"        } |
@@ -1198,13 +1200,13 @@ var_subscript:
 'Expr_ArrayDimFetch' loc
 '('
     'var' ':' exp
-    ID ':' ornull(exp)
+    'dim' ':' ornull(exp)
 ')'
 {
     Ast.VarSubscript $ Ast.VarSubscriptContent
     {
         Ast.varSubscriptLhs = $6,
-        Ast.varSubscriptIdx = $6,
+        Ast.varSubscriptIdx = case $9 of { Just idx -> idx; _ -> $6 },
         Ast.varSubscriptLocation = $2
     }
 }
