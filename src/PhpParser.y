@@ -2105,7 +2105,11 @@ exp_new:
 {
     Ast.ExpCall $ Ast.ExpCallContent
     {
-        Ast.callee = $6,
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent {
+            Ast.varFieldLhs = $6,
+            Ast.varFieldName = Token.FieldName $ Token.Named "__construct" $2,
+            Ast.varFieldLocation = $2
+        },
         Ast.args = $9,
         Ast.expCallLocation = $2
     }
