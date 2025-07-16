@@ -589,6 +589,7 @@ dotToken:            'DotToken'            loc '(' ')' { Nothing }
 barBarToken:         'BarBarToken'         loc '(' ')' { Nothing }
 stringKeyword:       'StringKeyword'       loc '(' ')' { Nothing }
 voidKeyword:         'VoidKeyword'         loc '(' ')' { Nothing }
+awaitKeyword:        'AwaitKeyword'        loc '(' ')' { Nothing }
 fromKeyword:         'FromKeyword'         loc '(' ')' { Nothing }
 extendsKeyword:      'ExtendsKeyword'      loc '(' ')' { Nothing }
 questionToken:       'QuestionToken'       loc '(' ')' { Nothing }
@@ -1682,6 +1683,21 @@ exp_jsx:
     $14
 }
 
+-- *************
+-- *           *
+-- * exp await *
+-- *           *
+-- *************
+exp_await:
+'AwaitExpression' loc
+'('
+    awaitKeyword
+    exp
+')'
+{
+    $5
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1691,6 +1707,7 @@ exp:
 exp_str        { $1 } |
 exp_int        { $1 } |
 exp_new        { $1 } |
+exp_await      { $1 } |
 exp_bool       { $1 } |
 exp_null       { $1 } |
 fstring        { $1 } |
