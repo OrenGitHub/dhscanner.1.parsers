@@ -602,6 +602,7 @@ colonToken:          'ColonToken'          loc '(' ')' { Nothing }
 firstAssignment:     'FirstAssignment'     loc '(' ')' { Nothing }
 firstBinaryOperator: 'FirstBinaryOperator' loc '(' ')' { Nothing }
 greaterThanToken:    'GreaterThanToken'    loc '(' ')' { Nothing }
+equalsGreaterThanToken: 'EqualsGreaterThanToken' loc '(' ')' { Nothing }
 ampAmpToken:         'AmpersandAmpersandToken' loc '(' ')' { Nothing }
 eqEqEqToken:         'EqualsEqualsEqualsToken' loc '(' ')' { Nothing }
 exclamationEqEqToken: 'ExclamationEqualsEqualsToken' loc '(' ')' { Nothing }
@@ -728,7 +729,7 @@ typeReference: 'TypeReference' loc '(' type ')'
 
 type_hint: colonToken type
 {
-    Nothing
+    $2
 }
 
 -- ***************
@@ -812,7 +813,7 @@ expressionWithTypeArguments:
     type
 ')'
 {
-    Nothing
+    $4
 }
 
 indexedAccessType:
@@ -824,7 +825,7 @@ indexedAccessType:
     closeBracketToken
 ')'
 {
-    Nothing
+    $4
 }
 
 union_type:
@@ -833,7 +834,7 @@ union_type:
     barlistof(type)
 ')'
 {
-    Nothing
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "any" $2
 }
 
 intersection_type:
@@ -842,7 +843,7 @@ intersection_type:
     ampersandlistof(type)
 ')'
 {
-    Nothing
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "any" $2
 }
 
 parenthesized_type:
@@ -853,7 +854,7 @@ parenthesized_type:
     closeParenToken
 ')'
 {
-    Nothing
+    $5
 }
 
 type_operator:
@@ -862,7 +863,7 @@ type_operator:
     type
 ')'
 {
-    Nothing
+    $4
 }
 
 type:
@@ -872,7 +873,7 @@ union_type                       { Nothing } |
 intersection_type                { Nothing } |
 parenthesized_type               { Nothing } |
 type_operator                    { Nothing } |
-internal_type optional(generics) { $1 }
+internal_type optional(generics) { Nothing }
 
 extends:
 'HeritageClause' loc
@@ -881,6 +882,7 @@ extends:
     commalistof(type)
 ')'
 {
+    Nothing
 }
 
 -- ******************
@@ -974,7 +976,7 @@ stmt_function:
     functionKeyword
     identifier
     openParenToken
-    optional(commalistof(param))
+    optional(commalistof(parameter))
     closeParenToken
     optional(type_hint)
     optional(body)
@@ -1127,12 +1129,22 @@ stmt_decvar      { $1 }
 -- *                *
 -- ******************
 exp_arrow_func:
-'ArrowFunction' loc '(' ')'
+'ArrowFunction' loc
+'('
+    openParenToken
+    possibly_empty_listof(parameter)
+    closeParenToken
+    optional(type_hint)
+    equalsGreaterThanToken
+    body
+
+')'
 {
-    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
+    Ast.ExpLambda $ Ast.ExpLambdaContent
     {
-        Token.constIntValue = 999,
-        Token.constIntLocation = $2
+        Ast.expLambdaParams = $5,
+        Ast.expLambdaBody = $9,
+        Ast.expLambdaLocation = $2
     }
 }
 
