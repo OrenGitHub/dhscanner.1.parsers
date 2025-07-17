@@ -1700,6 +1700,41 @@ exp_await:
     $5
 }
 
+property:
+'PropertyAssignment' loc
+'('
+    identifier
+    colonToken
+    exp
+')'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "key_value" $2,
+        Ast.args = [ Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $4, $6 ],
+        Ast.expCallLocation = $2
+    }
+}
+
+-- ************
+-- *          *
+-- * exp dict *
+-- *          *
+-- ************
+exp_dict:
+'ObjectLiteralExpression' loc
+'('
+    commalistof(property)
+')'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "dictify" $2,
+        Ast.args = $4,
+        Ast.expCallLocation = $2
+    }
+}
+
 -- *************
 -- *           *
 -- * exp array *
@@ -1730,6 +1765,7 @@ exp:
 exp_str        { $1 } |
 exp_int        { $1 } |
 exp_new        { $1 } |
+exp_dict       { $1 } |
 exp_await      { $1 } |
 exp_bool       { $1 } |
 exp_null       { $1 } |
