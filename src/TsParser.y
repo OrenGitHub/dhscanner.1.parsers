@@ -600,6 +600,8 @@ closeParenToken:     'CloseParenToken'     loc '(' ')' { Nothing }
 asKeyword:           'AsKeyword'           loc '(' ')' { Nothing }
 asteriskToken:       'AsteriskToken'       loc '(' ')' { Nothing }
 colonToken:          'ColonToken'          loc '(' ')' { Nothing }
+tryKeyword:          'TryKeyword'          loc '(' ')' { Nothing }
+catchKeyword:        'CatchKeyword'        loc '(' ')' { Nothing }
 firstAssignment:     'FirstAssignment'     loc '(' ')' { Nothing }
 firstBinaryOperator: 'FirstBinaryOperator' loc '(' ')' { Nothing }
 greaterThanToken:    'GreaterThanToken'    loc '(' ')' { Nothing }
@@ -1109,6 +1111,34 @@ stmt_throw:
     Ast.StmtExp $5
 }
 
+catch_clause:
+'CatchClause' loc
+'('
+    catchKeyword
+    openParenToken
+    'VariableDeclaration' loc '(' identifier ')'
+    closeParenToken
+    body
+')'
+{
+    Nothing
+}
+
+stmt_try:
+'TryStatement' loc
+'('
+    tryKeyword
+    body
+    catch_clause
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = $5,
+        Ast.stmtBlockLocation = $2
+    }
+}
+
 -- ********
 -- *      *
 -- * stmt *
@@ -1117,6 +1147,7 @@ stmt_throw:
 stmt:
 stmt_if          { $1 } |
 stmt_exp         { $1 } |
+stmt_try         { $1 } |
 stmt_import      { $1 } |
 stmt_function    { $1 } |
 stmt_property    { $1 } |
