@@ -603,6 +603,7 @@ colonToken:          'ColonToken'          loc '(' ')' { Nothing }
 firstAssignment:     'FirstAssignment'     loc '(' ')' { Nothing }
 firstBinaryOperator: 'FirstBinaryOperator' loc '(' ')' { Nothing }
 greaterThanToken:    'GreaterThanToken'    loc '(' ')' { Nothing }
+questionQuestionToken: 'QuestionQuestionToken' loc '(' ')' { Nothing }
 equalsGreaterThanToken: 'EqualsGreaterThanToken' loc '(' ')' { Nothing }
 ampAmpToken:         'AmpersandAmpersandToken' loc '(' ')' { Nothing }
 eqEqEqToken:         'EqualsEqualsEqualsToken' loc '(' ')' { Nothing }
@@ -1213,6 +1214,7 @@ firstBinaryOperator  { Nothing } |
 barBarToken          { Nothing } |
 eqEqEqToken          { Nothing } |
 ampAmpToken          { Nothing } |
+questionQuestionToken { Nothing } |
 exclamationEqEqToken { Nothing }
 
 -- *************
