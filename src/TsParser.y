@@ -1700,6 +1700,27 @@ exp_await:
     $5
 }
 
+-- *************
+-- *           *
+-- * exp array *
+-- *           *
+-- *************
+exp_array:
+'ArrayLiteralExpression' loc
+'('
+    openBracketToken
+    possibly_empty_listof(exp)
+    closeBracketToken
+')'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "arrayify" $2,
+        Ast.args = $5,
+        Ast.expCallLocation = $2
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1716,6 +1737,7 @@ fstring        { $1 } |
 exp_objliteral { $1 } |
 exp_call       { $1 } |
 exp_meta       { $1 } |
+exp_array      { $1 } |
 exp_ternary    { $1 } |
 exp_var        { $1 } |
 exp_as         { $1 } |
