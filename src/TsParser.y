@@ -503,7 +503,7 @@ ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
 -- *                    *
 -- **********************
 listof(a):          a { [$1] } | a listof(a)                                       { $1:$2 }
-barlistof(a):       a { [$1] } | a 'BarToken'       loc '(' ')' barlistof(a)       { $1:$6 }
+barlistof(a):       a { [$1] } | a ',' 'BarToken'   loc '(' ')' ',' barlistof(a)   { $1:$8 }
 ampersandlistof(a): a { [$1] } | a 'AmpersandToken' loc '(' ')' ampersandlistof(a) { $1:$6 }
 
 -- **********************
@@ -553,6 +553,7 @@ parameter:
 '('
     identifier
     optional(type_hint)
+    optional(default_value)
 ')'
 {
     Ast.Param
@@ -591,6 +592,7 @@ lastTemplateToken:   'LastTemplateToken'   loc '(' ')' { Nothing }
 dotToken:            'DotToken'            loc '(' ')' { Nothing }
 barBarToken:         'BarBarToken'         loc '(' ')' { Nothing }
 stringKeyword:       'StringKeyword'       loc '(' ')' { Nothing }
+numberKeyword:       'NumberKeyword'       loc '(' ')' { Nothing }
 voidKeyword:         'VoidKeyword'         loc '(' ')' { Nothing }
 awaitKeyword:        'AwaitKeyword'        loc '(' ')' { Nothing }
 fromKeyword:         'FromKeyword'         loc '(' ')' { Nothing }
@@ -604,6 +606,8 @@ asKeyword:           'AsKeyword'           loc '(' ')' { Nothing }
 asteriskToken:       'AsteriskToken'       loc '(' ')' { Nothing }
 colonToken:          'ColonToken'          loc '(' ')' { Nothing }
 tryKeyword:          'TryKeyword'          loc '(' ')' { Nothing }
+elseKeyword:         'ElseKeyword'         loc '(' ')' { Nothing }
+minusToken:          'MinusToken'          loc '(' ')' { Nothing }
 catchKeyword:        'CatchKeyword'        loc '(' ')' { Nothing }
 firstAssignment:     'FirstAssignment'     loc '(' ')' { Nothing }
 firstBinaryOperator: 'FirstBinaryOperator' loc '(' ')' { Nothing }
@@ -613,6 +617,7 @@ equalsGreaterThanToken: 'EqualsGreaterThanToken' loc '(' ')' { Nothing }
 ampAmpToken:         'AmpersandAmpersandToken' loc '(' ')' { Nothing }
 eqEqEqToken:         'EqualsEqualsEqualsToken' loc '(' ')' { Nothing }
 exclamationEqEqToken: 'ExclamationEqualsEqualsToken' loc '(' ')' { Nothing }
+dotDotDotToken: 'DotDotDotToken' loc '(' ')' { Nothing }
 
 importee: asteriskToken { Nothing }
 
@@ -635,21 +640,27 @@ namedImports:
     $4
 }
 
-importClauseStuff:
+importClauseStuff_1:
 namedImports
 {
     $1
 }
 
+importClauseStuff_2:
+identifier { [$1] }
+
+importClauseStuff:
+importClauseStuff_1 { $1 } |
+importClauseStuff_2 { $1 }
+
 importClause:
 'ImportClause' loc
 '('
-    importClauseStuff
+    listof(importClauseStuff)
 ')'
 {
-    $4
+    concat $4
 }
-
 
 alias: asKeyword identifier { $2 }
 
@@ -703,7 +714,7 @@ literalType:
 typeLiteral:
 'TypeLiteral' loc
 '('
-    optional(listof(stmt_property))
+    optional(commalistof(stmt_property))
 ')'
 {
     Nothing
@@ -715,6 +726,7 @@ anyKeyword       { Nothing } |
 unknownKeyword   { Nothing } |
 undefinedKeyword { Nothing } |
 stringKeyword    { Nothing } |
+numberKeyword    { Nothing } |
 voidKeyword      { Nothing } |
 identifier       { Just $1 } |
 typeReference    {      $1 } |
@@ -956,11 +968,18 @@ body:
     $4
 }
 
+default_value:
+firstAssignment exp
+{
+    $2
+}
+
 param:
 'Parameter' loc
 '('
     identifier
     optional(type_hint)
+    optional(default_value)
 ')'
 {
     Ast.Param
@@ -1008,6 +1027,12 @@ stmt_function:
     }
 }
 
+else_part:
+elseKeyword body
+{
+    $2
+}
+
 -- ***********
 -- *         *
 -- * stmt if *
@@ -1021,12 +1046,13 @@ stmt_if_1:
     exp
     closeParenToken
     body
+    optional(else_part)
 ')'
 {
     Ast.StmtIf $ Ast.StmtIfContent
     {
         Ast.stmtIfCond = $6,
-        Ast.stmtIfBody = [],
+        Ast.stmtIfBody = $8,
         Ast.stmtElseBody = [],
         Ast.stmtIfLocation = $2
     }
@@ -1123,7 +1149,7 @@ catch_clause:
 '('
     catchKeyword
     openParenToken
-    'VariableDeclaration' loc '(' identifier ')'
+    'VariableDeclaration' loc '(' identifier optional(type_hint) ')'
     closeParenToken
     body
 ')'
@@ -1251,6 +1277,9 @@ firstBinaryOperator  { Nothing } |
 barBarToken          { Nothing } |
 eqEqEqToken          { Nothing } |
 ampAmpToken          { Nothing } |
+asteriskToken        { Nothing } |
+slashToken           { Nothing } |
+greaterThanToken     { Nothing } |
 questionQuestionToken { Nothing } |
 exclamationEqEqToken { Nothing }
 
@@ -1382,7 +1411,7 @@ fstring:
 'TemplateExpression' loc
 '('
     templateHead
-    listof(template_span)
+    commalistof(template_span)
 ')'
 {
     Ast.ExpCall $ Ast.ExpCallContent
@@ -1398,7 +1427,8 @@ fstring:
 }
 
 unary_operator:
-exclamationToken { Nothing }
+exclamationToken { Nothing } |
+minusToken { Nothing }
 
 -- ************
 -- *          *
@@ -1535,25 +1565,6 @@ stmt_method { $1 }
 shorthandPropertyAssignment:
 shorthandPropertyAssignment_1 { $1 } |
 shorthandPropertyAssignment_2 { $1 }
-
--- **********************
--- *                    *
--- * exp object literal *
--- *                    *
--- **********************
-exp_objliteral:
-'ObjectLiteralExpression' loc
-'('
-    commalistof(shorthandPropertyAssignment)
-')'
-{
-    Ast.ExpCall $ Ast.ExpCallContent
-    {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "dictify" $2,
-        Ast.args = lambdame $4,
-        Ast.expCallLocation = $2
-    }
-}
 
 -- **************
 -- *            *
@@ -1740,7 +1751,7 @@ exp_await:
 property:
 'PropertyAssignment' loc
 '('
-    identifier
+    exp
     colonToken
     exp
 ')'
@@ -1748,10 +1759,26 @@ property:
     Ast.ExpCall $ Ast.ExpCallContent
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "key_value" $2,
-        Ast.args = [ Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $4, $6 ],
+        Ast.args = [ $4, $6 ],
         Ast.expCallLocation = $2
     }
 }
+
+spread_exp:
+'SpreadAssignment' loc
+'('
+    dotDotDotToken
+    exp
+')'
+{
+    $5
+}
+
+
+property_assignment:
+property { $1 } |
+shorthandPropertyAssignment { lambdame' $1 } |
+spread_exp { $1 }
 
 -- ************
 -- *          *
@@ -1761,7 +1788,7 @@ property:
 exp_dict:
 'ObjectLiteralExpression' loc
 '('
-    commalistof(property)
+    commalistof(property_assignment)
 ')'
 {
     Ast.ExpCall $ Ast.ExpCallContent
@@ -1793,6 +1820,16 @@ exp_array:
     }
 }
 
+exp_non_null:
+'NonNullExpression' loc
+'('
+    exp
+    exclamationToken
+')'
+{
+    $4
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -1807,7 +1844,6 @@ exp_await      { $1 } |
 exp_bool       { $1 } |
 exp_null       { $1 } |
 fstring        { $1 } |
-exp_objliteral { $1 } |
 exp_call       { $1 } |
 exp_meta       { $1 } |
 exp_array      { $1 } |
@@ -1820,6 +1856,7 @@ exp_delete     { $1 } |
 exp_typeof     { $1 } |
 exp_binop      { $1 } |
 exp_regex      { $1 } |
+exp_non_null   { $1 } |
 exp_jsx        { $1 } |
 exp_arrow_func { $1 }
 
