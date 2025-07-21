@@ -559,7 +559,10 @@ parameter:
     {
         Ast.paramName = Token.ParamName $4,
         Ast.paramNominalType = Token.NominalTy (Token.Named "any" $2),
-        Ast.paramNominalTypeV2 = Nothing,
+        Ast.paramNominalTypeV2 = case $5 of {
+            Just (Just t) -> Just $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName t;
+            _ -> Nothing
+        },
         Ast.paramSerialIdx = 156
     }
 }
@@ -714,7 +717,7 @@ undefinedKeyword { Nothing } |
 stringKeyword    { Nothing } |
 voidKeyword      { Nothing } |
 identifier       { Just $1 } |
-typeReference    { Nothing } |
+typeReference    {      $1 } |
 literalType      { Nothing } |
 typeLiteral      { Nothing }
 
@@ -726,9 +729,13 @@ greaterThanToken
     Nothing
 }
 
-typeReference: 'TypeReference' loc '(' type ')'
+typeReference:
+'TypeReference' loc
+'('
+    type
+')'
 {
-    Nothing
+    $4
 }
 
 type_hint: colonToken type
@@ -877,7 +884,7 @@ union_type                       { Nothing } |
 intersection_type                { Nothing } |
 parenthesized_type               { Nothing } |
 type_operator                    { Nothing } |
-internal_type optional(generics) { Nothing }
+internal_type optional(generics) { $1 }
 
 extends:
 'HeritageClause' loc
@@ -1170,7 +1177,6 @@ exp_arrow_func:
     optional(type_hint)
     equalsGreaterThanToken
     body
-
 ')'
 {
     Ast.ExpLambda $ Ast.ExpLambdaContent
