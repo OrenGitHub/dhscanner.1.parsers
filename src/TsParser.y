@@ -698,12 +698,10 @@ stmt_import:
     stringLiteral
 ')'
 {
-    Ast.StmtImport $ Ast.StmtImportContent
+    Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtImportSource = unlocalify (Token.constStrValue $7),
-        Ast.stmtImportFromSource = case $5 of { (i:_) -> Just (Token.content i); _ -> Just "GGG" },
-        Ast.stmtImportAlias = Nothing,
-        Ast.stmtImportLocation = $2
+        Ast.stmtBlockContent = importify $7 $5,
+        Ast.stmtBlockLocation = $2
     }
 }
 
@@ -760,34 +758,18 @@ type_hint: colonToken type
 -- * stmt decvar *
 -- *             *
 -- ***************
-stmt_decvar_1_original:
-'VariableDeclarationList' loc
-'('
-    'VariableDeclaration' loc '(' identifier optional(type_hint) firstAssignment exp ')'
-')'
-{
-    Ast.StmtVardec $ Ast.StmtVardecContent
-    {
-        Ast.stmtVardecName = Token.VarName $7,
-        Ast.stmtVardecNominalType = Token.NominalTy $7,
-        Ast.stmtVardecInitValue = Just $10,
-        Ast.stmtVardecLocation = $2
-    }
-}
-
--- ***************
--- *             *
--- * stmt decvar *
--- *             *
--- ***************
 stmt_decvar_1:
 'VariableDeclarationList' loc
 '('
     'VariableDeclaration' loc '(' identifier optional(type_hint) firstAssignment exp ')'
 ')'
 {
-    normalize_exports $7 $10 $2
+    normalize_vardec $7 (case $8 of { Just (Just t) -> Just t; _ -> Nothing }) $10
 }
+
+--{
+--    normalize_exports $7 $10 $2
+--}
 
 bindingElement:
 'BindingElement' loc
@@ -1906,6 +1888,17 @@ assignify :: [ Ast.Var ] -> Exp -> [ Ast.Stmt ]
 assignify [] _ = []
 assignify (v:vs) e = (assignify' v e):(assignify vs e)
 
+importify' :: Token.ConstStr -> Token.Named -> Ast.Stmt
+importify' importSource importFromSource = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = unlocalify (Token.constStrValue importSource),
+    Ast.stmtImportFromSource = Just (Token.content importFromSource),
+    Ast.stmtImportAlias = Nothing,
+    Ast.stmtImportLocation = Token.location importFromSource
+}
+
+importify :: Token.ConstStr -> [ Token.Named ] -> [ Ast.Stmt ]
+importify = Data.List.map . importify'
+
 lambdame' :: Ast.StmtMethodContent -> Ast.Exp
 lambdame' m = let
     l = Token.getMethodNameLocation (Ast.stmtMethodName m)
@@ -1982,6 +1975,25 @@ normalize_exports :: Token.Named -> Ast.Exp -> Location -> Ast.Stmt
 normalize_exports v exp l = case (exported_dict exp) of
     Just lambdas -> normalize_exports' v exp l lambdas
     Nothing -> normalize_exports'' v exp l 
+
+normalize_vardec_lambda :: Token.Named -> (Maybe Token.Named) -> Ast.ExpLambdaContent -> Ast.Stmt
+normalize_vardec_lambda v t lambda = Ast.StmtFunc $ Ast.StmtFuncContent {
+    Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" (Token.location v)),
+    Ast.stmtFuncName = Token.FuncName v,
+    Ast.stmtFuncParams = Ast.expLambdaParams lambda,
+    Ast.stmtFuncBody = Ast.expLambdaBody lambda,
+    Ast.stmtFuncAnnotations = [],
+    Ast.stmtFuncLocation = Ast.expLambdaLocation lambda
+}
+
+normalize_vardec :: Token.Named -> (Maybe Token.Named) -> Ast.Exp -> Ast.Stmt
+normalize_vardec v t (Ast.ExpLambda lambda) = normalize_vardec_lambda v t lambda
+normalize_vardec v t init_value = Ast.StmtVardec $ Ast.StmtVardecContent {
+    Ast.stmtVardecName = Token.VarName v,
+    Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" (Token.location v)),
+    Ast.stmtVardecInitValue = Just init_value,
+    Ast.stmtVardecLocation = Token.location v
+}
 
 getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
 getFuncNameAttr = undefined
