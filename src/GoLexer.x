@@ -215,6 +215,12 @@ import Location
 @astGoStmt = "*ast.GoStmt"
 @astFuncLit = "*ast.FuncLit"
 @OP_BITWISE_OR = "|"
+@astMapType = "*ast.MapType"
+@Map = Map
+@astRangeStmt = "*ast.RangeStmt"
+@Range = Range
+@range = range
+@OP_PLUSEQ = "+="
 -- last keywords first part
 
 -- ************
@@ -442,6 +448,12 @@ tokens :-
 @astGoStmt {lex' AlexRawToken_astGoStmt}
 @astFuncLit {lex' AlexRawToken_astFuncLit}
 @OP_BITWISE_OR {lex' AlexRawToken_OP_BITWISE_OR}
+@astMapType {lex' AlexRawToken_astMapType}
+@Map {lex' AlexRawToken_Map}
+@astRangeStmt {lex' AlexRawToken_astRangeStmt}
+@Range {lex' AlexRawToken_Range}
+@range {lex' AlexRawToken_range}
+@OP_PLUSEQ {lex' AlexRawToken_OP_PLUSEQ}
 -- last keywords second part
 
 -- ***************************
@@ -690,6 +702,12 @@ data AlexRawToken
      | AlexRawToken_astGoStmt
      | AlexRawToken_astFuncLit
      | AlexRawToken_OP_BITWISE_OR
+     | AlexRawToken_astMapType
+     | AlexRawToken_Map
+     | AlexRawToken_astRangeStmt
+     | AlexRawToken_Range
+     | AlexRawToken_range
+     | AlexRawToken_OP_PLUSEQ
      -- last keywords third part
 
      -- ***************
@@ -785,10 +803,12 @@ lexicalError :: AlexInput -> Int -> Alex AlexTokenTag
 lexicalError ((AlexPn _ l c),_,_,str) i = alexEOF
 
 -- **************
+-- *            *
 -- * alexError' *
+-- *            *
 -- **************
 alexError' :: Location -> Alex a
-alexError' location = alexError $ "Error[ " ++ show location ++ " ]"
+alexError' location = alexError (show location)
 
 -- ************
 -- *          *

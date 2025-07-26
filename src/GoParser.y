@@ -108,6 +108,7 @@ import Data.Map ( fromList, empty )
 '==' { AlexTokenTag AlexRawToken_OP_EQEQ _ }
 '>' { AlexTokenTag AlexRawToken_OP_GT _ }
 '<-' { AlexTokenTag AlexRawToken_OP_LARROW _ }
+'+=' { AlexTokenTag AlexRawToken_OP_PLUSEQ _ }
 
 -- ************
 -- *          *
@@ -258,6 +259,11 @@ import Data.Map ( fromList, empty )
 'Call' { AlexTokenTag AlexRawToken_Call _ }
 '*ast.GoStmt' { AlexTokenTag AlexRawToken_astGoStmt _ }
 '*ast.FuncLit' { AlexTokenTag AlexRawToken_astFuncLit _ }
+'*ast.MapType' { AlexTokenTag AlexRawToken_astMapType _ }
+'Map' { AlexTokenTag AlexRawToken_Map _ }
+'*ast.RangeStmt' { AlexTokenTag AlexRawToken_astRangeStmt _ }
+'Range' { AlexTokenTag AlexRawToken_Range _ }
+'range' { AlexTokenTag AlexRawToken_range _ }
 -- last keywords first part
 
 -- ************
@@ -519,7 +525,14 @@ var_field:
 
 var_simple: identifier { Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $1 }
 
+var_object:
+'*' '(' 'obj' '@' INT ')'
+{
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "obj" dummyLoc
+}
+
 var:
+var_object    { $1 } |
 var_simple    { $1 } |
 var_field     { $1 } |
 var_subscript { $1 }
@@ -540,11 +553,13 @@ operator:
 ':=' { Nothing } |
 '='  { Nothing } |
 '>=' { Nothing } |
+'+=' { Nothing } |
 '>'  { Nothing } |
 '<-' { Nothing } |
 '<=' { Nothing } |
 '==' { Nothing } |
-'!=' { Nothing }
+'!=' { Nothing } |
+'range' { Nothing }
 
 exp_binop:
 '*ast.BinaryExpr'
@@ -577,12 +592,12 @@ exp_star:
 exp_unop:
 '*ast.UnaryExpr'
 '{'
-    'OpPos' ':' filename ':' location
+    'OpPos' ':' ordash(filename_location)
     'Op' ':' operator
     'X' ':' exp
 '}'
 {
-    $13
+    $11
 }
 
 kv:
@@ -616,16 +631,24 @@ elts:
 exp_dict:
 '*ast.CompositeLit'
 '{'
-    'Type' ':' exp
+    'Type' ':' ornull(exp)
     'Lbrace' ':' filename ':' location
     'Elts' ':' orempty(elts)
     'Rbrace' ':' filename ':' location
     'Incomplete' ':' 'false'
 '}'
 {
-    let loc = case (startloc $5) of { Nothing -> $18; Just l -> l } in Ast.ExpCall $ Ast.ExpCallContent
-    {
-        Ast.callee = $5, 
+    let loc = case $5 of {
+        Nothing -> $18;
+        Just e -> case (startloc e) of {
+            Nothing -> $18;
+            Just l -> l
+        }
+    } in Ast.ExpCall $ Ast.ExpCallContent {
+        Ast.callee = case $5 of {
+            Nothing -> Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "composite" $18;
+            Just e -> e
+        }, 
         Ast.args = $13,
         Ast.expCallLocation = loc {
             Location.lineEnd = Location.lineEnd $18,
@@ -720,6 +743,23 @@ exp_lambda:
     }
 }
 
+exp_maptype:
+'*ast.MapType'
+'{'
+    'Map' ':' filename ':' location
+    'Key' ':' exp
+    'Value' ':' exp
+'}'
+{
+    let v = Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "mapify" $7
+    in Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent v,
+        Ast.args = [$10,$13],
+        Ast.expCallLocation = $7
+    }
+}
+
 exp:
 exps { $1 } |
 exp_str { Ast.ExpStr $ Ast.ExpStrContent $1 } |
@@ -729,6 +769,7 @@ exp_dict { $1 } |
 exp_call { $1 } |
 exp_star { $1 } |
 exp_unop { $1 } |
+exp_maptype { $1 } |
 exp_slice { $1 } |
 exp_binop { $1 } |
 exp_paren { $1 } |
@@ -742,7 +783,7 @@ stmt_import:
 '*ast.ImportSpec'
 '{'
     'Doc' ':' 'nil'
-    'Name' ':' 'nil'
+    'Name' ':' ornull(identifier)
     'Path' ':' exp_str
     'Comment' ':' 'nil'
     'EndPos' ':' '-'
@@ -840,9 +881,23 @@ field_2:
     }]
 }
 
+field_3:
+'*ast.Field'
+'{'
+    'Doc' ':' 'nil'
+    'Names' ':' names
+    'Type' ':' type_func
+    'Tag' ':' ornull(exp_str)
+    'Comment' ':' 'nil'
+'}'
+{
+    []
+}
+
 field:
 field_1 { $1 } |
-field_2 { $1 }
+field_2 { $1 } |
+field_3 { $1 }
 
 numbered_field:
 INT ':' field { $3 }
@@ -915,7 +970,7 @@ stmt_class:
 stmt_type:
 stmt_class { $1 }
 
-type_func:
+type_func_1:
 '*ast.FuncType'
 '{'
     'Func' ':' filename ':' location
@@ -929,6 +984,22 @@ type_func:
         _ -> Token.NominalTy (Token.Named "any" $7)
     } in (($7,$13),returnType)
 }
+
+type_func_2:
+'*ast.FuncType'
+'{'
+    'Func' ':' '-'
+    'TypeParams' ':' 'nil'
+    'Params' ':' fields
+    'Results' ':' ornull(fields)
+'}'
+{
+    ((dummyLoc,$11), Token.NominalTy (Token.Named "any" dummyLoc))
+}
+
+type_func:
+type_func_1 { $1 } |
+type_func_2 { $1 }
 
 block_stmts:
 '[' ']' 'ast.Stmt' '(' 'len' '=' INT ')'
@@ -1155,6 +1226,22 @@ stmt_go:
     Ast.StmtExp $10
 }
 
+stmt_range:
+'*ast.RangeStmt'
+'{'
+    'For' ':' filename ':' location
+    'Key' ':' identifier
+    'Value' ':' exp
+    'TokPos' ':' filename ':' location
+    'Tok' ':' ':='
+    'Range' ':' filename ':' location
+    'X' ':' exp
+    'Body' ':' stmt
+'}'
+{
+    $32
+}
+
 stmt:
 stmt_assign  { $1 } |
 stmt_gendecl { $1 } |
@@ -1168,6 +1255,7 @@ stmt_obj     { $1 } |
 stmt_exp     { $1 } |
 stmt_func    { $1 } |
 stmt_incdec  { $1 } |
+stmt_range   { $1 } |
 stmt_import  { $1 } |
 stmt_block   { $1 } |
 stmt_return  { $1 } |
@@ -1289,6 +1377,9 @@ nameExp' :: Ast.Var -> Maybe Ast.Var
 nameExp' (Ast.VarField v) = Just (Ast.VarField v)
 nameExp' (Ast.VarSimple v) = Just (Ast.VarSimple v)
 nameExp' _ = Nothing
+
+dummyLoc :: Location
+dummyLoc = Location "T" 1 1 1 1
 
 paramify :: Maybe Ast.Var -> [ Token.Named ] -> [ Ast.Param ]
 paramify Nothing names = Data.List.map paramifySingleNoType names
@@ -1456,4 +1547,3 @@ parseError t = alexError' (tokenLoc t)
 parseProgram :: FilePath -> String -> Either String Ast.Root
 parseProgram = runAlex' parse
 }
-
