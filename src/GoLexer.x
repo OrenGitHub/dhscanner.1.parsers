@@ -221,6 +221,8 @@ import Location
 @Range = Range
 @range = range
 @OP_PLUSEQ = "+="
+@Defer = Defer
+@astDeferStmt = "*ast.DeferStmt"
 -- last keywords first part
 
 -- ************
@@ -454,6 +456,8 @@ tokens :-
 @Range {lex' AlexRawToken_Range}
 @range {lex' AlexRawToken_range}
 @OP_PLUSEQ {lex' AlexRawToken_OP_PLUSEQ}
+@Defer {lex' AlexRawToken_Defer}
+@astDeferStmt {lex' AlexRawToken_astDeferStmt}
 -- last keywords second part
 
 -- ***************************
@@ -708,6 +712,8 @@ data AlexRawToken
      | AlexRawToken_Range
      | AlexRawToken_range
      | AlexRawToken_OP_PLUSEQ
+     | AlexRawToken_Defer
+     | AlexRawToken_astDeferStmt
      -- last keywords third part
 
      -- ***************

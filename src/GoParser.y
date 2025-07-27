@@ -264,6 +264,8 @@ import Data.Map ( fromList, empty )
 '*ast.RangeStmt' { AlexTokenTag AlexRawToken_astRangeStmt _ }
 'Range' { AlexTokenTag AlexRawToken_Range _ }
 'range' { AlexTokenTag AlexRawToken_range _ }
+'Defer' { AlexTokenTag AlexRawToken_Defer _ }
+'*ast.DeferStmt' { AlexTokenTag AlexRawToken_astDeferStmt _ }
 -- last keywords first part
 
 -- ************
@@ -545,7 +547,7 @@ operator:
 '+'  { Nothing } |
 '-'  { Nothing } |
 '!'  { Nothing } |
-'&'  { Nothing } |
+'&'  { Just "ampersand" } |
 '++' { Nothing } |
 '&&' { Nothing } |
 '|'  { Nothing } |
@@ -597,7 +599,17 @@ exp_unop:
     'X' ':' exp
 '}'
 {
-    $11
+    case $8 of {
+        Nothing -> $11;
+        Just s -> case s of {
+            "ampersand" -> Ast.ExpCall $ Ast.ExpCallContent {
+                Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "ampersand" (case $5 of { Just l -> l; _ -> dummyLoc }),
+                Ast.args = [$11],
+                Ast.expCallLocation = case $5 of { Just l -> l; _ -> dummyLoc }
+            };
+            _ -> $11
+        }
+    }
 }
 
 kv:
@@ -842,8 +854,8 @@ stmt_decvar:
 {
     Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtBlockContent = vardecify $8 $14,
-        Ast.stmtBlockLocation = Location "" 1 1 1 1
+        Ast.stmtBlockContent = vardecify $8 $14 $11,
+        Ast.stmtBlockLocation = dummyLoc
     }
 }
 
@@ -967,8 +979,28 @@ stmt_class:
     }
 }
 
+stmt_functype:
+'*ast.TypeSpec'
+'{'
+    'Doc' ':' 'nil'
+    'Name' ':' identifier
+    'TypeParams' ':' 'nil'
+    'Assign' ':' '-'
+    'Type' ':' type_func
+    'Comment' ':' 'nil'
+'}'
+{
+    Ast.StmtVardec $ Ast.StmtVardecContent {
+        Ast.stmtVardecName = Token.VarName $8,
+        Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" (Token.location $8)),
+        Ast.stmtVardecInitValue = Nothing,
+        Ast.stmtVardecLocation = Token.location $8
+    }
+}
+
 stmt_type:
-stmt_class { $1 }
+stmt_class { $1 } |
+stmt_functype { $1 }
 
 type_func_1:
 '*ast.FuncType'
@@ -1226,14 +1258,18 @@ stmt_go:
     Ast.StmtExp $10
 }
 
+range_stmt_token:
+':=' { Nothing } |
+'='  { Nothing }
+
 stmt_range:
 '*ast.RangeStmt'
 '{'
     'For' ':' filename ':' location
     'Key' ':' identifier
-    'Value' ':' exp
+    'Value' ':' ornull(exp)
     'TokPos' ':' filename ':' location
-    'Tok' ':' ':='
+    'Tok' ':' range_stmt_token
     'Range' ':' filename ':' location
     'X' ':' exp
     'Body' ':' stmt
@@ -1242,11 +1278,22 @@ stmt_range:
     $32
 }
 
+stmt_defer:
+'*ast.DeferStmt'
+'{'
+    'Defer' ':' filename ':' location
+    'Call' ':' exp
+'}'
+{
+    Ast.StmtExp $10
+}
+
 stmt:
 stmt_assign  { $1 } |
 stmt_gendecl { $1 } |
 stmt_type    { $1 } |
 stmt_switch  { $1 } |
+stmt_defer   { $1 } |
 stmt_case    { $1 } |
 stmt_go      { $1 } |
 stmt_if      { $1 } |
@@ -1489,10 +1536,20 @@ vardecify' v exp = Ast.StmtAssign $ Ast.StmtAssignContent {
     Ast.stmtAssignRhs = exp
 }
 
-vardecify :: [ Token.Named ] -> [ Ast.Exp ] -> [ Ast.Stmt ]
-vardeicfy [] [] = []
-vardecify _ [] = []
-vardecify (name:names) (exp:exps) = (vardecify' name exp):(vardeicfy names exps)
+vardecify'' :: Token.Named -> [ Token.Named ] -> Token.Named -> [ Ast.Stmt ]
+vardecify'' name names t = [ Ast.StmtVardec $ Ast.StmtVardecContent {
+    Ast.stmtVardecName = Token.VarName name,
+    Ast.stmtVardecNominalType = Token.NominalTy t,
+    Ast.stmtVardecInitValue = Nothing,
+    Ast.stmtVardecLocation = Token.location name
+}]
+
+vardecify :: [ Token.Named ] -> [ Ast.Exp ] -> Maybe Exp -> [ Ast.Stmt ]
+vardeicfy [] [] _ = []
+vardecify _ [] Nothing = []
+vardecify (name:names) [] (Just (Ast.ExpVar (Ast.ExpVarContent (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName t)))))) = vardecify'' name names t
+vardecify (name:names) [] _ = []
+vardecify (name:names) (exp:exps) e = (vardecify' name exp):(vardeicfy names exps e)
 
 getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
 getFuncNameAttr = undefined
