@@ -79,8 +79,10 @@ import Location
 @KW_ISNOT           = IsNot
 @KW_OR              = Or
 @KW_OR2             = BitOr
+@KW_BITXOR          = BitXor
 @KW_AND             = And
 @KW_AND2            = BitAnd
+@KW_LSHIFT          = LShift
 @KW_RSHIFT          = RShift
 @KW_NOT             = Not
 @KW_NOTEQ           = NotEq
@@ -124,6 +126,7 @@ import Location
 @KW_SUBSCRIPT       = Subscript
 @KW_SLICE           = slice
 @KW_LOWER           = lower
+@KW_STEP            = step
 @KW_UPPER           = upper
 @KW_EXPR_SLICE      = Slice
 @KW_ELLIPSIS        = Ellipsis
@@ -320,8 +323,10 @@ tokens :-
 @KW_CTX             { lex' AlexRawToken_CTX             }
 @KW_OR              { lex' AlexRawToken_OR              }
 @KW_OR2             { lex' AlexRawToken_OR2             }
+@KW_BITXOR          { lex' AlexRawToken_BITXOR          }
 @KW_AND             { lex' AlexRawToken_AND             }
 @KW_AND2            { lex' AlexRawToken_AND2            }
+@KW_LSHIFT          { lex' AlexRawToken_LSHIFT          }
 @KW_RSHIFT          { lex' AlexRawToken_RSHIFT          }
 @KW_EQ              { lex' AlexRawToken_EQ              }
 @KW_GT              { lex' AlexRawToken_GT              }
@@ -375,6 +380,7 @@ tokens :-
 @KW_SLICE           { lex' AlexRawToken_SLICE           }
 @KW_ELLIPSIS        { lex' AlexRawToken_ELLIPSIS        }
 @KW_LOWER           { lex' AlexRawToken_LOWER           }
+@KW_STEP            { lex' AlexRawToken_STEP            }
 @KW_UPPER           { lex' AlexRawToken_UPPER           }
 @KW_EXPR_SLICE      { lex' AlexRawToken_EXPR_SLICE      }
 @KW_ARGS2           { lex' AlexRawToken_ARGS2           }
@@ -590,8 +596,10 @@ data AlexRawToken
      | AlexRawToken_CTX             -- ^ Reserved Keyword
      | AlexRawToken_OR              -- ^ Reserved Keyword
      | AlexRawToken_OR2             -- ^ Reserved Keyword
+     | AlexRawToken_BITXOR          -- ^ Reserved Keyword
      | AlexRawToken_AND             -- ^ Reserved Keyword
      | AlexRawToken_AND2            -- ^ Reserved Keyword
+     | AlexRawToken_LSHIFT          -- ^ Reserved Keyword
      | AlexRawToken_RSHIFT          -- ^ Reserved Keyword
      | AlexRawToken_EQ              -- ^ Reserved Keyword
      | AlexRawToken_GT              -- ^ Reserved Keyword
@@ -643,6 +651,7 @@ data AlexRawToken
      | AlexRawToken_SLICE           -- ^ Reserved Keyword
      | AlexRawToken_ELLIPSIS        -- ^ Reserved Keyword
      | AlexRawToken_LOWER           -- ^ Reserved Keyword
+     | AlexRawToken_STEP            -- ^ Reserved Keyword
      | AlexRawToken_UPPER           -- ^ Reserved Keyword
      | AlexRawToken_EXPR_SLICE      -- ^ Reserved Keyword
      | AlexRawToken_ARGS            -- ^ Reserved Keyword

@@ -157,8 +157,10 @@ import Data.Map ( fromList, empty )
 'IsNot'                     { AlexTokenTag AlexRawToken_ISNOT           _ }
 'Or'                        { AlexTokenTag AlexRawToken_OR              _ }
 'BitOr'                     { AlexTokenTag AlexRawToken_OR2             _ }
+'BitXor'                    { AlexTokenTag AlexRawToken_BITXOR          _ }
 'And'                       { AlexTokenTag AlexRawToken_AND             _ }
 'BitAnd'                    { AlexTokenTag AlexRawToken_AND2            _ }
+'LShift'                    { AlexTokenTag AlexRawToken_LSHIFT          _ }
 'RShift'                    { AlexTokenTag AlexRawToken_RSHIFT          _ }
 'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ }
 'kwonlyargs'                { AlexTokenTag AlexRawToken_ARGS4           _ }
@@ -173,6 +175,7 @@ import Data.Map ( fromList, empty )
 'Subscript'                 { AlexTokenTag AlexRawToken_SUBSCRIPT       _ }
 'slice'                     { AlexTokenTag AlexRawToken_SLICE           _ }
 'lower'                     { AlexTokenTag AlexRawToken_LOWER           _ }
+'step'                      { AlexTokenTag AlexRawToken_STEP            _ }
 'upper'                     { AlexTokenTag AlexRawToken_UPPER           _ }
 'Slice'                     { AlexTokenTag AlexRawToken_EXPR_SLICE      _ }
 'func'                      { AlexTokenTag AlexRawToken_FUNC            _ }
@@ -379,9 +382,11 @@ op:
 'IsNot' '(' ')' { Nothing } |
 'And'  '(' ')' { Nothing } |
 'BitAnd' '(' ')' { Nothing } |
+'LShift' '(' ')' { Nothing } |
 'RShift' '(' ')' { Nothing } |
 'FloorDiv' '(' ')' { Nothing } |
 'BitOr' '(' ')' { Nothing } |
+'BitXor' '(' ')' { Nothing } |
 'Or'   '(' ')' { Nothing }
 
 -- ************
@@ -603,7 +608,9 @@ exp_bool_false { $1 }
 -- * conversion *
 -- *            *
 -- **************
-conversion: '-' INT { Nothing }
+conversion:
+'-' INT { Nothing } |
+INT     { Nothing }
 
 format_spec: 'format_spec' '=' exp ',' { Nothing }
 
@@ -801,6 +808,7 @@ exp_field:
 }
 
 slice_lower: 'lower' '=' exp ',' { $3 }
+slice_step:  'step'  '=' exp ',' { $3 }
 slice_upper: 'upper' '=' exp ',' { $3 }
 
 -- *************
@@ -813,6 +821,7 @@ exp_slice:
 '('
     optional(slice_lower)
     optional(slice_upper)
+    optional(slice_step)
     loc
 ')'
 {
@@ -821,10 +830,10 @@ exp_slice:
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
         {
             Token.content = "slicify",
-            Token.location = $5
+            Token.location = $6
         },
         Ast.args = [],
-        Ast.expCallLocation = $5
+        Ast.expCallLocation = $6
     }
 }
 
@@ -913,7 +922,7 @@ exp_ellipsis:
 exp_tuple:
 'Tuple'
 '('
-    'elts' '=' nonempty_listof(exp) ','
+    'elts' '=' possibly_empty_listof(exp) ','
     'ctx' '=' ctx ','
     loc
 ')'
