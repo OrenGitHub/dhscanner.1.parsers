@@ -203,6 +203,7 @@ QUOTED_NULL { AlexTokenTag AlexRawToken_QUOTED_NULL _ }
 'UpdateExpression' { AlexTokenTag AlexRawToken_EXPR_UPDATE _ }
 'AssignExpression' { AlexTokenTag AlexRawToken_EXPR_ASSIGN _ }
 'LambdaExpression' { AlexTokenTag AlexRawToken_EXPR_LAMBDA _ }
+'FunctionExpression' { AlexTokenTag AlexRawToken_EXPR_FUNCTION _ }
 
 -- ***************
 -- *             *
@@ -246,6 +247,8 @@ QUOTED_NULL { AlexTokenTag AlexRawToken_QUOTED_NULL _ }
 -- *************
 
 '<'  { AlexTokenTag AlexRawToken_OP_LT       _ }
+'+'  { AlexTokenTag AlexRawToken_OP_PLUS     _ }
+'>'  { AlexTokenTag AlexRawToken_OP_GT       _ }
 '==' { AlexTokenTag AlexRawToken_OP_EQ       _ }
 '='  { AlexTokenTag AlexRawToken_OP_ASSIGN   _ }
 '*'  { AlexTokenTag AlexRawToken_OP_TIMES    _ }
@@ -328,7 +331,7 @@ dec_var_tag_1:
     'loc' ':' location
 '}'
 {
-    Ast.StmtVardecContent
+    Ast.StmtVardec $ Ast.StmtVardecContent
     {
         Ast.stmtVardecName = Token.VarName $8,
         Ast.stmtVardecNominalType = Token.NominalTy $ Token.Named "auto" $16,
@@ -344,7 +347,7 @@ array_pattern_vars:
     'loc' ':' location
 '}'
 {
-    case $9 of { (v:_) -> Token.VarName v ; _ -> Token.VarName (Token.Named "v" $14) }
+    [ Token.VarName v | v <- $9 ]
 }
 
 dec_var_tag_2:
@@ -355,18 +358,57 @@ dec_var_tag_2:
     'loc' ':' location
 '}'
 {
-    Ast.StmtVardecContent
+    Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtVardecName = $8,
-        Ast.stmtVardecNominalType = Token.NominalTy $ Token.Named "any" $16,
-        Ast.stmtVardecInitValue = Just $12,
-        Ast.stmtVardecLocation = $16
+        Ast.stmtBlockContent = assignify $16 $12 $8,
+        Ast.stmtBlockLocation = $16
+    }
+}
+
+property_for_vardec:
+'{'
+    'type' ':' 'Property' ','
+    'key' ':' identifier ','
+    'computed' ':' 'false' ','
+    'value' ':' exp ','
+    'kind' ':' 'init' ','
+    'method' ':' 'false' ','
+    'shorthand' ':' bool ','
+    'loc' ':' location
+'}'
+{
+    Token.VarName $8
+}
+
+object_pattern:
+'{'
+    'type' ':' 'ObjectPattern' ','
+    'properties' ':' '[' commalistof(property_for_vardec) ']' ','
+    'loc' ':' location
+'}'
+{
+    $9
+}
+
+dec_var_tag_3:
+'{'
+    'type' ':' 'VariableDeclarator' ','
+    'id' ':' object_pattern ','
+    'init' ':' exp ','
+    'loc' ':' location
+'}'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = assignify $16 $12 $8,
+        Ast.stmtBlockLocation = $16
     }
 }
 
 dec_var_tag:
 dec_var_tag_1 { $1 } |
-dec_var_tag_2 { $1 }
+dec_var_tag_2 { $1 } |
+dec_var_tag_3 { $1 }
 
 -- ***********
 -- *         *
@@ -381,7 +423,10 @@ dec_var:
     'loc' ':' location
 '}'
 {
-   head $9 
+    Ast.StmtBlock $ Ast.StmtBlockContent {
+        Ast.stmtBlockContent = $9,
+        Ast.stmtBlockLocation = $18
+    }
 }
 
 -- ************
@@ -416,6 +461,7 @@ ID       { tokIDValue $1 } |
 'name'   { "name"        } |
 'type'   { "type"        } |
 'start'  { "start"       } |
+'params' { "params"      } |
 'object' { "object"      }
 
 -- **************
@@ -905,6 +951,26 @@ exp_unary:
     $12
 }
 
+exp_function:
+'{'
+    'type' ':' 'FunctionExpression' ','
+    'id' ':' 'null' ','
+    'params' ':' params ','
+    'body' ':' stmt ','
+    'generator' ':' bool ','
+    'expression' ':' bool ','
+    'async' ':' bool ','
+    'loc' ':' location
+'}'
+{
+    Ast.ExpLambda $ Ast.ExpLambdaContent
+    {
+        expLambdaParams = $12,
+        expLambdaBody = [$16],
+        expLambdaLocation = $32
+    }
+}
+
 -- *******
 -- *     *
 -- * exp *
@@ -925,6 +991,7 @@ exp_await   { $1 } |
 exp_lambda  { $1 } |
 exp_unary   { $1 } |
 exp_object  { $1 } |
+exp_function { $1 } |
 exp_fstring { $1 }
 
 -- ************
@@ -965,6 +1032,8 @@ operator:
 '*'  { Ast.TIMES } |
 '!'  { Ast.TIMES } |
 '<'  { Ast.TIMES } |
+'+'  { Ast.TIMES } |
+'>'  { Ast.TIMES } |
 '='  { Ast.TIMES }
 
 -- ********
@@ -1072,7 +1141,7 @@ stmt_exp:
 stmt_decvar:
 dec_var
 {
-    Ast.StmtVardec $1
+    $1
 }
 
 specifier_default:
@@ -1268,6 +1337,17 @@ getFuncBody = undefined
 
 getFuncParams :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe [ Ast.Param ]
 getFuncParams = undefined
+
+assignify' :: Location -> Ast.Exp -> Token.VarName -> Ast.Stmt
+assignify' loc init v = Ast.StmtVardec $ Ast.StmtVardecContent {
+    Ast.stmtVardecName = v,
+    Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" loc),
+    Ast.stmtVardecInitValue = Just init,
+    Ast.stmtVardecLocation = loc
+}
+
+assignify :: Location -> Ast.Exp -> [ Token.VarName ] -> [ Ast.Stmt ]
+assignify loc init = Data.List.map (assignify' loc init)
 
 -- add the /real/ serial index of the param
 -- the parser just puts an arbitrary value

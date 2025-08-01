@@ -196,6 +196,7 @@ import Location
 @KW_EXPR_UPDATE = \"UpdateExpression\"
 @KW_EXPR_ASSIGN = \"AssignmentExpression\"
 @KW_EXPR_LAMBDA = \"ArrowFunctionExpression\"
+@KW_EXPR_FUNCTION = \"FunctionExpression\"
 
 -- *************
 -- *           *
@@ -204,9 +205,11 @@ import Location
 -- *************
 
 @KW_OP_LT       = \"\<\"
+@KW_OP_GT       = \"\>\"
 @KW_OP_EQ       = \"==\"
 @KW_OP_ASSIGN   = \"=\"
 @KW_OP_TIMES    = \"\*\"
+@KW_OP_PLUS     = \"\+\"
 @KW_OP_PLUSPLUS = \"\+\+\"
 @KW_OP_OR       = \"\|\|\"
 
@@ -409,6 +412,7 @@ tokens :-
 @KW_EXPR_UPDATE { lex' AlexRawToken_EXPR_UPDATE }
 @KW_EXPR_ASSIGN { lex' AlexRawToken_EXPR_ASSIGN }
 @KW_EXPR_LAMBDA { lex' AlexRawToken_EXPR_LAMBDA }
+@KW_EXPR_FUNCTION { lex' AlexRawToken_EXPR_FUNCTION }
 
 -- **************
 -- *            *
@@ -430,9 +434,11 @@ tokens :-
 -- *************
 
 @KW_OP_LT       { lex' AlexRawToken_OP_LT       }
+@KW_OP_GT       { lex' AlexRawToken_OP_GT       }
 @KW_OP_EQ       { lex' AlexRawToken_OP_EQ       }
 @KW_OP_ASSIGN   { lex' AlexRawToken_OP_ASSIGN   }
 @KW_OP_TIMES    { lex' AlexRawToken_OP_TIMES    }
+@KW_OP_PLUS     { lex' AlexRawToken_OP_PLUS     }
 @KW_OP_PLUSPLUS { lex' AlexRawToken_OP_PLUSPLUS }
 @KW_OP_OR       { lex' AlexRawToken_OP_OR       }
 
@@ -452,6 +458,7 @@ tokens :-
 
 @ID        { lex  AlexRawToken_ID                 }
 @INT       { lex (AlexRawToken_INT . round. read) }
+.          { lexicalError                         }
 
 {
 
@@ -645,9 +652,11 @@ data AlexRawToken
      -- *************
 
      | AlexRawToken_OP_LT           -- ^ Reserved Keyword
+     | AlexRawToken_OP_GT           -- ^ Reserved Keyword
      | AlexRawToken_OP_EQ           -- ^ Reserved Keyword
      | AlexRawToken_OP_ASSIGN       -- ^ Reserved Keyword
      | AlexRawToken_OP_TIMES        -- ^ Reserved Keyword
+     | AlexRawToken_OP_PLUS         -- ^ Reserved Keyword
      | AlexRawToken_OP_PLUSPLUS     -- ^ Reserved Keyword
      | AlexRawToken_OP_OR           -- ^ Reserved Keyword
 
@@ -664,6 +673,7 @@ data AlexRawToken
      | AlexRawToken_EXPR_UPDATE     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_ASSIGN     -- ^ Reserved Keyword
      | AlexRawToken_EXPR_LAMBDA     -- ^ Reserved Keyword
+     | AlexRawToken_EXPR_FUNCTION   -- ^ Reserved Keyword
 
      -- **************
      -- *            *
@@ -743,6 +753,9 @@ lex f ((AlexPn _ l c),_,_,str) i = do
 -- *********************************************
 lex' :: AlexRawToken -> AlexInput -> Int -> Alex AlexTokenTag
 lex' = lex . const
+
+lexicalError :: AlexInput -> Int -> Alex AlexTokenTag
+lexicalError ((AlexPn _ l c),_,_,str) i = alexEOF
 
 -- **************
 -- *            *
