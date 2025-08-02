@@ -20,8 +20,9 @@ import qualified Token
 -- *******************
 import Data.Maybe
 import Data.Either
-import Data.List ( map )
+import Data.List ( map, isPrefixOf )
 import Data.Map ( fromList )
+import System.FilePath
 
 }
 
@@ -331,13 +332,10 @@ dec_var_tag_1:
     'loc' ':' location
 '}'
 {
-    Ast.StmtVardec $ Ast.StmtVardecContent
-    {
-        Ast.stmtVardecName = Token.VarName $8,
-        Ast.stmtVardecNominalType = Token.NominalTy $ Token.Named "auto" $16,
-        Ast.stmtVardecInitValue = $12,
-        Ast.stmtVardecLocation = $16
-    }
+    case (require $12 $8) of {
+        Nothing -> non_require $8 $12 $16;
+        Just import_stmt -> import_stmt
+    } 
 }
 
 array_pattern_vars:
@@ -446,7 +444,7 @@ location:
         lineStart = fromIntegral (tokIntValue $7),
         colStart = fromIntegral (1 + (tokIntValue $11)),
         lineEnd = fromIntegral (tokIntValue $19),
-        colEnd = fromIntegral (tokIntValue $23)
+        colEnd = fromIntegral (1 + (tokIntValue $23))
     }
 }
 
@@ -461,7 +459,7 @@ ID       { tokIDValue $1 } |
 'name'   { "name"        } |
 'type'   { "type"        } |
 'start'  { "start"       } |
-'params' { "params"      } |
+'params' { "<params>"    } |
 'object' { "object"      }
 
 -- **************
@@ -497,8 +495,8 @@ param_1:
 {
     Ast.Param
     {
-        Ast.paramName = Token.ParamName $ Token.Named $8 $12,
-        Ast.paramNominalType = Token.NominalTy $ Token.Named "any" $12,
+        Ast.paramName = Token.ParamName $ Token.Named (unquote $8) $12,
+        Ast.paramNominalType = Token.NominalTy $ Token.Named (unquote $8) $12,
         Ast.paramNominalTypeV2 = Nothing,
         Ast.paramSerialIdx = 156
     }
@@ -594,20 +592,20 @@ exp_binop:
 -- * field variable *
 -- *                *
 -- ******************
-var_subscript:
+var_field:
 '{'
     'type' ':' 'MemberExpression' ','
     'computed' ':' bool ','
     'object' ':' exp ','
-    'property' ':' exp ','
+    'property' ':' identifier ','
     'loc' ':' location
 '}'
 {
-    Ast.VarSubscript $ Ast.VarSubscriptContent
+    Ast.VarField $ Ast.VarFieldContent
     {
-        Ast.varSubscriptLhs = $12,
-        Ast.varSubscriptIdx = $16,
-        Ast.varSubscriptLocation = $20
+        Ast.varFieldLhs = $12,
+        Ast.varFieldName = Token.FieldName $16,
+        Ast.varFieldLocation = $20
     }
 }
 
@@ -632,7 +630,7 @@ identifier
 -- ************
 var:
 var_simple { $1 } |
-var_subscript  { $1 }
+var_field  { $1 }
 
 -- **************
 -- *            *
@@ -1326,6 +1324,73 @@ paramify attrs l = let
     nominalType = extractParamNominalType attrs
     in case (name, nominalType) of { (Just n, Just t) -> Just $ Ast.Param n t Nothing 0; _ -> Nothing }
 
+takeParentDir :: FilePath -> FilePath
+takeParentDir = takeDirectory
+
+joinPaths :: FilePath -> FilePath -> FilePath
+joinPaths = (</>)
+
+addJsExt :: FilePath -> FilePath
+addJsExt = addExtension "js"
+
+resolveImport :: FilePath -> FilePath -> FilePath
+resolveImport importedFrom content = addJsExt (joinPaths (takeParentDir importedFrom) content)
+
+require7 :: Token.Named -> String -> Location -> Ast.Stmt
+require7 v imported loc = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = resolveImport (Location.filename loc) imported,
+    Ast.stmtImportFromSource = Nothing,
+    Ast.stmtImportAlias = Just (Token.content v),
+    Ast.stmtImportLocation = loc
+}
+
+require6 :: Token.Named -> String -> Location -> Ast.Stmt
+require6 v imported loc = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = imported,
+    Ast.stmtImportFromSource = Nothing,
+    Ast.stmtImportAlias = Just (Token.content v),
+    Ast.stmtImportLocation = loc
+}
+
+require5 :: Token.ConstStr -> Token.Named -> Maybe Ast.Stmt
+require5 (Token.ConstStr value loc) v = case "./" `isPrefixOf` value of {
+    False -> Just (require6 v value loc);
+    True -> Just (require7 v value loc)
+}
+
+require'''' :: [ Ast.Exp ] -> Token.Named -> Maybe Ast.Stmt
+require'''' [ (Ast.ExpStr (Ast.ExpStrContent s)) ] v = require5 s v
+require'''' _ _ = Nothing
+
+require''' :: Token.Named -> Ast.ExpCallContent -> Token.Named -> Maybe Ast.Stmt
+require''' callee call v = case (Token.content callee) == "require" of {
+    True -> require'''' (Ast.args call) v;
+    False -> Nothing
+} 
+
+require'' :: Ast.ExpVarContent -> Ast.ExpCallContent -> Token.Named -> Maybe Ast.Stmt
+require'' (Ast.ExpVarContent (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName t)))) c v = require''' t c v
+require'' _ _ _ = Nothing
+
+require' :: Ast.ExpCallContent -> Token.Named -> Maybe Ast.Stmt
+require' call v = case (Ast.callee call) of {
+    (Ast.ExpVar callee) -> require'' callee call v;
+    _ -> Nothing
+}
+
+require :: Maybe Ast.Exp -> Token.Named -> Maybe Ast.Stmt
+require (Just (Ast.ExpCall call)) v = require' call v
+require _ _ = Nothing
+
+non_require :: Token.Named -> Maybe Ast.Exp -> Location -> Ast.Stmt
+non_require v init loc = Ast.StmtVardec $ Ast.StmtVardecContent {
+    Ast.stmtVardecName = Token.VarName v,
+    Ast.stmtVardecNominalType = Token.NominalTy $ Token.Named "any" loc,
+    Ast.stmtVardecInitValue = init,
+    Ast.stmtVardecLocation = loc
+}
+
+
 getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
 getFuncNameAttr = undefined
 
@@ -1348,20 +1413,6 @@ assignify' loc init v = Ast.StmtVardec $ Ast.StmtVardecContent {
 
 assignify :: Location -> Ast.Exp -> [ Token.VarName ] -> [ Ast.Stmt ]
 assignify loc init = Data.List.map (assignify' loc init)
-
--- add the /real/ serial index of the param
--- the parser just puts an arbitrary value
--- there because it lacks context
-enumerateParams :: (Word,[Param]) -> [Param]
-enumerateParams (_,[    ]) = []
-enumerateParams (i,(p:ps)) =
-    let
-        n = (paramName        p)
-        t = (paramNominalType p)
-        head = Param { paramName = n, paramNominalType = t, paramNominalTypeV2 = Nothing, paramSerialIdx = i }
-        tail = (enumerateParams (i+1,ps))
-    in
-        head:tail
 
 -- ***********
 -- *         *
