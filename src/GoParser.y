@@ -1560,7 +1560,7 @@ nameExp''' v (Token.FieldName f) = let
 nameExp' :: Ast.Var -> Maybe Ast.Var
 nameExp' (Ast.VarField v) = Just (Ast.VarField v)
 nameExp' (Ast.VarSimple v) = Just (Ast.VarSimple v)
-nameExp' _ = Nothing
+nameExp' (Ast.VarSubscript v) = Just (Ast.VarSubscript v)
 
 dummyLoc :: Location
 dummyLoc = Location "T" 1 1 1 1
