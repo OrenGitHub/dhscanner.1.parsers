@@ -266,6 +266,10 @@ import Data.Map ( fromList, empty )
 'range' { AlexTokenTag AlexRawToken_range _ }
 'Defer' { AlexTokenTag AlexRawToken_Defer _ }
 '*ast.DeferStmt' { AlexTokenTag AlexRawToken_astDeferStmt _ }
+'*ast.TypeSwitchStmt' { AlexTokenTag AlexRawToken_astTypeSwitchStmt _ }
+'Switch' { AlexTokenTag AlexRawToken_Switch _ }
+'*ast.CaseClause' { AlexTokenTag AlexRawToken_astCaseClause _ }
+'*ast.SwitchStmt' { AlexTokenTag AlexRawToken_astSwitchStmt _ }
 -- last keywords first part
 
 -- ************
@@ -674,7 +678,7 @@ exp_ty_assert:
 '{'
     'X' ':' exp
     'Lparen' ':' filename ':' location
-    'Type' ':' exp
+    'Type' ':' ornull(exp)
     'Rparen' ':' filename ':' location
 '}'
 {
@@ -1288,13 +1292,64 @@ stmt_defer:
     Ast.StmtExp $10
 }
 
+stmt_switch2:
+'*ast.TypeSwitchStmt'
+'{'
+    'Switch' ':' filename ':' location
+    'Init' ':' 'nil'
+    'Assign' ':' stmt
+    'Body' ':' stmt
+'}'
+{
+    $13
+}
+
+exprs:
+'[' ']' 'ast.Expr' '(' 'len' '=' INT ')'
+'{'
+    listof(numbered_exp)
+'}'
+{
+    $10
+}
+
+stmt_caseclause:
+'*ast.CaseClause'
+'{'
+    'Case' ':' filename ':' location
+    'List' ':' ornull(exprs)
+    'Colon' ':' filename ':' location
+    'Body' ':' stmts
+'}'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent {
+        Ast.stmtBlockContent = $18,
+        Ast.stmtBlockLocation = $7
+    }
+}
+
+stmt_switch3:
+'*ast.SwitchStmt'
+'{'
+    'Switch' ':' filename ':' location
+    'Init' ':' 'nil'
+    'Tag' ':' identifier
+    'Body' ':' stmt
+'}'
+{
+    $16
+}
+
 stmt:
 stmt_assign  { $1 } |
 stmt_gendecl { $1 } |
 stmt_type    { $1 } |
 stmt_switch  { $1 } |
+stmt_switch2 { $1 } |
+stmt_switch3 { $1 } |
 stmt_defer   { $1 } |
 stmt_case    { $1 } |
+stmt_caseclause { $1 } |
 stmt_go      { $1 } |
 stmt_if      { $1 } |
 stmt_for     { $1 } |

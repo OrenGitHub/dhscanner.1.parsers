@@ -223,6 +223,10 @@ import Location
 @OP_PLUSEQ = "+="
 @Defer = Defer
 @astDeferStmt = "*ast.DeferStmt"
+@astTypeSwitchStmt = "*ast.TypeSwitchStmt"
+@Switch = Switch
+@astCaseClause = "*ast.CaseClause"
+@astSwitchStmt = "*ast.SwitchStmt"
 -- last keywords first part
 
 -- ************
@@ -458,6 +462,10 @@ tokens :-
 @OP_PLUSEQ {lex' AlexRawToken_OP_PLUSEQ}
 @Defer {lex' AlexRawToken_Defer}
 @astDeferStmt {lex' AlexRawToken_astDeferStmt}
+@astTypeSwitchStmt {lex' AlexRawToken_astTypeSwitchStmt}
+@Switch {lex' AlexRawToken_Switch}
+@astCaseClause {lex' AlexRawToken_astCaseClause}
+@astSwitchStmt {lex' AlexRawToken_astSwitchStmt}
 -- last keywords second part
 
 -- ***************************
@@ -714,6 +722,10 @@ data AlexRawToken
      | AlexRawToken_OP_PLUSEQ
      | AlexRawToken_Defer
      | AlexRawToken_astDeferStmt
+     | AlexRawToken_astTypeSwitchStmt
+     | AlexRawToken_Switch
+     | AlexRawToken_astCaseClause
+     | AlexRawToken_astSwitchStmt
      -- last keywords third part
 
      -- ***************

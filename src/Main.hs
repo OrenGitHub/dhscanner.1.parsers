@@ -40,7 +40,8 @@ data SourceFile
    = SourceFile
      {
          filename :: String,
-         content :: String
+         content :: String,
+         module_name_resolver :: String
      }
      deriving ( Generic, ToJSON, FromJSON )
 
