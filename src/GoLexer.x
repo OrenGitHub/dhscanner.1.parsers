@@ -227,6 +227,7 @@ import Location
 @Switch = Switch
 @astCaseClause = "*ast.CaseClause"
 @astSwitchStmt = "*ast.SwitchStmt"
+@const = const
 -- last keywords first part
 
 -- ************
@@ -466,6 +467,7 @@ tokens :-
 @Switch {lex' AlexRawToken_Switch}
 @astCaseClause {lex' AlexRawToken_astCaseClause}
 @astSwitchStmt {lex' AlexRawToken_astSwitchStmt}
+@const {lex' AlexRawToken_const}
 -- last keywords second part
 
 -- ***************************
@@ -493,7 +495,13 @@ tokens :-
 -- > `AlexUserState` /must/ be defined in the user's program
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
-data AlexUserState = AlexUserState { filepath :: FilePath } deriving ( Show )
+data AlexUserState
+   = AlexUserState
+     {
+         filepath :: FilePath,
+         modulename :: Maybe String
+     }
+     deriving ( Show )
 
 -- | According to [the docs][1] (emphasis mine):
 --
@@ -502,7 +510,7 @@ data AlexUserState = AlexUserState { filepath :: FilePath } deriving ( Show )
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
 alexInitUserState :: AlexUserState
-alexInitUserState = AlexUserState "<unknown>"
+alexInitUserState = AlexUserState { filepath = "<N/A>", modulename = Nothing }
 
 -- | getter of the AlexUserState
 -- this is w.r.t to alexGetUserState :: Alex AlexUserState
@@ -512,14 +520,22 @@ alexInitUserState = AlexUserState "<unknown>"
 getFilePath :: Alex FilePath
 getFilePath = filepath <$> alexGetUserState
 
+-- | getter of the AlexUserState
+-- this is w.r.t to alexGetUserState :: Alex AlexUserState
+-- according to [the docs][1]
+--
+-- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
+getModuleName :: Alex (Maybe String)
+getModuleName = modulename <$> alexGetUserState
+
 -- | setter of the AlexUserState
 -- this is w.r.t to alexSetUserState :: AlexUserState -> Alex ()
 -- according to [the docs][1]
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
-setFilePath :: FilePath -> Alex ()
-setFilePath fp = do
-  alexSetUserState (AlexUserState { filepath = fp })
+updateAlexUserState :: FilePath -> Maybe String -> Alex ()
+updateAlexUserState fp module_name = do
+    alexSetUserState (AlexUserState { filepath = fp, modulename = module_name })
 
 -- *********
 -- *       *
@@ -530,7 +546,8 @@ data AlexTokenTag
    = AlexTokenTag
      {
          tokenRaw :: AlexRawToken,
-         tokenLoc :: Location
+         tokenLoc :: Location,
+         moduleName :: Maybe String
      }
      deriving ( Show )
 
@@ -726,6 +743,7 @@ data AlexRawToken
      | AlexRawToken_Switch
      | AlexRawToken_astCaseClause
      | AlexRawToken_astSwitchStmt
+     | AlexRawToken_const
      -- last keywords third part
 
      -- ***************
@@ -787,7 +805,8 @@ alexEOF = do
                 colStart = fromIntegral c,
                 colEnd = fromIntegral c,
                 filename = (filepath alexUserState)
-            }
+            },
+            moduleName = Nothing
         }
 
 -- *******
@@ -808,7 +827,8 @@ lex f ((AlexPn _ l c),_,_,str) i = do
                 colStart = fromIntegral c,
                 colEnd = fromIntegral (c+i),
                 filename = (filepath alexUserState)
-            }
+            },
+            moduleName = modulename alexUserState
         }
 
 -- *********************************************
@@ -844,6 +864,15 @@ location = tokenLoc
 getFilename :: AlexTokenTag -> String
 getFilename = Location.filename . location
 
+-- *************
+-- *           *
+-- * getModule *
+-- *           *
+-- *************
+getModule :: AlexTokenTag -> Maybe String
+getModule = moduleName
+
+
 -- ***************
 -- *             *
 -- * tokIntValue *
@@ -865,6 +894,6 @@ tokIDValue t = case (tokenRaw t) of { AlexRawToken_QUOTED_ID s -> s; _ -> "" }
 -- * runAlex' *
 -- *          *
 -- ************
-runAlex' :: Alex a -> FilePath -> String -> Either String a
-runAlex' a fp input = runAlex input (setFilePath fp >> a)
+runAlex' :: Alex a -> FilePath -> Maybe String -> String -> Either String a
+runAlex' a fp module_name input = runAlex input (updateAlexUserState fp module_name >> a)
 }

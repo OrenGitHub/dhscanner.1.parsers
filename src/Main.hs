@@ -109,10 +109,13 @@ postFailed errorMsg _filename = do
 postSucceeded :: Ast.Root -> Handler Value
 postSucceeded = returnJson
 
-post :: (FilePath -> String -> Either String Ast.Root) -> Handler Value
+modName :: String -> Maybe String
+modName m = case m == "-" of { True -> Nothing; _ -> Just m }
+
+post :: (FilePath -> Maybe String -> String -> Either String Ast.Root) -> Handler Value
 post parseProgram = do
     src <- requireCheckJsonBody :: Handler SourceFile
-    case parseProgram (filename src) (content src) of
+    case parseProgram (filename src) (modName (module_name_resolver src)) (content src) of
         Left errorMsg -> postFailed errorMsg (filename src)
         Right ast -> postSucceeded ast
 

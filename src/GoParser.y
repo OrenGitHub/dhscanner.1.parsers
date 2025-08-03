@@ -20,7 +20,7 @@ import qualified Token
 -- *******************
 import Data.Maybe
 import Data.Either
-import Data.List ( map, isPrefixOf )
+import Data.List ( map, isPrefixOf, stripPrefix )
 import Data.List.Split ( splitOn )
 import Data.Map ( fromList, empty )
 
@@ -52,7 +52,7 @@ import Data.Map ( fromList, empty )
 -- * lexer *
 -- *       *
 -- *********
-%lexer { lexwrap } { AlexTokenTag TokenEOF _ }
+%lexer { lexwrap } { AlexTokenTag TokenEOF _ _ }
 
 -- ***************************************************
 -- * Call this function when an error is encountered *
@@ -67,12 +67,12 @@ import Data.Map ( fromList, empty )
 -- *             *
 -- ***************
 
-'(' { AlexTokenTag AlexRawToken_LPAREN _ }
-')' { AlexTokenTag AlexRawToken_RPAREN _ }
-'[' { AlexTokenTag AlexRawToken_LBRACK _ }
-']' { AlexTokenTag AlexRawToken_RBRACK _ }
-'{' { AlexTokenTag AlexRawToken_LBRACE _ }
-'}' { AlexTokenTag AlexRawToken_RBRACE _ }
+'(' { AlexTokenTag AlexRawToken_LPAREN _ _ }
+')' { AlexTokenTag AlexRawToken_RPAREN _ _ }
+'[' { AlexTokenTag AlexRawToken_LBRACK _ _ }
+']' { AlexTokenTag AlexRawToken_RBRACK _ _ }
+'{' { AlexTokenTag AlexRawToken_LBRACE _ _ }
+'}' { AlexTokenTag AlexRawToken_RBRACE _ _ }
 
 -- ***************
 -- *             *
@@ -80,10 +80,10 @@ import Data.Map ( fromList, empty )
 -- *             *
 -- ***************
 
-':' { AlexTokenTag AlexRawToken_COLON _ }
-',' { AlexTokenTag AlexRawToken_COMMA _ }
-'.' { AlexTokenTag AlexRawToken_DOT   _ }
-'=' { AlexTokenTag AlexRawToken_EQ    _ }
+':' { AlexTokenTag AlexRawToken_COLON _ _ }
+',' { AlexTokenTag AlexRawToken_COMMA _ _ }
+'.' { AlexTokenTag AlexRawToken_DOT   _ _ }
+'=' { AlexTokenTag AlexRawToken_EQ    _ _ }
 
 -- *************
 -- *           *
@@ -91,24 +91,24 @@ import Data.Map ( fromList, empty )
 -- *           *
 -- *************
 
-'-'  { AlexTokenTag AlexRawToken_MINUS _ }
-'*'  { AlexTokenTag AlexRawToken_TIMES _ }
-'+'  { AlexTokenTag AlexRawToken_OP_PLUS _ }
-'@'  { AlexTokenTag AlexRawToken_AT _    }
-'&'  { AlexTokenTag AlexRawToken_ampersand _ }
-':=' { AlexTokenTag AlexRawToken_OP_ASSIGN _ }
-'!=' { AlexTokenTag AlexRawToken_OP_NEQ _ }
-'!'  { AlexTokenTag AlexRawToken_OP_BANG _ }
-'&&' { AlexTokenTag AlexRawToken_OP_AND _ }
-'++' { AlexTokenTag AlexRawToken_OP_PLUSPLUS _ }
-'||' { AlexTokenTag AlexRawToken_OP_OR _ }
-'|'  { AlexTokenTag AlexRawToken_OP_BITWISE_OR _ }
-'>=' { AlexTokenTag AlexRawToken_OP_GEQ _ }
-'<=' { AlexTokenTag AlexRawToken_OP_LEQ _ }
-'==' { AlexTokenTag AlexRawToken_OP_EQEQ _ }
-'>' { AlexTokenTag AlexRawToken_OP_GT _ }
-'<-' { AlexTokenTag AlexRawToken_OP_LARROW _ }
-'+=' { AlexTokenTag AlexRawToken_OP_PLUSEQ _ }
+'-'  { AlexTokenTag AlexRawToken_MINUS _ _ }
+'*'  { AlexTokenTag AlexRawToken_TIMES _ _ }
+'+'  { AlexTokenTag AlexRawToken_OP_PLUS _ _ }
+'@'  { AlexTokenTag AlexRawToken_AT _ _ }
+'&'  { AlexTokenTag AlexRawToken_ampersand _ _ }
+':=' { AlexTokenTag AlexRawToken_OP_ASSIGN _ _ }
+'!=' { AlexTokenTag AlexRawToken_OP_NEQ _ _ }
+'!'  { AlexTokenTag AlexRawToken_OP_BANG _ _ }
+'&&' { AlexTokenTag AlexRawToken_OP_AND _ _ }
+'++' { AlexTokenTag AlexRawToken_OP_PLUSPLUS _ _ }
+'||' { AlexTokenTag AlexRawToken_OP_OR _ _ }
+'|'  { AlexTokenTag AlexRawToken_OP_BITWISE_OR _ _ }
+'>=' { AlexTokenTag AlexRawToken_OP_GEQ _ _ }
+'<=' { AlexTokenTag AlexRawToken_OP_LEQ _ _ }
+'==' { AlexTokenTag AlexRawToken_OP_EQEQ _ _ }
+'>' { AlexTokenTag AlexRawToken_OP_GT _ _ }
+'<-' { AlexTokenTag AlexRawToken_OP_LARROW _ _ }
+'+=' { AlexTokenTag AlexRawToken_OP_PLUSEQ _ _ }
 
 -- ************
 -- *          *
@@ -116,160 +116,161 @@ import Data.Map ( fromList, empty )
 -- *          *
 -- ************
 
-'*ast.File' { AlexTokenTag AlexRawToken_astFile _ }
-'Doc' { AlexTokenTag AlexRawToken_Doc _ }
-'nil' { AlexTokenTag AlexRawToken_nil _ }
-'Package' { AlexTokenTag AlexRawToken_Package _ }
-'Name' { AlexTokenTag AlexRawToken_Name _ }
-'*ast.Ident' { AlexTokenTag AlexRawToken_astIdent _ }
-'NamePos' { AlexTokenTag AlexRawToken_NamePos _ }
-'Obj' { AlexTokenTag AlexRawToken_Obj _ }
-'Decls' { AlexTokenTag AlexRawToken_Decls _ }
-'ast.Decl' { AlexTokenTag AlexRawToken_astDecl _ }
-'*ast.GenDecl' { AlexTokenTag AlexRawToken_astGenDecl _ }
-'TokPos' { AlexTokenTag AlexRawToken_TokPos _ }
-'Tok' { AlexTokenTag AlexRawToken_Tok _ }
-'Lparen' { AlexTokenTag AlexRawToken_Lparen _ }
-'Specs' { AlexTokenTag AlexRawToken_Specs _ }
-'ast.Spec' { AlexTokenTag AlexRawToken_astSpec _ }
-'len' { AlexTokenTag AlexRawToken_len _ }
-'import' { AlexTokenTag AlexRawToken_import _ }
-'*ast.ImportSpec' { AlexTokenTag AlexRawToken_astImportSpec _ }
-'*ast.BasicLit' { AlexTokenTag AlexRawToken_astBasicLit _ }
-'ValuePos' { AlexTokenTag AlexRawToken_ValuePos _ }
-'Kind' { AlexTokenTag AlexRawToken_Kind _ }
-'Value' { AlexTokenTag AlexRawToken_Value _ }
-'Path' { AlexTokenTag AlexRawToken_Path _ }
-'Comment' { AlexTokenTag AlexRawToken_Comment _ }
-'EndPos' { AlexTokenTag AlexRawToken_EndPos _ }
-'STRING' { AlexTokenTag AlexRawToken_STRING _ }
-'Rparen' { AlexTokenTag AlexRawToken_Rparen _ }
-'var' { AlexTokenTag AlexRawToken_var _ }
-'Names' { AlexTokenTag AlexRawToken_Names _ }
-'Values' { AlexTokenTag AlexRawToken_Values _ }
-'ast.Expr' { AlexTokenTag AlexRawToken_astExpr _ }
-'*ast.ValueSpec' { AlexTokenTag AlexRawToken_astValueSpec _ }
-'Types' { AlexTokenTag AlexRawToken_Types _ }
-'Type' { AlexTokenTag AlexRawToken_Type _ }
-'Decl' { AlexTokenTag AlexRawToken_Decl _ }
-'Data' { AlexTokenTag AlexRawToken_Data _ }
-'obj' { AlexTokenTag AlexRawToken_obj _ }
-'*ast.Object' { AlexTokenTag AlexRawToken_astObject _ }
-'*ast.CallExpr' { AlexTokenTag AlexRawToken_astCallExpr _ }
-'Fun' { AlexTokenTag AlexRawToken_Fun _ }
-'Args' { AlexTokenTag AlexRawToken_Args _ }
-'Ellipsis' { AlexTokenTag AlexRawToken_Ellipsis _ }
-'*ast.IndexExpr' { AlexTokenTag AlexRawToken_astIndexExpr _ }
-'X' { AlexTokenTag AlexRawToken_X _ }
-'Lbrack' { AlexTokenTag AlexRawToken_Lbrack _ }
-'Rbrack' { AlexTokenTag AlexRawToken_Rbrack _ }
-'Index' { AlexTokenTag AlexRawToken_Index _ }
-'*ast.SelectorExpr' { AlexTokenTag AlexRawToken_astSelectorExpr _ }
-'Sel' { AlexTokenTag AlexRawToken_Sel _ }
-'Y' { AlexTokenTag AlexRawToken_Y _ }
-'Op' { AlexTokenTag AlexRawToken_Op _ }
-'OpPos' { AlexTokenTag AlexRawToken_OpPos _ }
-'*ast.BinaryExpr' { AlexTokenTag AlexRawToken_astBinaryExpr _ }
-'INT' { AlexTokenTag AlexRawToken_KW_INT _ }
-'type' { AlexTokenTag AlexRawToken_type _ }
-'*ast.Field' { AlexTokenTag AlexRawToken_astField _ }
-'Tag' { AlexTokenTag AlexRawToken_Tag _ }
-'*ast.FieldList' { AlexTokenTag AlexRawToken_astFieldList _ }
-'Opening' { AlexTokenTag AlexRawToken_Opening _ }
-'List' { AlexTokenTag AlexRawToken_List _ }
-'Closing' { AlexTokenTag AlexRawToken_Closing _ }
-'*ast.StructType' { AlexTokenTag AlexRawToken_astStructType _ }
-'Struct' { AlexTokenTag AlexRawToken_Struct _ }
-'Fields' { AlexTokenTag AlexRawToken_Fields _ }
-'Incomplete' { AlexTokenTag AlexRawToken_Incomplete _ }
-'false' { AlexTokenTag AlexRawToken_false _ }
-'*ast.TypeSpec' { AlexTokenTag AlexRawToken_astTypeSpec _ }
-'TypeParams' { AlexTokenTag AlexRawToken_TypeParams _ }
-'Assign' { AlexTokenTag AlexRawToken_Assign _ }
-'*ast.FuncType' { AlexTokenTag AlexRawToken_astFuncType _ }
-'Func' { AlexTokenTag AlexRawToken_Func _ }
-'Params' { AlexTokenTag AlexRawToken_Params _ }
-'Results' { AlexTokenTag AlexRawToken_Results _ }
-'*ast.BlockStmt' { AlexTokenTag AlexRawToken_astBlockStmt _ }
-'Lbrace' { AlexTokenTag AlexRawToken_Lbrace _ }
-'Rbrace' { AlexTokenTag AlexRawToken_Rbrace _ }
-'*ast.FuncDecl' { AlexTokenTag AlexRawToken_astFuncDecl _ }
-'Recv' { AlexTokenTag AlexRawToken_Recv _ }
-'Body' { AlexTokenTag AlexRawToken_Body _ }
-'func' { AlexTokenTag AlexRawToken_func _ }
-'Star' { AlexTokenTag AlexRawToken_Star _ }
-'*ast.StarExpr' { AlexTokenTag AlexRawToken_astStarExpr _ }
-'ast.Stmt' { AlexTokenTag AlexRawToken_astStmt _ }
-'*ast.DeclStmt' { AlexTokenTag AlexRawToken_astDeclStmt _ }
-'If' { AlexTokenTag AlexRawToken_If _ }
-'Init' { AlexTokenTag AlexRawToken_Init _ }
-'Cond' { AlexTokenTag AlexRawToken_Cond _ }
-'Else' { AlexTokenTag AlexRawToken_Else _ }
-'*ast.IfStmt' { AlexTokenTag AlexRawToken_astIfStmt _ }
-'Lhs' { AlexTokenTag AlexRawToken_Lhs _ }
-'Rhs' { AlexTokenTag AlexRawToken_Rhs _ }
-'*ast.AssignStmt' { AlexTokenTag AlexRawToken_astAssignStmt _ }
-'*ast.UnaryExpr' { AlexTokenTag AlexRawToken_astUnaryExpr _ }
-'*ast.ExprStmt' { AlexTokenTag AlexRawToken_astExprStmt _ }
-'*ast.ReturnStmt' { AlexTokenTag AlexRawToken_astReturnStmt _ }
-'Return' { AlexTokenTag AlexRawToken_Return _ }
-'Key' { AlexTokenTag AlexRawToken_Key _ }
-'Colon' { AlexTokenTag AlexRawToken_Colon _ }
-'Elts' { AlexTokenTag AlexRawToken_Elts _ }
-'*ast.KeyValueExpr' { AlexTokenTag AlexRawToken_astKeyValueExpr _ }
-'*ast.CompositeLit' { AlexTokenTag AlexRawToken_astCompositeLit _ }
-'*ast.TypeAssertExpr' { AlexTokenTag AlexRawToken_astTypeAssertExpr _ }
-'FileStart' { AlexTokenTag AlexRawToken_FileStart _ }
-'FileEnd' { AlexTokenTag AlexRawToken_FileEnd _ }
-'Scope' { AlexTokenTag AlexRawToken_Scope _ }
-'Imports' { AlexTokenTag AlexRawToken_Imports _ }
-'Unresolved' { AlexTokenTag AlexRawToken_Unresolved _ }
-'Comments' { AlexTokenTag AlexRawToken_Comments _ }
-'Outer' { AlexTokenTag AlexRawToken_Outer _ }
-'Objects' { AlexTokenTag AlexRawToken_Objects _ }
-'map' { AlexTokenTag AlexRawToken_map _ }
-'string' { AlexTokenTag AlexRawToken_string _ }
-'*ast.Scope' { AlexTokenTag AlexRawToken_astScope _ }
-'Low' { AlexTokenTag AlexRawToken_Low _ }
-'High' { AlexTokenTag AlexRawToken_High _ }
-'*ast.SliceExpr' { AlexTokenTag AlexRawToken_astSliceExpr _ }
-'Max' { AlexTokenTag AlexRawToken_Max _ }
-'Slice3' { AlexTokenTag AlexRawToken_Slice3 _ }
-'Elt' { AlexTokenTag AlexRawToken_Elt _ }
-'Len' { AlexTokenTag AlexRawToken_Len _ }
-'*ast.ArrayType' { AlexTokenTag AlexRawToken_astArrayType _ }
-'*ast.ParenExpr' { AlexTokenTag AlexRawToken_astParenExpr _ }
-'*ast.InterfaceType' { AlexTokenTag AlexRawToken_astInterfaceType _ }
-'Interface' { AlexTokenTag AlexRawToken_Interface _ }
-'Methods' { AlexTokenTag AlexRawToken_Methods _ }
-'For' { AlexTokenTag AlexRawToken_For _ }
-'Post' { AlexTokenTag AlexRawToken_Post _ }
-'*ast.ForStmt' { AlexTokenTag AlexRawToken_astForStmt _ }
-'*ast.IncDecStmt' { AlexTokenTag AlexRawToken_astIncDecStmt _ }
-'Label' { AlexTokenTag AlexRawToken_Label _ }
-'continue' { AlexTokenTag AlexRawToken_continue _ }
-'*ast.BranchStmt' { AlexTokenTag AlexRawToken_astBranchStmt _ }
-'Select' { AlexTokenTag AlexRawToken_Select _ }
-'*ast.SelectStmt' { AlexTokenTag AlexRawToken_astSelectStmt _ }
-'Comm' { AlexTokenTag AlexRawToken_Comm _ }
-'Case' { AlexTokenTag AlexRawToken_Case _ }
-'*ast.CommClause' { AlexTokenTag AlexRawToken_astCommClause _ }
-'break' { AlexTokenTag AlexRawToken_break _ }
-'Go' { AlexTokenTag AlexRawToken_Go _ }
-'Call' { AlexTokenTag AlexRawToken_Call _ }
-'*ast.GoStmt' { AlexTokenTag AlexRawToken_astGoStmt _ }
-'*ast.FuncLit' { AlexTokenTag AlexRawToken_astFuncLit _ }
-'*ast.MapType' { AlexTokenTag AlexRawToken_astMapType _ }
-'Map' { AlexTokenTag AlexRawToken_Map _ }
-'*ast.RangeStmt' { AlexTokenTag AlexRawToken_astRangeStmt _ }
-'Range' { AlexTokenTag AlexRawToken_Range _ }
-'range' { AlexTokenTag AlexRawToken_range _ }
-'Defer' { AlexTokenTag AlexRawToken_Defer _ }
-'*ast.DeferStmt' { AlexTokenTag AlexRawToken_astDeferStmt _ }
-'*ast.TypeSwitchStmt' { AlexTokenTag AlexRawToken_astTypeSwitchStmt _ }
-'Switch' { AlexTokenTag AlexRawToken_Switch _ }
-'*ast.CaseClause' { AlexTokenTag AlexRawToken_astCaseClause _ }
-'*ast.SwitchStmt' { AlexTokenTag AlexRawToken_astSwitchStmt _ }
+'*ast.File' { AlexTokenTag AlexRawToken_astFile _ _ }
+'Doc' { AlexTokenTag AlexRawToken_Doc _ _ }
+'nil' { AlexTokenTag AlexRawToken_nil _ _ }
+'Package' { AlexTokenTag AlexRawToken_Package _ _ }
+'Name' { AlexTokenTag AlexRawToken_Name _ _ }
+'*ast.Ident' { AlexTokenTag AlexRawToken_astIdent _ _ }
+'NamePos' { AlexTokenTag AlexRawToken_NamePos _ _ }
+'Obj' { AlexTokenTag AlexRawToken_Obj _ _ }
+'Decls' { AlexTokenTag AlexRawToken_Decls _ _ }
+'ast.Decl' { AlexTokenTag AlexRawToken_astDecl _ _ }
+'*ast.GenDecl' { AlexTokenTag AlexRawToken_astGenDecl _ _ }
+'TokPos' { AlexTokenTag AlexRawToken_TokPos _ _ }
+'Tok' { AlexTokenTag AlexRawToken_Tok _ _ }
+'Lparen' { AlexTokenTag AlexRawToken_Lparen _ _ }
+'Specs' { AlexTokenTag AlexRawToken_Specs _ _ }
+'ast.Spec' { AlexTokenTag AlexRawToken_astSpec _ _ }
+'len' { AlexTokenTag AlexRawToken_len _ _ }
+'import' { AlexTokenTag AlexRawToken_import _ _ }
+'*ast.ImportSpec' { AlexTokenTag AlexRawToken_astImportSpec _ _ }
+'*ast.BasicLit' { AlexTokenTag AlexRawToken_astBasicLit _ _ }
+'ValuePos' { AlexTokenTag AlexRawToken_ValuePos _ _ }
+'Kind' { AlexTokenTag AlexRawToken_Kind _ _ }
+'Value' { AlexTokenTag AlexRawToken_Value _ _ }
+'Path' { AlexTokenTag AlexRawToken_Path _ _ }
+'Comment' { AlexTokenTag AlexRawToken_Comment _ _ }
+'EndPos' { AlexTokenTag AlexRawToken_EndPos _ _ }
+'STRING' { AlexTokenTag AlexRawToken_STRING _ _ }
+'Rparen' { AlexTokenTag AlexRawToken_Rparen _ _ }
+'var' { AlexTokenTag AlexRawToken_var _ _ }
+'Names' { AlexTokenTag AlexRawToken_Names _ _ }
+'Values' { AlexTokenTag AlexRawToken_Values _ _ }
+'ast.Expr' { AlexTokenTag AlexRawToken_astExpr _ _ }
+'*ast.ValueSpec' { AlexTokenTag AlexRawToken_astValueSpec _ _ }
+'Types' { AlexTokenTag AlexRawToken_Types _ _ }
+'Type' { AlexTokenTag AlexRawToken_Type _ _ }
+'Decl' { AlexTokenTag AlexRawToken_Decl _ _ }
+'Data' { AlexTokenTag AlexRawToken_Data _ _ }
+'obj' { AlexTokenTag AlexRawToken_obj _ _ }
+'*ast.Object' { AlexTokenTag AlexRawToken_astObject _ _ }
+'*ast.CallExpr' { AlexTokenTag AlexRawToken_astCallExpr _ _ }
+'Fun' { AlexTokenTag AlexRawToken_Fun _ _ }
+'Args' { AlexTokenTag AlexRawToken_Args _ _ }
+'Ellipsis' { AlexTokenTag AlexRawToken_Ellipsis _ _ }
+'*ast.IndexExpr' { AlexTokenTag AlexRawToken_astIndexExpr _ _ }
+'X' { AlexTokenTag AlexRawToken_X _ _ }
+'Lbrack' { AlexTokenTag AlexRawToken_Lbrack _ _ }
+'Rbrack' { AlexTokenTag AlexRawToken_Rbrack _ _ }
+'Index' { AlexTokenTag AlexRawToken_Index _ _ }
+'*ast.SelectorExpr' { AlexTokenTag AlexRawToken_astSelectorExpr _ _ }
+'Sel' { AlexTokenTag AlexRawToken_Sel _ _ }
+'Y' { AlexTokenTag AlexRawToken_Y _ _ }
+'Op' { AlexTokenTag AlexRawToken_Op _ _ }
+'OpPos' { AlexTokenTag AlexRawToken_OpPos _ _ }
+'*ast.BinaryExpr' { AlexTokenTag AlexRawToken_astBinaryExpr _ _ }
+'INT' { AlexTokenTag AlexRawToken_KW_INT _ _ }
+'type' { AlexTokenTag AlexRawToken_type _ _ }
+'*ast.Field' { AlexTokenTag AlexRawToken_astField _ _ }
+'Tag' { AlexTokenTag AlexRawToken_Tag _ _ }
+'*ast.FieldList' { AlexTokenTag AlexRawToken_astFieldList _ _ }
+'Opening' { AlexTokenTag AlexRawToken_Opening _ _ }
+'List' { AlexTokenTag AlexRawToken_List _ _ }
+'Closing' { AlexTokenTag AlexRawToken_Closing _ _ }
+'*ast.StructType' { AlexTokenTag AlexRawToken_astStructType _ _ }
+'Struct' { AlexTokenTag AlexRawToken_Struct _ _ }
+'Fields' { AlexTokenTag AlexRawToken_Fields _ _ }
+'Incomplete' { AlexTokenTag AlexRawToken_Incomplete _ _ }
+'false' { AlexTokenTag AlexRawToken_false _ _ }
+'*ast.TypeSpec' { AlexTokenTag AlexRawToken_astTypeSpec _ _ }
+'TypeParams' { AlexTokenTag AlexRawToken_TypeParams _ _ }
+'Assign' { AlexTokenTag AlexRawToken_Assign _ _ }
+'*ast.FuncType' { AlexTokenTag AlexRawToken_astFuncType _ _ }
+'Func' { AlexTokenTag AlexRawToken_Func _ _ }
+'Params' { AlexTokenTag AlexRawToken_Params _ _ }
+'Results' { AlexTokenTag AlexRawToken_Results _ _ }
+'*ast.BlockStmt' { AlexTokenTag AlexRawToken_astBlockStmt _ _ }
+'Lbrace' { AlexTokenTag AlexRawToken_Lbrace _ _ }
+'Rbrace' { AlexTokenTag AlexRawToken_Rbrace _ _ }
+'*ast.FuncDecl' { AlexTokenTag AlexRawToken_astFuncDecl _ _ }
+'Recv' { AlexTokenTag AlexRawToken_Recv _ _ }
+'Body' { AlexTokenTag AlexRawToken_Body _ _ }
+'func' { AlexTokenTag AlexRawToken_func _ _ }
+'Star' { AlexTokenTag AlexRawToken_Star _ _ }
+'*ast.StarExpr' { AlexTokenTag AlexRawToken_astStarExpr _ _ }
+'ast.Stmt' { AlexTokenTag AlexRawToken_astStmt _ _ }
+'*ast.DeclStmt' { AlexTokenTag AlexRawToken_astDeclStmt _ _ }
+'If' { AlexTokenTag AlexRawToken_If _ _ }
+'Init' { AlexTokenTag AlexRawToken_Init _ _ }
+'Cond' { AlexTokenTag AlexRawToken_Cond _ _ }
+'Else' { AlexTokenTag AlexRawToken_Else _ _ }
+'*ast.IfStmt' { AlexTokenTag AlexRawToken_astIfStmt _ _ }
+'Lhs' { AlexTokenTag AlexRawToken_Lhs _ _ }
+'Rhs' { AlexTokenTag AlexRawToken_Rhs _ _ }
+'*ast.AssignStmt' { AlexTokenTag AlexRawToken_astAssignStmt _ _ }
+'*ast.UnaryExpr' { AlexTokenTag AlexRawToken_astUnaryExpr _ _ }
+'*ast.ExprStmt' { AlexTokenTag AlexRawToken_astExprStmt _ _ }
+'*ast.ReturnStmt' { AlexTokenTag AlexRawToken_astReturnStmt _ _ }
+'Return' { AlexTokenTag AlexRawToken_Return _ _ }
+'Key' { AlexTokenTag AlexRawToken_Key _ _ }
+'Colon' { AlexTokenTag AlexRawToken_Colon _ _ }
+'Elts' { AlexTokenTag AlexRawToken_Elts _ _ }
+'*ast.KeyValueExpr' { AlexTokenTag AlexRawToken_astKeyValueExpr _ _ }
+'*ast.CompositeLit' { AlexTokenTag AlexRawToken_astCompositeLit _ _ }
+'*ast.TypeAssertExpr' { AlexTokenTag AlexRawToken_astTypeAssertExpr _ _ }
+'FileStart' { AlexTokenTag AlexRawToken_FileStart _ _ }
+'FileEnd' { AlexTokenTag AlexRawToken_FileEnd _ _ }
+'Scope' { AlexTokenTag AlexRawToken_Scope _ _ }
+'Imports' { AlexTokenTag AlexRawToken_Imports _ _ }
+'Unresolved' { AlexTokenTag AlexRawToken_Unresolved _ _ }
+'Comments' { AlexTokenTag AlexRawToken_Comments _ _ }
+'Outer' { AlexTokenTag AlexRawToken_Outer _ _ }
+'Objects' { AlexTokenTag AlexRawToken_Objects _ _ }
+'map' { AlexTokenTag AlexRawToken_map _ _ }
+'string' { AlexTokenTag AlexRawToken_string _ _ }
+'*ast.Scope' { AlexTokenTag AlexRawToken_astScope _ _ }
+'Low' { AlexTokenTag AlexRawToken_Low _ _ }
+'High' { AlexTokenTag AlexRawToken_High _ _ }
+'*ast.SliceExpr' { AlexTokenTag AlexRawToken_astSliceExpr _ _ }
+'Max' { AlexTokenTag AlexRawToken_Max _ _ }
+'Slice3' { AlexTokenTag AlexRawToken_Slice3 _ _ }
+'Elt' { AlexTokenTag AlexRawToken_Elt _ _ }
+'Len' { AlexTokenTag AlexRawToken_Len _ _ }
+'*ast.ArrayType' { AlexTokenTag AlexRawToken_astArrayType _ _ }
+'*ast.ParenExpr' { AlexTokenTag AlexRawToken_astParenExpr _ _ }
+'*ast.InterfaceType' { AlexTokenTag AlexRawToken_astInterfaceType _ _ }
+'Interface' { AlexTokenTag AlexRawToken_Interface _ _ }
+'Methods' { AlexTokenTag AlexRawToken_Methods _ _ }
+'For' { AlexTokenTag AlexRawToken_For _ _ }
+'Post' { AlexTokenTag AlexRawToken_Post _ _ }
+'*ast.ForStmt' { AlexTokenTag AlexRawToken_astForStmt _ _ }
+'*ast.IncDecStmt' { AlexTokenTag AlexRawToken_astIncDecStmt _ _ }
+'Label' { AlexTokenTag AlexRawToken_Label _ _ }
+'continue' { AlexTokenTag AlexRawToken_continue _ _ }
+'*ast.BranchStmt' { AlexTokenTag AlexRawToken_astBranchStmt _ _ }
+'Select' { AlexTokenTag AlexRawToken_Select _ _ }
+'*ast.SelectStmt' { AlexTokenTag AlexRawToken_astSelectStmt _ _ }
+'Comm' { AlexTokenTag AlexRawToken_Comm _ _ }
+'Case' { AlexTokenTag AlexRawToken_Case _ _ }
+'*ast.CommClause' { AlexTokenTag AlexRawToken_astCommClause _ _ }
+'break' { AlexTokenTag AlexRawToken_break _ _ }
+'Go' { AlexTokenTag AlexRawToken_Go _ _ }
+'Call' { AlexTokenTag AlexRawToken_Call _ _ }
+'*ast.GoStmt' { AlexTokenTag AlexRawToken_astGoStmt _ _ }
+'*ast.FuncLit' { AlexTokenTag AlexRawToken_astFuncLit _ _ }
+'*ast.MapType' { AlexTokenTag AlexRawToken_astMapType _ _ }
+'Map' { AlexTokenTag AlexRawToken_Map _ _ }
+'*ast.RangeStmt' { AlexTokenTag AlexRawToken_astRangeStmt _ _ }
+'Range' { AlexTokenTag AlexRawToken_Range _ _ }
+'range' { AlexTokenTag AlexRawToken_range _ _ }
+'Defer' { AlexTokenTag AlexRawToken_Defer _ _ }
+'*ast.DeferStmt' { AlexTokenTag AlexRawToken_astDeferStmt _ _ }
+'*ast.TypeSwitchStmt' { AlexTokenTag AlexRawToken_astTypeSwitchStmt _ _ }
+'Switch' { AlexTokenTag AlexRawToken_Switch _ _ }
+'*ast.CaseClause' { AlexTokenTag AlexRawToken_astCaseClause _ _ }
+'*ast.SwitchStmt' { AlexTokenTag AlexRawToken_astSwitchStmt _ _ }
+'const' { AlexTokenTag AlexRawToken_const _ _ }
 -- last keywords first part
 
 -- ************
@@ -284,9 +285,9 @@ import Data.Map ( fromList, empty )
 -- *          *
 -- ************
 
-INT { AlexTokenTag (AlexRawToken_INT i) _ }
-ID { AlexTokenTag (AlexRawToken_ID s) _ }
-QUOTED_ID { AlexTokenTag (AlexRawToken_QUOTED_ID s) _ }
+INT { AlexTokenTag (AlexRawToken_INT i) _ _ }
+ID { AlexTokenTag (AlexRawToken_ID s) _ _ }
+QUOTED_ID { AlexTokenTag (AlexRawToken_QUOTED_ID s) _ _ }
 
 -- *************************
 -- *                       *
@@ -388,6 +389,7 @@ tokenID:
 'var'    { "var"    } |
 'nil'    { "null"   } |
 'type'   { "type"   } |
+'const'  { "const"  } |
 'func'   { "func"   }
 
 stmts:
@@ -541,6 +543,7 @@ var:
 var_object    { $1 } |
 var_simple    { $1 } |
 var_field     { $1 } |
+var_star      { $1 } |
 var_subscript { $1 }
 
 exp_var:
@@ -585,14 +588,18 @@ exp_binop:
     }
 }
 
-exp_star:
+var_star:
 '*ast.StarExpr'
 '{'
     'Star' ':' filename ':' location
     'X' ':' exp
 '}'
 {
-    $10
+    Ast.VarSubscript $ Ast.VarSubscriptContent {
+        Ast.varSubscriptLhs = $10,
+        Ast.varSubscriptIdx = Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 0 $7,
+        Ast.varSubscriptLocation = $7
+    }
 }
 
 exp_unop:
@@ -783,7 +790,6 @@ exp_int { Ast.ExpInt $ Ast.ExpIntContent $1 } |
 exp_var { $1 } |
 exp_dict { $1 } |
 exp_call { $1 } |
-exp_star { $1 } |
 exp_unop { $1 } |
 exp_maptype { $1 } |
 exp_slice { $1 } |
@@ -805,13 +811,7 @@ stmt_import:
     'EndPos' ':' '-'
 '}'
 {
-    let s = (Token.constStrValue $11) in Ast.StmtImport $ Ast.StmtImportContent
-    {
-        Ast.stmtImportSource = s,
-        Ast.stmtImportFromSource = Nothing,
-        Ast.stmtImportAlias = Just (extractPackageName s),
-        Ast.stmtImportLocation = Token.constStrLocation $11
-    }
+    import_normalizer (getModule $1) $8 $11
 }
 
 numbered_identifier:
@@ -1050,11 +1050,11 @@ stmt_block:
 '*ast.BlockStmt'
 '{'
     'Lbrace' ':' filename ':' location
-    'List' ':' block_stmts
+    'List' ':' ornull(block_stmts)
     'Rbrace' ':' filename ':' location
 '}'
 {
-    Ast.StmtBlock $ Ast.StmtBlockContent $10 $7
+    Ast.StmtBlock $ Ast.StmtBlockContent (case $10 of { Just l -> l; _ -> [] }) $7
 }
 
 classes: fields { $1 }
@@ -1513,55 +1513,6 @@ nameExp :: Ast.Exp -> Maybe Ast.Var
 nameExp (Ast.ExpVar (Ast.ExpVarContent v)) = nameExp' v
 nameExp _ = Nothing
 
-simportify :: Location -> [(String, Maybe String)] -> [ Ast.Stmt ]
-simportify loc args = Data.List.map (simportify' loc) args
-
-simportify' :: Location -> (String, Maybe String) -> Ast.Stmt
-simportify' loc (src, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = src,
-    Ast.stmtImportFromSource = Nothing,
-    Ast.stmtImportAlias = Nothing,
-    Ast.stmtImportLocation = loc
-}
-simportify' loc (src, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = src,
-    Ast.stmtImportFromSource = Nothing,
-    Ast.stmtImportAlias = Just alias,
-    Ast.stmtImportLocation = loc
-}
-
-importify :: Location -> (Maybe String) -> [(String, Maybe String)] -> [ Ast.Stmt ] 
-importify loc Nothing args = Data.List.map (importify' loc) args
-importify loc (Just src) args = Data.List.map (importify'' loc src) args
-
-importify' :: Location -> (String, Maybe String) -> Ast.Stmt
-importify' loc (specific, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = "",
-    Ast.stmtImportFromSource = Just specific,
-    Ast.stmtImportAlias = Nothing,
-    Ast.stmtImportLocation = loc
-}
-importify' loc (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource  = "",
-    Ast.stmtImportFromSource = Just specific,
-    Ast.stmtImportAlias = Just alias,
-    Ast.stmtImportLocation = loc
-}
-
-importify'' :: Location -> String -> (String, Maybe String) -> Ast.Stmt
-importify'' loc src (specific, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = src,
-    Ast.stmtImportFromSource = Just specific,
-    Ast.stmtImportAlias = Nothing,
-    Ast.stmtImportLocation = loc
-}
-importify'' loc src (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = src,
-    Ast.stmtImportFromSource = Just specific,
-    Ast.stmtImportAlias = Just alias,
-    Ast.stmtImportLocation = loc
-}
-
 extractPackageName :: String -> String
 extractPackageName s = last ( splitOn "/" s )
 
@@ -1605,6 +1556,48 @@ vardecify _ [] Nothing = []
 vardecify (name:names) [] (Just (Ast.ExpVar (Ast.ExpVarContent (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName t)))))) = vardecify'' name names t
 vardecify (name:names) [] _ = []
 vardecify (name:names) (exp:exps) e = (vardecify' name exp):(vardeicfy names exps e)
+
+import_normalizer' :: Token.ConstStr -> Ast.Stmt
+import_normalizer' s = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = Token.constStrValue s,
+    Ast.stmtImportFromSource = Nothing,
+    Ast.stmtImportAlias = Nothing,
+    Ast.stmtImportLocation = Token.constStrLocation s
+}
+
+import_normalizer'' :: Token.Named -> Token.ConstStr -> Ast.Stmt
+import_normalizer'' alias imported = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = Token.constStrValue imported,
+    Ast.stmtImportFromSource = Nothing,
+    Ast.stmtImportAlias = Just (Token.content alias),
+    Ast.stmtImportLocation = Token.constStrLocation imported
+}
+
+import_normalizer''' :: String -> Token.ConstStr -> Ast.Stmt
+import_normalizer''' m imported = case (m `isPrefixOf` (Token.constStrValue imported)) of {
+    False -> import_normalizer' imported;
+    True -> Ast.StmtExp $ Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt {
+        Token.constIntValue = 0,
+        Token.constIntLocation = Token.constStrLocation imported
+    }
+}
+
+import_normalizer4 :: String -> Token.Named -> Token.ConstStr -> Ast.Stmt
+import_normalizer4 m alias imported = case stripPrefix m (Token.constStrValue imported) of {
+    Nothing -> import_normalizer'' alias imported;
+    Just suffix -> Ast.StmtImport $ Ast.StmtImportContent {
+        Ast.stmtImportSource = suffix,
+        Ast.stmtImportFromSource = Nothing,
+        Ast.stmtImportAlias = Just (Token.content alias),
+        Ast.stmtImportLocation = Token.constStrLocation imported
+    }
+}
+
+import_normalizer :: Maybe String -> Maybe Token.Named -> Token.ConstStr -> Ast.Stmt
+import_normalizer Nothing Nothing imported = import_normalizer' imported
+import_normalizer Nothing (Just alias) imported = import_normalizer'' alias imported
+import_normalizer (Just m) Nothing imported = import_normalizer''' m imported
+import_normalizer (Just m) (Just alias) imported = import_normalizer4 m alias imported
 
 getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
 getFuncNameAttr = undefined
@@ -1656,6 +1649,6 @@ parseError t = alexError' (tokenLoc t)
 -- * parseProgram *
 -- *              *
 -- ****************
-parseProgram :: FilePath -> String -> Either String Ast.Root
+parseProgram :: FilePath -> Maybe String -> String -> Either String Ast.Root
 parseProgram = runAlex' parse
 }

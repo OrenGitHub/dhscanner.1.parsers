@@ -890,6 +890,6 @@ tokStrValue t = case (tokenRaw t) of { (AlexRawToken_STR s) -> (unquote s); _ ->
 -- * runAlex' *
 -- *          *
 -- ************
-runAlex' :: Alex a -> FilePath -> String -> Either String a
-runAlex' a fp input = runAlex input (setFilePath fp >> a)
+runAlex' :: Alex a -> FilePath -> Maybe String -> String -> Either String a
+runAlex' a fp _ input = runAlex input (setFilePath fp >> a)
 }

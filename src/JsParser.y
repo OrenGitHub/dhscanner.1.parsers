@@ -1447,7 +1447,7 @@ parseError t = alexError' (tokenLoc t)
 -- * parseProgram *
 -- *              *
 -- ****************
-parseProgram :: FilePath -> String -> Either String Ast.Root
+parseProgram :: FilePath -> Maybe String -> String -> Either String Ast.Root
 parseProgram = runAlex' parse
 }
 
