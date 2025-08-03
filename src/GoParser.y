@@ -312,12 +312,19 @@ ornull(a): 'nil' { Nothing } | a { Just $1 }
 ordash(a): '-' { Nothing } | a { Just $1 }
 orempty(a): 'nil' { [] } | a { $1 }
 
+-- ************
+-- *          *
+-- * numbered *
+-- *          *
+-- ************
+numbered(a): INT ':' a { $3 }
+
 -- **********************
 -- *                    *
 -- * parametrized lists *
 -- *                    *
 -- **********************
-listof(a): a { [$1] }
+listof(a): a { [$1] } | a listof(a) { $1:$2 }
 
 -- *********************
 -- *                   *
@@ -910,13 +917,13 @@ field_3:
     []
 }
 
-field:
+old_field:
 field_1 { $1 } |
 field_2 { $1 } |
 field_3 { $1 }
 
 numbered_field:
-INT ':' field { $3 }
+INT ':' old_field { $3 }
 
 numbered_fields:
 numbered_field { $1 } |
@@ -932,11 +939,86 @@ fields_list: '[' ']' '*ast.Field' '(' 'len' '=' INT ')'
 
 filename_location: filename ':' location { $3 }
 
-fields:
+old_fields:
 '*ast.FieldList'
 '{'
     'Opening' ':' ordash(filename_location)
     'List' ':' fields_list
+    'Closing' ':' ordash(filename_location)
+'}'
+{
+    $8
+}
+
+type_array:
+'*ast.ArrayType'
+'{'
+    'Lbrack' ':' filename_location
+    'Len' ':' 'nil'
+    'Elt' ':' var
+'}'
+{
+    $11
+}
+
+func_type:
+'*ast.FuncType'
+'{'
+    'Func' ':' '-'
+    'TypeParams' ':' 'nil'
+    'Params' ':' fields
+    'Results' ':' 'nil'
+'}'
+{
+    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "LOLO" dummyLoc
+}
+
+map_type:
+'*ast.MapType'
+'{'
+    'Map' ':' filename_location
+    'Key' ':' var
+    'Value' ':' var
+'}'
+{
+    $8
+}
+
+type:
+var { $1 } |
+type_array { $1 } |
+func_type { $1 } |
+map_type { $1 }
+
+field:
+'*ast.Field'
+'{'
+    'Doc' ':' 'nil'
+    'Names' ':' ornull(names)
+    'Type' ':' type
+    'Tag' ':' ornull(exp_str)
+    'Comment' ':' 'nil'
+'}'
+{
+    let names = case $8 of { Just n' -> n'; _ -> [] } in [
+        (name, $11) | name <- names
+    ]
+}
+
+field_list_new:
+'[' ']' '*ast.Field' '(' 'len' '=' INT ')'
+'{'
+    listof(numbered(field))
+'}'
+{
+    $10
+}
+
+fields:
+'*ast.FieldList'
+'{'
+    'Opening' ':' ordash(filename_location)
+    'List' ':' ornull(field_list_new)
     'Closing' ':' ordash(filename_location)
 '}'
 {
@@ -1011,8 +1093,8 @@ type_func_1:
 '{'
     'Func' ':' filename ':' location
     'TypeParams' ':' 'nil'
-    'Params' ':' fields
-    'Results' ':' ornull(fields)
+    'Params' ':' old_fields
+    'Results' ':' ornull(old_fields)
 '}'
 {
     let returnType = case $16 of {
@@ -1026,8 +1108,8 @@ type_func_2:
 '{'
     'Func' ':' '-'
     'TypeParams' ':' 'nil'
-    'Params' ':' fields
-    'Results' ':' ornull(fields)
+    'Params' ':' old_fields
+    'Results' ':' ornull(old_fields)
 '}'
 {
     ((dummyLoc,$11), Token.NominalTy (Token.Named "any" dummyLoc))
@@ -1057,7 +1139,7 @@ stmt_block:
     Ast.StmtBlock $ Ast.StmtBlockContent (case $10 of { Just l -> l; _ -> [] }) $7
 }
 
-classes: fields { $1 }
+classes: old_fields { $1 }
 
 stmt_func:
 '*ast.FuncDecl'
