@@ -1639,11 +1639,14 @@ vardecify (name:names) [] (Just (Ast.ExpVar (Ast.ExpVarContent (Ast.VarSimple (A
 vardecify (name:names) [] _ = []
 vardecify (name:names) (exp:exps) e = (vardecify' name exp):(vardeicfy names exps e)
 
+getLastSegment :: String -> String
+getLastSegment = last . splitOn "/"
+
 import_normalizer' :: Token.ConstStr -> Ast.Stmt
 import_normalizer' s = Ast.StmtImport $ Ast.StmtImportContent {
     Ast.stmtImportSource = Token.constStrValue s,
     Ast.stmtImportFromSource = Nothing,
-    Ast.stmtImportAlias = Nothing,
+    Ast.stmtImportAlias = Just (getLastSegment (Token.constStrValue s)),
     Ast.stmtImportLocation = Token.constStrLocation s
 }
 
