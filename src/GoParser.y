@@ -20,7 +20,7 @@ import qualified Token
 -- *******************
 import Data.Maybe
 import Data.Either
-import Data.List ( map, isPrefixOf, stripPrefix )
+import Data.List ( map, isPrefixOf, isInfixOf, stripPrefix )
 import Data.List.Split ( splitOn )
 import Data.Map ( fromList, empty, Map )
 
@@ -1001,7 +1001,7 @@ field:
 '}'
 {
     let names = case $8 of { Just n' -> n'; _ -> [] } in [
-        (name, $11) | name <- names
+        (name, $11, jsonme $14) | name <- names
     ]
 }
 
@@ -1040,7 +1040,7 @@ exp_struct:
             Token.content = "structify",
             Token.location = $7
         },
-        Ast.args = [ fieldme x y | (x,y) <- $10 ],
+        Ast.args = [ fieldme x y z | (x,y,z) <- $10 ],
         Ast.expCallLocation = $7
     }
 }
@@ -1565,9 +1565,16 @@ nameExp' (Ast.VarSubscript v) = Just (Ast.VarSubscript v)
 dummyLoc :: Location
 dummyLoc = Location "T" 1 1 1 1
 
-fieldme :: Token.Named -> Ast.Var -> Ast.Exp
-fieldme f v = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent {
-    Ast.varFieldLhs = Ast.ExpVar (Ast.ExpVarContent v),
+jsonme :: Maybe Token.ConstStr -> Token.Named
+jsonme Nothing = Token.Named "string" dummyLoc
+jsonme (Just s) = case "json:" `isInfixOf` (Token.constStrValue s) of {
+    True -> Token.Named "json" (Token.constStrLocation s);
+    False -> Token.Named "string" (Token.constStrLocation s)
+}
+
+fieldme :: Token.Named -> Ast.Var -> Token.Named -> Ast.Exp
+fieldme f v info = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent {
+    Ast.varFieldLhs = Ast.ExpVar (Ast.ExpVarContent (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName info)))),
     Ast.varFieldName = Token.FieldName f,
     Ast.varFieldLocation = Token.location f   
 }
@@ -1617,10 +1624,14 @@ extractParamNominalType' ts = case ts of { [t] -> Just t; _ -> Nothing }
 extractParamNominalType :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.NominalTy
 extractParamNominalType = extractParamNominalType' . rights 
 
+chooseBetween :: Token.Named -> Ast.Var -> Token.Named
+chooseBetween _ (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))) = v
+chooseBetween f _ = f
+
 dataFrom :: Ast.Var -> Token.Named -> Ast.DataMember
 dataFrom v f = Ast.DataMember {
     Ast.dataMemberName = Token.MembrName f,
-    Ast.dataMemberNominalType = Token.NominalTy f,
+    Ast.dataMemberNominalType = Token.NominalTy (chooseBetween f v),
     Ast.dataMemberInitValue = Nothing
 }
 
