@@ -22,7 +22,7 @@ import Data.Maybe
 import Data.Either
 import Data.List ( map, isPrefixOf, isInfixOf, stripPrefix )
 import Data.List.Split ( splitOn )
-import Data.Map ( fromList, empty, Map )
+import Data.Map ( toList, fromList, empty, Map, filter )
 
 }
 
@@ -1061,7 +1061,7 @@ stmt_class:
         Ast.stmtClassName = Token.ClassName $8,
         Ast.stmtClassSupers = [],
         Ast.stmtClassDataMembers = dataMembersFrom $17,
-        Ast.stmtClassMethods = Ast.Methods Data.Map.empty
+        Ast.stmtClassMethods = methodsFrom (dataMembersFrom $17)
     }
 }
 
@@ -1665,6 +1665,46 @@ dataMembersFrom' _ _ = Ast.DataMembers Data.Map.empty
 dataMembersFrom :: Ast.Exp -> Ast.DataMembers
 dataMembersFrom (Ast.ExpCall call) = dataMembersFrom' (Ast.callee call) (Ast.args call)
 dataMembersFrom _ = Ast.DataMembers Data.Map.empty
+
+keepJsonDataMember :: Ast.DataMember -> Bool
+keepJsonDataMember d = (Token.content (Token.getNominalTyToken (Ast.dataMemberNominalType d))) == "json"
+
+keepJsonDataMembers :: Map Token.MembrName Ast.DataMember -> Map Token.MembrName Ast.DataMember
+keepJsonDataMembers = Data.Map.filter keepJsonDataMember
+
+paramFrom :: Token.Named -> Ast.Param
+paramFrom name = Ast.Param {
+    Ast.paramName = Token.ParamName (Token.Named "json" (Token.location name)),
+    Ast.paramNominalType = Token.NominalTy (Token.Named "json" (Token.location name)),
+    Ast.paramNominalTypeV2 = Just (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName (Token.Named "json" (Token.location name))))),
+    Ast.paramSerialIdx = 0
+}
+
+methodFrom :: Ast.DataMember -> Ast.StmtMethodContent
+methodFrom (Ast.DataMember (Token.MembrName name) (Token.NominalTy t) _) = Ast.StmtMethodContent {
+    Ast.stmtMethodReturnType = Token.NominalTy (Token.Named "any" (Token.location t)),
+    Ast.stmtMethodName = Token.MethdName name,
+    Ast.stmtMethodParams = [paramFrom name],
+    Ast.stmtMethodBody = [],
+    Ast.stmtMethodLocation = (Token.location t),
+    Ast.hostingClassName = Token.ClassName name,
+    Ast.hostingClassSupers = []
+}
+
+toMethodPair :: (Token.MembrName, Ast.DataMember) -> (Token.MethdName, Ast.StmtMethodContent)
+toMethodPair ((Token.MembrName name), d) = ((Token.MethdName name), methodFrom d)
+
+toMethodPairs :: [(Token.MembrName, Ast.DataMember)] -> [(Token.MethdName, Ast.StmtMethodContent)]
+toMethodPairs = Data.List.map toMethodPair
+
+methodsFrom'' :: Map Token.MembrName Ast.DataMember -> Map Token.MethdName Ast.StmtMethodContent
+methodsFrom'' = Data.Map.fromList . toMethodPairs . Data.Map.toList
+
+methodsFrom' :: Map Token.MembrName Ast.DataMember -> Ast.Methods
+methodsFrom' = Ast.Methods . methodsFrom''
+
+methodsFrom :: Ast.DataMembers -> Ast.Methods
+methodsFrom (Ast.DataMembers dataMembers) = methodsFrom' (keepJsonDataMembers dataMembers)
 
 superify' :: Ast.Var -> Token.SuperName
 superify' (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))) = Token.SuperName v
