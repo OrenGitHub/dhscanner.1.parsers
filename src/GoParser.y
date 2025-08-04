@@ -22,7 +22,7 @@ import Data.Maybe
 import Data.Either
 import Data.List ( map, isPrefixOf, stripPrefix )
 import Data.List.Split ( splitOn )
-import Data.Map ( fromList, empty )
+import Data.Map ( fromList, empty, Map )
 
 }
 
@@ -1011,7 +1011,7 @@ field_list_new:
     listof(numbered(field))
 '}'
 {
-    $10
+    concat $10
 }
 
 fields:
@@ -1022,7 +1022,7 @@ fields:
     'Closing' ':' ordash(filename_location)
 '}'
 {
-    $8
+    case $8 of { Nothing -> []; Just f -> f }
 }
 
 exp_struct:
@@ -1040,7 +1040,7 @@ exp_struct:
             Token.content = "structify",
             Token.location = $7
         },
-        Ast.args = [],
+        Ast.args = [ fieldme x y | (x,y) <- $10 ],
         Ast.expCallLocation = $7
     }
 }
@@ -1060,7 +1060,7 @@ stmt_class:
     {
         Ast.stmtClassName = Token.ClassName $8,
         Ast.stmtClassSupers = [],
-        Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
+        Ast.stmtClassDataMembers = dataMembersFrom $17,
         Ast.stmtClassMethods = Ast.Methods Data.Map.empty
     }
 }
@@ -1565,6 +1565,13 @@ nameExp' (Ast.VarSubscript v) = Just (Ast.VarSubscript v)
 dummyLoc :: Location
 dummyLoc = Location "T" 1 1 1 1
 
+fieldme :: Token.Named -> Ast.Var -> Ast.Exp
+fieldme f v = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarField $ Ast.VarFieldContent {
+    Ast.varFieldLhs = Ast.ExpVar (Ast.ExpVarContent v),
+    Ast.varFieldName = Token.FieldName f,
+    Ast.varFieldLocation = Token.location f   
+}
+
 paramify :: Maybe Ast.Var -> [ Token.Named ] -> [ Ast.Param ]
 paramify Nothing names = Data.List.map paramifySingleNoType names
 paramify (Just v) names = Data.List.map (paramifySingleWithType v) names
@@ -1609,6 +1616,44 @@ extractParamNominalType' ts = case ts of { [t] -> Just t; _ -> Nothing }
  
 extractParamNominalType :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.NominalTy
 extractParamNominalType = extractParamNominalType' . rights 
+
+dataFrom :: Ast.Var -> Token.Named -> Ast.DataMember
+dataFrom v f = Ast.DataMember {
+    Ast.dataMemberName = Token.MembrName f,
+    Ast.dataMemberNominalType = Token.NominalTy f,
+    Ast.dataMemberInitValue = Nothing
+}
+
+dataMemberFrom'' :: Token.FieldName -> Ast.Var -> Maybe (Token.MembrName, Ast.DataMember)
+dataMemberFrom'' (Token.FieldName f) v = Just ((Token.MembrName f), dataFrom v f)
+
+dataMemberFrom' :: Ast.VarFieldContent -> Maybe (Token.MembrName, Ast.DataMember)
+dataMemberFrom' (Ast.VarFieldContent (Ast.ExpVar (Ast.ExpVarContent v)) field _) = dataMemberFrom'' field v
+dataMemberFrom' _ = Nothing
+
+dataMemberFrom :: Ast.Exp -> Maybe (Token.MembrName, Ast.DataMember)
+dataMemberFrom (Ast.ExpVar (Ast.ExpVarContent (Ast.VarField v))) = dataMemberFrom' v
+dataMemberFrom _ = Nothing
+
+dataMembersFrom4 :: [ Ast.Exp ] -> Map Token.MembrName Ast.DataMember
+dataMembersFrom4 = Data.Map.fromList . mapMaybe dataMemberFrom
+
+dataMembersFrom''' :: [ Ast.Exp ] -> Ast.DataMembers
+dataMembersFrom''' args = Ast.DataMembers (dataMembersFrom4 args)
+
+dataMembersFrom'' :: Token.Named -> [ Ast.Exp ] -> Ast.DataMembers
+dataMembersFrom'' v args = case ((Token.content v) == "structify") of {
+    True -> dataMembersFrom''' args;
+    False -> Ast.DataMembers Data.Map.empty
+}
+
+dataMembersFrom' :: Ast.Exp -> [ Ast.Exp ] -> Ast.DataMembers
+dataMembersFrom' (Ast.ExpVar (Ast.ExpVarContent (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))))) args = dataMembersFrom'' v args
+dataMembersFrom' _ _ = Ast.DataMembers Data.Map.empty
+
+dataMembersFrom :: Ast.Exp -> Ast.DataMembers
+dataMembersFrom (Ast.ExpCall call) = dataMembersFrom' (Ast.callee call) (Ast.args call)
+dataMembersFrom _ = Ast.DataMembers Data.Map.empty
 
 superify' :: Ast.Var -> Token.SuperName
 superify' (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))) = Token.SuperName v
