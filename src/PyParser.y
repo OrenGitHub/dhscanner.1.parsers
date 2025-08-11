@@ -192,6 +192,7 @@ import Data.Map ( fromList, empty )
 'level'                     { AlexTokenTag AlexRawToken_LEVEL           _ }
 'key'                       { AlexTokenTag AlexRawToken_KEY             _ }
 'value'                     { AlexTokenTag AlexRawToken_VALUE           _ }
+'kind'                      { AlexTokenTag AlexRawToken_KIND            _ }
 'values'                    { AlexTokenTag AlexRawToken_VALUES          _ }
 'name'                      { AlexTokenTag AlexRawToken_NAME            _ }
 'asname'                    { AlexTokenTag AlexRawToken_ASNAME          _ }
@@ -484,6 +485,9 @@ var_subscript { $1 }
 -- ***********
 exp_var: var { Ast.ExpVar (Ast.ExpVarContent $1) }
 
+exp_str_kind:
+'kind' '=' tokenID ',' { Nothing }
+
 -- ***********
 -- *         *
 -- * exp_str *
@@ -493,6 +497,7 @@ exp_str:
 'Constant'
 '('
     'value' '=' ID ','
+    optional(exp_str_kind)
     loc
 ')'
 {
@@ -501,7 +506,7 @@ exp_str:
         Ast.expStrValue = Token.ConstStr
         {
             Token.constStrValue = unquote (tokIDValue $5),
-            Token.constStrLocation = $7
+            Token.constStrLocation = $8
         }
     }
 }
@@ -1069,7 +1074,7 @@ exp_call      { Ast.ExpCall $1 } |
 exp_fstring   { $1 } |
 exp_ellipsis  { $1 }
 
-keyword_arg: 'arg' '=' ID ',' { Nothing }
+keyword_arg: 'arg' '=' tokenID ',' { $3 }
 
 -- ***********
 -- *         *
@@ -1084,7 +1089,12 @@ keyword:
     loc
 ')'
 {
-    Nothing
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = expmyname (Token.Named "keyword_arg" $8),
+        Ast.args = [ (expmyname (Token.Named (case $3 of { Just s -> s; _ -> "<missing>" }) $8)), $6 ],
+        Ast.expCallLocation = $8
+    }
 }
 
 -- ************
@@ -1093,8 +1103,8 @@ keyword:
 -- *          *
 -- ************
 keywords:
-'[' ']'                      { Nothing } | 
-'[' commalistof(keyword) ']' { Nothing }
+'[' ']'                      { [] } | 
+'[' commalistof(keyword) ']' { $2 }
 
 -- ************
 -- *          *
@@ -1113,7 +1123,7 @@ exp_call:
     Ast.ExpCallContent
     {
         Ast.callee = $5,
-        Ast.args = $9,
+        Ast.args = $9 ++ $13,
         Ast.expCallLocation = $15
     }
 }
@@ -1871,6 +1881,9 @@ methodify'' c vars f = let m = Token.MethdName $ Token.getFuncNameToken (Ast.stm
     Ast.hostingClassName = c,
     Ast.hostingClassSupers = superify vars
 })
+
+expmyname :: Token.Named -> Ast.Exp
+expmyname = Ast.ExpVar . Ast.ExpVarContent . Ast.VarSimple . Ast.VarSimpleContent . Token.VarName
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)

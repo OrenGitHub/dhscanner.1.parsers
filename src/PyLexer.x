@@ -95,14 +95,9 @@ import Location
 @KW_SUB             = Sub
 @KW_USUB            = USub
 @KW_MULT            = Mult
-@KW_END             = \"end\"
-@KW_RAW             = \"raw\"
-@KW_LOC             = \"loc\"
 @KW_ARG             = arg
 @KW_VARARG          = vararg
 @KW_NULL            = null
-@KW_KIND            = \"kind\"
-@KW_TAIL            = \"tail\"
 @KW_COL             = col_offset
 @KW_ECOL            = end_col_offset
 @KW_LOAD            = Load
@@ -136,7 +131,7 @@ import Location
 @KW_EXPR            = expr
 @KW_CALL            = Call
 @KW_NAME2           = Name
-@KW_COND            = "cond"
+@KW_COND            = cond
 @KW_BODY            = body
 @KW_NONE            = None
 @KW_HANDLERS        = handlers
@@ -168,8 +163,6 @@ import Location
 @KW_ANNOTATION      = annotation
 @KW_MODULE          = Module
 @KW_MODULE2         = module
-@KW_UPDATE          = \"update\"
-@KW_QUASIS          = \"quasis\"
 @KW_FALSE           = False
 @KW_LIST            = List
 @KW_SET             = Set
@@ -187,6 +180,7 @@ import Location
 @KW_WITH2           = withitem
 @KW_CTX_MANAGER     = context_expr
 @KW_KEY             = key
+@KW_KIND            = kind
 @KW_VALUE           = value
 @KW_VALUES          = values
 @KW_ARRAY           = array
@@ -347,13 +341,9 @@ tokens :-
 @KW_SUB             { lex' AlexRawToken_SUB             }
 @KW_USUB            { lex' AlexRawToken_USUB            }
 @KW_MULT            { lex' AlexRawToken_MULT            }
-@KW_END             { lex' AlexRawToken_END             }
-@KW_RAW             { lex' AlexRawToken_RAW             }
-@KW_LOC             { lex' AlexRawToken_LOC             }
 @KW_ARG             { lex' AlexRawToken_ARG             }
 @KW_VARARG          { lex' AlexRawToken_VARARG          }
 @KW_NULL            { lex' AlexRawToken_NULL            }
-@KW_TAIL            { lex' AlexRawToken_TAIL            }
 @KW_KIND            { lex' AlexRawToken_KIND            }
 @KW_TEST            { lex' AlexRawToken_TEST            }
 @KW_COL             { lex' AlexRawToken_COL             }
@@ -429,8 +419,6 @@ tokens :-
 @KW_ANNOTATION      { lex' AlexRawToken_ANNOTATION      }
 @KW_MODULE          { lex' AlexRawToken_MODULE          }
 @KW_MODULE2         { lex' AlexRawToken_MODULE2         }
-@KW_UPDATE          { lex' AlexRawToken_UPDATE          }
-@KW_QUASIS          { lex' AlexRawToken_QUASIS          }
 @KW_FALSE           { lex' AlexRawToken_FALSE           }
 @KW_LIST            { lex' AlexRawToken_LIST            }
 @KW_SET             { lex' AlexRawToken_SET             }
@@ -628,7 +616,6 @@ data AlexRawToken
      | AlexRawToken_TEST            -- ^ Reserved Keyword
      | AlexRawToken_NULL            -- ^ Reserved Keyword
      | AlexRawToken_TAIL            -- ^ Reserved Keyword
-     | AlexRawToken_KIND            -- ^ Reserved Keyword
      | AlexRawToken_COL             -- ^ Reserved Keyword
      | AlexRawToken_ECOL            -- ^ Reserved Keyword
      | AlexRawToken_LINE            -- ^ Reserved Keyword
@@ -704,8 +691,6 @@ data AlexRawToken
      | AlexRawToken_MODULE2         -- ^ Reserved Keyword
      | AlexRawToken_START           -- ^ Reserved Keyword
      | AlexRawToken_COOKED          -- ^ Reserved Keyword
-     | AlexRawToken_UPDATE          -- ^ Reserved Keyword
-     | AlexRawToken_QUASIS          -- ^ Reserved Keyword
      | AlexRawToken_FALSE           -- ^ Reserved Keyword
      | AlexRawToken_LIST            -- ^ Reserved Keyword
      | AlexRawToken_SET             -- ^ Reserved Keyword
@@ -722,6 +707,7 @@ data AlexRawToken
      | AlexRawToken_CTX_MANAGER     -- ^ Reserved Keyword
      | AlexRawToken_EXPRS           -- ^ Reserved Keyword
      | AlexRawToken_KEY             -- ^ Reserved Keyword
+     | AlexRawToken_KIND            -- ^ Reserved Keyword
      | AlexRawToken_VALUE           -- ^ Reserved Keyword
      | AlexRawToken_VALUES          -- ^ Reserved Keyword
      | AlexRawToken_STMTS           -- ^ Reserved Keyword
