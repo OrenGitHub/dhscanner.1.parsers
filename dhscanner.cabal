@@ -1,6 +1,6 @@
 cabal-version: 3.0
 name: dhscanner
-version: 0.1.0.0
+version: 1.0.0
 
 -- A short (one-line) description of the package.
 -- synopsis:
@@ -57,7 +57,7 @@ executable parser
     build-depends:
         base,
         containers,
-        dhscanner-ast >= 1.0.10,
+        dhscanner-ast >= 1.1.0,
         aeson,
         array,
         split,

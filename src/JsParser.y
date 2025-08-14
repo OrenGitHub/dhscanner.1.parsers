@@ -306,7 +306,6 @@ program:
 {
     Ast.Root
     {
-        Ast.filename = "DDD",
         Ast.stmts = $9
     }
 }
@@ -496,8 +495,7 @@ param_1:
     Ast.Param
     {
         Ast.paramName = Token.ParamName $ Token.Named (unquote $8) $12,
-        Ast.paramNominalType = Token.NominalTy $ Token.Named (unquote $8) $12,
-        Ast.paramNominalTypeV2 = Nothing,
+        Ast.paramNominalType = Just (varme (Token.Named (unquote $8) $12)),
         Ast.paramSerialIdx = 156
     }
 }
@@ -518,8 +516,7 @@ param_2:
     Ast.Param
     {
         Ast.paramName = Token.ParamName $8,
-        Ast.paramNominalType = Token.NominalTy $ Token.Named "any" $16,
-        Ast.paramNominalTypeV2 = Nothing,
+        Ast.paramNominalType = Just (varme (Token.Named "any" $16)),
         Ast.paramSerialIdx = 0
     }
 }
@@ -539,8 +536,7 @@ param_3:
     Ast.Param
     {
         Ast.paramName = Token.ParamName ( Token.Named "Moshe" $14),
-        Ast.paramNominalType = Token.NominalTy (Token.Named "any" $14),
-        Ast.paramNominalTypeV2 = Nothing,
+        Ast.paramNominalType = Just (varme (Token.Named "any" $14)),
         Ast.paramSerialIdx = 0
     }
 }
@@ -1241,7 +1237,7 @@ stmt_export:
     Ast.StmtVardec $ Ast.StmtVardecContent
     {
         Ast.stmtVardecName = Token.VarName (Token.Named "default" $12),
-        Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" $12),
+        Ast.stmtVardecNominalType = Just (varme (Token.Named "any" $12)),
         Ast.stmtVardecInitValue = Just $8,
         Ast.stmtVardecLocation = $12
     }
@@ -1292,7 +1288,7 @@ dec_function:
 {
     Ast.StmtFunc $ Ast.StmtFuncContent
     {
-        Ast.stmtFuncReturnType = Token.NominalTy $ Token.Named "any" $32,
+        Ast.stmtFuncReturnType = Just (varme (Token.Named "any" $32)),
         Ast.stmtFuncName = Token.FuncName $8,
         Ast.stmtFuncParams = $12,
         Ast.stmtFuncBody = [$16],
@@ -1305,24 +1301,6 @@ dec_function:
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
-
-extractParamSingleName' :: [ Token.ParamName ] -> Maybe Token.ParamName
-extractParamSingleName' ps = case ps of { [p] -> Just p; _ -> Nothing }
- 
-extractParamSingleName :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.ParamName
-extractParamSingleName = extractParamSingleName' . lefts  
-
-extractParamNominalType' :: [ Token.NominalTy ] -> Maybe Token.NominalTy
-extractParamNominalType' ts = case ts of { [t] -> Just t; _ -> Nothing }
- 
-extractParamNominalType :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.NominalTy
-extractParamNominalType = extractParamNominalType' . rights 
-
-paramify :: [ Either Token.ParamName Token.NominalTy ] -> Location -> Maybe Ast.Param
-paramify attrs l = let
-    name = extractParamSingleName attrs
-    nominalType = extractParamNominalType attrs
-    in case (name, nominalType) of { (Just n, Just t) -> Just $ Ast.Param n t Nothing 0; _ -> Nothing }
 
 takeParentDir :: FilePath -> FilePath
 takeParentDir = takeDirectory
@@ -1385,28 +1363,15 @@ require _ _ = Nothing
 non_require :: Token.Named -> Maybe Ast.Exp -> Location -> Ast.Stmt
 non_require v init loc = Ast.StmtVardec $ Ast.StmtVardecContent {
     Ast.stmtVardecName = Token.VarName v,
-    Ast.stmtVardecNominalType = Token.NominalTy $ Token.Named "any" loc,
+    Ast.stmtVardecNominalType = Just (varme (Token.Named "any" loc)),
     Ast.stmtVardecInitValue = init,
     Ast.stmtVardecLocation = loc
 }
 
-
-getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
-getFuncNameAttr = undefined
-
-getFuncReturnType :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.NominalTy
-getFuncReturnType = undefined
-
-getFuncBody :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe [ Ast.Stmt ]
-getFuncBody = undefined
-
-getFuncParams :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe [ Ast.Param ]
-getFuncParams = undefined
-
 assignify' :: Location -> Ast.Exp -> Token.VarName -> Ast.Stmt
 assignify' loc init v = Ast.StmtVardec $ Ast.StmtVardecContent {
     Ast.stmtVardecName = v,
-    Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" loc),
+    Ast.stmtVardecNominalType = Just (varme (Token.Named "any" loc)),
     Ast.stmtVardecInitValue = Just init,
     Ast.stmtVardecLocation = loc
 }
@@ -1422,6 +1387,8 @@ assignify loc init = Data.List.map (assignify' loc init)
 lexwrap :: (AlexTokenTag -> Alex a) -> Alex a
 lexwrap = (alexMonadScan >>=)
 
+varme :: Token.Named -> Ast.Var
+varme = Ast.VarSimple . Ast.VarSimpleContent . Token.VarName
 
 importify :: Location -> String -> [ Ast.StmtImportContent ] -> [ Ast.Stmt ]
 importify l src = Data.List.map (importifySingle l src)

@@ -530,7 +530,6 @@ program: commalistof(stmt)
 {
     Ast.Root
     {
-        Ast.filename = "DDD",
         stmts = $1
     }
 }
@@ -559,11 +558,7 @@ parameter:
     Ast.Param
     {
         Ast.paramName = Token.ParamName $4,
-        Ast.paramNominalType = Token.NominalTy (Token.Named "any" $2),
-        Ast.paramNominalTypeV2 = case $5 of {
-            Just (Just t) -> Just $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName t;
-            _ -> Nothing
-        },
+        Ast.paramNominalType = case $5 of { Just (Just t) -> Just (varme t); _ -> Nothing },
         Ast.paramSerialIdx = 156
     }
 }
@@ -935,7 +930,7 @@ stmt_property:
     Ast.StmtVardec $ Ast.StmtVardecContent
     {
         Ast.stmtVardecName = Token.VarName $4,
-        Ast.stmtVardecNominalType = Token.NominalTy $4,
+        Ast.stmtVardecNominalType = Just (varme $4),
         Ast.stmtVardecInitValue = Nothing,
         Ast.stmtVardecLocation = $2
     }
@@ -967,12 +962,7 @@ param:
     Ast.Param
     {
         Ast.paramName = Token.ParamName $4,
-        Ast.paramNominalType = Token.NominalTy $ Token.Named
-        {
-            Token.content = "any",
-            Token.location = $2
-        },
-        Ast.paramNominalTypeV2 = Nothing,
+        Ast.paramNominalType = Nothing,
         Ast.paramSerialIdx = 156
     }
 }
@@ -996,11 +986,7 @@ stmt_function:
 {
     Ast.StmtFunc $ Ast.StmtFuncContent
     {
-        Ast.stmtFuncReturnType = Token.NominalTy $ Token.Named
-        {
-            Token.content = "any",
-            Token.location = $2
-        },
+        Ast.stmtFuncReturnType = Just (varme (Token.Named "any" $2)),
         Ast.stmtFuncName = Token.FuncName $5,
         Ast.stmtFuncParams = case $7 of { Nothing -> []; Just params -> params },
         Ast.stmtFuncBody = case $10 of { Nothing -> []; Just stmts -> stmts },
@@ -1506,8 +1492,8 @@ stmt_method:
 {
     Ast.StmtMethodContent
     {
-        Ast.stmtMethodReturnType = Token.NominalTy (Token.Named "any" $2),
-        Ast.stmtMethodName = Token.MethdName $4,
+        Ast.stmtMethodReturnType = Just (varme (Token.Named "any" $2)),
+        Ast.stmtMethodName = Token.MethodName $4,
         Ast.stmtMethodParams = $6,
         Ast.stmtMethodBody = $8,
         Ast.stmtMethodLocation = $2,
@@ -1521,8 +1507,8 @@ identifier
 {
     Ast.StmtMethodContent
     {
-        Ast.stmtMethodReturnType = Token.NominalTy $1,
-        Ast.stmtMethodName = Token.MethdName $1,
+        Ast.stmtMethodReturnType = Just (varme $1),
+        Ast.stmtMethodName = Token.MethodName $1,
         Ast.stmtMethodParams = [],
         Ast.stmtMethodBody = [],
         Ast.stmtMethodLocation = Token.location $1,
@@ -1863,24 +1849,6 @@ unquote s = let n = length s in take (n-2) (drop 1 s)
 unlocalify :: String -> String
 unlocalify imported = case (Data.List.stripPrefix "./" imported) of { Just filename -> filename; _ -> imported }
 
-extractParamSingleName' :: [ Token.ParamName ] -> Maybe Token.ParamName
-extractParamSingleName' ps = case ps of { [p] -> Just p; _ -> Nothing }
- 
-extractParamSingleName :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.ParamName
-extractParamSingleName = extractParamSingleName' . lefts  
-
-extractParamNominalType' :: [ Token.NominalTy ] -> Maybe Token.NominalTy
-extractParamNominalType' ts = case ts of { [t] -> Just t; _ -> Nothing }
- 
-extractParamNominalType :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.NominalTy
-extractParamNominalType = extractParamNominalType' . rights 
-
-paramify :: [ Either Token.ParamName Token.NominalTy ] -> Location -> Maybe Ast.Param
-paramify attrs l = let
-    name = extractParamSingleName attrs
-    nominalType = extractParamNominalType attrs
-    in case (name, nominalType) of { (Just n, Just t) -> Just $ Ast.Param n t Nothing 0; _ -> Nothing }
-
 assignify' :: Ast.Var -> Exp -> Ast.Stmt
 assignify' v e = Ast.StmtAssign (Ast.StmtAssignContent v e)
 
@@ -1896,16 +1864,19 @@ importify' importSource importFromSource = Ast.StmtImport $ Ast.StmtImportConten
     Ast.stmtImportLocation = Token.location importFromSource
 }
 
+varme :: Token.Named -> Ast.Var
+varme = Ast.VarSimple . Ast.VarSimpleContent . Token.VarName
+
 importify :: Token.ConstStr -> [ Token.Named ] -> [ Ast.Stmt ]
 importify = Data.List.map . importify'
 
 lambdame' :: Ast.StmtMethodContent -> Ast.Exp
 lambdame' m = let
     l = Token.getMethodNameLocation (Ast.stmtMethodName m)
-    p = Token.ParamName (Token.getMethdNameToken (Ast.stmtMethodName m))
-    t = Token.NominalTy (Token.Named "any" l)
+    p = Token.ParamName (Token.getMethodNameToken (Ast.stmtMethodName m))
+    t = varme (Token.Named "any" l)
     in Ast.ExpLambda $ Ast.ExpLambdaContent {
-        Ast.expLambdaParams = [(Ast.Param p t Nothing 174)] ++ (Ast.stmtMethodParams m),
+        Ast.expLambdaParams = [(Ast.Param p Nothing 174)] ++ (Ast.stmtMethodParams m),
         Ast.expLambdaBody = Ast.stmtMethodBody m,
         Ast.expLambdaLocation = Ast.stmtMethodLocation m
     }
@@ -1942,12 +1913,12 @@ normalize_exports_helper' v exp _ lambda = let
     location = Ast.expLambdaLocation lambda
     params = Ast.expLambdaParams lambda
     real_params = case params of { (p:ps) -> ps; _ -> [] }
-    methodName = case params of { ((Ast.Param (Token.ParamName p) _ _ _):_) -> p; _ -> Token.Named "popo" location }
+    methodName = case params of { ((Ast.Param (Token.ParamName p) _ _):_) -> p; _ -> Token.Named "popo" location }
     filename = takeBaseName (Location.filename location)
     exportedHost = filename ++ "." ++ (Token.content v)
     in Ast.StmtMethod $ Ast.StmtMethodContent {
-        Ast.stmtMethodReturnType = Token.NominalTy $ Token.Named "any" location,
-        Ast.stmtMethodName = Token.MethdName methodName,
+        Ast.stmtMethodReturnType = Just (varme (Token.Named "any" location)),
+        Ast.stmtMethodName = Token.MethodName methodName,
         Ast.stmtMethodParams = real_params,
         Ast.stmtMethodBody = Ast.expLambdaBody lambda,
         Ast.stmtMethodLocation = location,
@@ -1966,7 +1937,7 @@ normalize_exports' v exp l lambdas = let
 normalize_exports'' :: Token.Named -> Ast.Exp -> Location -> Ast.Stmt
 normalize_exports'' v exp l = Ast.StmtVardec $ Ast.StmtVardecContent {
     Ast.stmtVardecName = Token.VarName v,
-    Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" l),
+    Ast.stmtVardecNominalType = Just (varme (Token.Named "any" l)),
     Ast.stmtVardecInitValue = Just exp,
     Ast.stmtVardecLocation = l
 }
@@ -1978,7 +1949,7 @@ normalize_exports v exp l = case (exported_dict exp) of
 
 normalize_vardec_lambda :: Token.Named -> (Maybe Token.Named) -> Ast.ExpLambdaContent -> Ast.Stmt
 normalize_vardec_lambda v t lambda = Ast.StmtFunc $ Ast.StmtFuncContent {
-    Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" (Token.location v)),
+    Ast.stmtFuncReturnType = Just (varme (Token.Named "any" (Token.location v))),
     Ast.stmtFuncName = Token.FuncName v,
     Ast.stmtFuncParams = Ast.expLambdaParams lambda,
     Ast.stmtFuncBody = Ast.expLambdaBody lambda,
@@ -1990,36 +1961,10 @@ normalize_vardec :: Token.Named -> (Maybe Token.Named) -> Ast.Exp -> Ast.Stmt
 normalize_vardec v t (Ast.ExpLambda lambda) = normalize_vardec_lambda v t lambda
 normalize_vardec v t init_value = Ast.StmtVardec $ Ast.StmtVardecContent {
     Ast.stmtVardecName = Token.VarName v,
-    Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" (Token.location v)),
+    Ast.stmtVardecNominalType = Just (varme (Token.Named "any" (Token.location v))),
     Ast.stmtVardecInitValue = Just init_value,
     Ast.stmtVardecLocation = Token.location v
 }
-
-getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
-getFuncNameAttr = undefined
-
-getFuncReturnType :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.NominalTy
-getFuncReturnType = undefined
-
-getFuncBody :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe [ Ast.Stmt ]
-getFuncBody = undefined
-
-getFuncParams :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe [ Ast.Param ]
-getFuncParams = undefined
-
--- add the /real/ serial index of the param
--- the parser just puts an arbitrary value
--- there because it lacks context
-enumerateParams :: (Word,[Param]) -> [Param]
-enumerateParams (_,[    ]) = []
-enumerateParams (i,(p:ps)) =
-    let
-        n = (paramName        p)
-        t = (paramNominalType p)
-        head = Param { paramName = n, paramNominalType = t, paramNominalTypeV2 = Nothing, paramSerialIdx = i }
-        tail = (enumerateParams (i+1,ps))
-    in
-        head:tail
 
 -- ***********
 -- *         *

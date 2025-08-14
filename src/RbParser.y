@@ -327,7 +327,6 @@ program:
 {
     Ast.Root
     {
-        Ast.filename = getFilename $1,
         Ast.stmts = rights (catMaybes $12)
     }
 }
@@ -1811,7 +1810,7 @@ stmt_method_type_1:
 {
     Just $ Right $ Ast.StmtFunc $ Ast.StmtFuncContent
     {
-        Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" $8),
+        Ast.stmtFuncReturnType = Just (varme (Token.Named "any" $8)),
         Ast.stmtFuncName = Token.FuncName $20,
         Ast.stmtFuncParams = $24,
         Ast.stmtFuncBody = rights (catMaybes $28),
@@ -1839,7 +1838,7 @@ stmt_method_type_2:
 {
     Just $ Right $ Ast.StmtFunc $ Ast.StmtFuncContent
     {
-        Ast.stmtFuncReturnType = Token.NominalTy (Token.Named "any" $8),
+        Ast.stmtFuncReturnType = Just (varme (Token.Named "any" $8)),
         Ast.stmtFuncName = Token.FuncName $20,
         Ast.stmtFuncParams = $24,
         Ast.stmtFuncBody = rights (catMaybes $28),
@@ -2444,28 +2443,19 @@ bodystmt_type_2 { $1 }
 
 {
 
-extractParamSingleName' :: [ Token.ParamName ] -> Maybe Token.ParamName
-extractParamSingleName' ps = case ps of { [p] -> Just p; _ -> Nothing }
- 
-extractParamSingleName :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.ParamName
-extractParamSingleName = extractParamSingleName' . lefts  
-
-extractParamNominalType' :: [ Token.NominalTy ] -> Maybe Token.NominalTy
-extractParamNominalType' ts = case ts of { [t] -> Just t; _ -> Nothing }
- 
-extractParamNominalType :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.NominalTy
-extractParamNominalType = extractParamNominalType' . rights 
-
 paramify :: Token.Named -> Ast.Param
 paramify token = let
     paramName = Token.ParamName token
-    nominalType = Token.NominalTy (Token.Named "any" (Token.location token))
-    in Ast.Param paramName nominalType Nothing 156
+    nominalType = Just (varme (Token.Named "any" (Token.location token)))
+    in Ast.Param paramName nominalType 156
 
 nameify :: Ast.Var -> Token.Named
 nameify (Ast.VarSimple    v) = nameifyVarSimple    v
 nameify (Ast.VarField     v) = nameifyVarField     v
 nameify (Ast.VarSubscript v) = nameifyVarSubscript v
+
+varme :: Token.Named -> Ast.Var
+varme = Ast.VarSimple . Ast.VarSimpleContent . Token.VarName
 
 nameifyVarSimple :: Ast.VarSimpleContent -> Token.Named
 nameifyVarSimple = Token.getVarNameToken . Ast.varName
@@ -2508,17 +2498,17 @@ modulizeStmtFunc f (Token.Named moduleName _) = let
     f' = Token.Named name'' location'
     in Ast.StmtFunc $ f { Ast.stmtFuncName = Token.FuncName f' } 
 
-methodify :: Token.ClassName -> Maybe Token.Named -> [ Ast.StmtFuncContent ] -> [(Token.MethdName, Ast.StmtMethodContent)]
+methodify :: Token.ClassName -> Maybe Token.Named -> [ Ast.StmtFuncContent ] -> [(Token.MethodName, Ast.StmtMethodContent)]
 methodify c Nothing = Data.List.map (methodify' c Nothing)
 methodify c (Just s) = Data.List.map (methodify' c (Just s))
 
-methodify' :: Token.ClassName -> Maybe Token.Named -> Ast.StmtFuncContent -> (Token.MethdName, Ast.StmtMethodContent)
+methodify' :: Token.ClassName -> Maybe Token.Named -> Ast.StmtFuncContent -> (Token.MethodName, Ast.StmtMethodContent)
 methodify' c s f = methodify'' c (case s of { Nothing -> Nothing; Just n -> Just (Token.SuperName n) }) f
 
-methodify'' :: Token.ClassName -> Maybe Token.SuperName -> Ast.StmtFuncContent -> (Token.MethdName, Ast.StmtMethodContent)
-methodify'' c s f = let m = Token.MethdName $ Token.getFuncNameToken (Ast.stmtFuncName f) in (m, Ast.StmtMethodContent {
+methodify'' :: Token.ClassName -> Maybe Token.SuperName -> Ast.StmtFuncContent -> (Token.MethodName, Ast.StmtMethodContent)
+methodify'' c s f = let m = Token.MethodName $ Token.getFuncNameToken (Ast.stmtFuncName f) in (m, Ast.StmtMethodContent {
     Ast.stmtMethodReturnType = (Ast.stmtFuncReturnType f),
-    Ast.stmtMethodName = Token.MethdName $ Token.getFuncNameToken (Ast.stmtFuncName f),
+    Ast.stmtMethodName = Token.MethodName $ Token.getFuncNameToken (Ast.stmtFuncName f),
     Ast.stmtMethodParams = (Ast.stmtFuncParams f),
     Ast.stmtMethodBody = (Ast.stmtFuncBody f),
     Ast.stmtMethodLocation = (Ast.stmtFuncLocation f),
@@ -2528,20 +2518,6 @@ methodify'' c s f = let m = Token.MethdName $ Token.getFuncNameToken (Ast.stmtFu
 
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
-
--- add the /real/ serial index of the param
--- the parser just puts an arbitrary value
--- there because it lacks context
-enumerateParams :: (Word,[Param]) -> [Param]
-enumerateParams (_,[    ]) = []
-enumerateParams (i,(p:ps)) =
-    let
-        n = (paramName        p)
-        t = (paramNominalType p)
-        head = Param { paramName = n, paramNominalType = t, paramNominalTypeV2 = Nothing, paramSerialIdx = i }
-        tail = (enumerateParams (i+1,ps))
-    in
-        head:tail
 
 -- ***********
 -- *         *

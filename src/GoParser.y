@@ -348,7 +348,6 @@ program:
 {
     Ast.Root
     {
-        Ast.filename = "DDD",
         stmts = $16
     }
 }
@@ -893,13 +892,9 @@ field_2:
     'Comment' ':' 'nil'
 '}'
 {
-    let nominalType = case (nameExp $11) of {
-        (Just (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v)))) -> Token.NominalTy v;
-        _ -> Token.NominalTy (Token.Named "any" (Location "" 1 1 1 1))
-    } in [Ast.Param {
+    [Ast.Param {
         Ast.paramName = Token.ParamName (Token.Named "_" (Location "" 1 1 1 1)),
-        Ast.paramNominalType = nominalType,
-        Ast.paramNominalTypeV2 = nameExp $11,
+        Ast.paramNominalType = nameExp $11,
         Ast.paramSerialIdx = 0
     }]
 }
@@ -1078,7 +1073,7 @@ stmt_functype:
 {
     Ast.StmtVardec $ Ast.StmtVardecContent {
         Ast.stmtVardecName = Token.VarName $8,
-        Ast.stmtVardecNominalType = Token.NominalTy (Token.Named "any" (Token.location $8)),
+        Ast.stmtVardecNominalType = Just (varme (Token.Named "any" (Token.location $8))),
         Ast.stmtVardecInitValue = Nothing,
         Ast.stmtVardecLocation = Token.location $8
     }
@@ -1098,8 +1093,8 @@ type_func_1:
 '}'
 {
     let returnType = case $16 of {
-        Just (p:_) -> Ast.paramNominalType p;
-        _ -> Token.NominalTy (Token.Named "any" $7)
+        Just (p:_) -> Token.Named "any" $7;
+        _ -> Token.Named "any" $7
     } in (($7,$13),returnType)
 }
 
@@ -1112,7 +1107,7 @@ type_func_2:
     'Results' ':' ornull(old_fields)
 '}'
 {
-    ((dummyLoc,$11), Token.NominalTy (Token.Named "any" dummyLoc))
+    ((dummyLoc,$11), Token.Named "any" dummyLoc)
 }
 
 type_func:
@@ -1154,7 +1149,7 @@ stmt_func:
     case $8 of
         [] -> Ast.StmtFunc $ Ast.StmtFuncContent
               {
-                  Ast.stmtFuncReturnType = snd $14,
+                  Ast.stmtFuncReturnType = Nothing,
                   Ast.stmtFuncName = Token.FuncName $11,
                   Ast.stmtFuncParams = snd (fst $14),
                   Ast.stmtFuncBody = [$17],
@@ -1163,12 +1158,12 @@ stmt_func:
               }
         (p:_) -> Ast.StmtMethod $ Ast.StmtMethodContent
                  {
-                     Ast.stmtMethodReturnType = snd $14,
-                     Ast.stmtMethodName = Token.MethdName $11,
+                     Ast.stmtMethodReturnType = Nothing,
+                     Ast.stmtMethodName = Token.MethodName $11,
                      Ast.stmtMethodParams = [p] ++ (snd (fst $14)),
                      Ast.stmtMethodBody = [$17],
                      Ast.stmtMethodLocation = Token.location $11,
-                     Ast.hostingClassName = Token.ClassName (Token.getNominalTyToken (Ast.paramNominalType p)),
+                     Ast.hostingClassName = Token.ClassName $11,
                      Ast.hostingClassSupers = []
                  }
 }
@@ -1549,14 +1544,6 @@ startloc _ = Nothing
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
 
-nameExp''' :: Token.Named -> Token.FieldName -> Token.NominalTy
-nameExp''' v (Token.FieldName f) = let
-    n = (Token.content v) ++ "." ++ (Token.content f)
-    vloc = Token.location v
-    floc = Token.location f
-    l = vloc { Location.colEnd = Location.colEnd floc }
-    in Token.NominalTy (Token.Named n l)
-
 nameExp' :: Ast.Var -> Maybe Ast.Var
 nameExp' (Ast.VarField v) = Just (Ast.VarField v)
 nameExp' (Ast.VarSimple v) = Just (Ast.VarSimple v)
@@ -1586,22 +1573,14 @@ paramify (Just v) names = Data.List.map (paramifySingleWithType v) names
 paramifySingleNoType :: Token.Named -> Ast.Param
 paramifySingleNoType name = Ast.Param {
     Ast.paramName = Token.ParamName name,
-    Ast.paramNominalType = Token.NominalTy (Token.Named "any" (Token.location name)),
-    Ast.paramNominalTypeV2 = Nothing,
+    Ast.paramNominalType = Just (varme (Token.Named "any" (Token.location name))),
     Ast.paramSerialIdx = 0
 }
 
 paramifySingleWithType :: Ast.Var -> Token.Named -> Ast.Param
-paramifySingleWithType t@(Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))) name = Ast.Param {
+paramifySingleWithType t name = Ast.Param {
     Ast.paramName = Token.ParamName name,
-    Ast.paramNominalType = Token.NominalTy v,
-    Ast.paramNominalTypeV2 = Just t,
-    Ast.paramSerialIdx = 0
-}
-paramifySingleWithType nominalType name = Ast.Param {
-    Ast.paramName = Token.ParamName name,
-    Ast.paramNominalType = Token.NominalTy (Token.Named "any" (Token.location name)),
-    Ast.paramNominalTypeV2 = Just nominalType,
+    Ast.paramNominalType = Just t,
     Ast.paramSerialIdx = 0
 }
 
@@ -1609,44 +1588,29 @@ nameExp :: Ast.Exp -> Maybe Ast.Var
 nameExp (Ast.ExpVar (Ast.ExpVarContent v)) = nameExp' v
 nameExp _ = Nothing
 
-extractPackageName :: String -> String
-extractPackageName s = last ( splitOn "/" s )
-
-extractParamSingleName' :: [ Token.ParamName ] -> Maybe Token.ParamName
-extractParamSingleName' ps = case ps of { [p] -> Just p; _ -> Nothing }
- 
-extractParamSingleName :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.ParamName
-extractParamSingleName = extractParamSingleName' . lefts  
-
-extractParamNominalType' :: [ Token.NominalTy ] -> Maybe Token.NominalTy
-extractParamNominalType' ts = case ts of { [t] -> Just t; _ -> Nothing }
- 
-extractParamNominalType :: [ Either Token.ParamName Token.NominalTy ] -> Maybe Token.NominalTy
-extractParamNominalType = extractParamNominalType' . rights 
-
 chooseBetween :: Token.Named -> Ast.Var -> Token.Named
 chooseBetween _ (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName v))) = v
 chooseBetween f _ = f
 
 dataFrom :: Ast.Var -> Token.Named -> Ast.DataMember
 dataFrom v f = Ast.DataMember {
-    Ast.dataMemberName = Token.MembrName f,
-    Ast.dataMemberNominalType = Token.NominalTy (chooseBetween f v),
+    Ast.dataMemberName = Token.MemberName f,
+    Ast.dataMemberNominalType = Just (varme (chooseBetween f v)),
     Ast.dataMemberInitValue = Nothing
 }
 
-dataMemberFrom'' :: Token.FieldName -> Ast.Var -> Maybe (Token.MembrName, Ast.DataMember)
-dataMemberFrom'' (Token.FieldName f) v = Just ((Token.MembrName f), dataFrom v f)
+dataMemberFrom'' :: Token.FieldName -> Ast.Var -> Maybe (Token.MemberName, Ast.DataMember)
+dataMemberFrom'' (Token.FieldName f) v = Just ((Token.MemberName f), dataFrom v f)
 
-dataMemberFrom' :: Ast.VarFieldContent -> Maybe (Token.MembrName, Ast.DataMember)
+dataMemberFrom' :: Ast.VarFieldContent -> Maybe (Token.MemberName, Ast.DataMember)
 dataMemberFrom' (Ast.VarFieldContent (Ast.ExpVar (Ast.ExpVarContent v)) field _) = dataMemberFrom'' field v
 dataMemberFrom' _ = Nothing
 
-dataMemberFrom :: Ast.Exp -> Maybe (Token.MembrName, Ast.DataMember)
+dataMemberFrom :: Ast.Exp -> Maybe (Token.MemberName, Ast.DataMember)
 dataMemberFrom (Ast.ExpVar (Ast.ExpVarContent (Ast.VarField v))) = dataMemberFrom' v
 dataMemberFrom _ = Nothing
 
-dataMembersFrom4 :: [ Ast.Exp ] -> Map Token.MembrName Ast.DataMember
+dataMembersFrom4 :: [ Ast.Exp ] -> Map Token.MemberName Ast.DataMember
 dataMembersFrom4 = Data.Map.fromList . mapMaybe dataMemberFrom
 
 dataMembersFrom''' :: [ Ast.Exp ] -> Ast.DataMembers
@@ -1666,41 +1630,44 @@ dataMembersFrom :: Ast.Exp -> Ast.DataMembers
 dataMembersFrom (Ast.ExpCall call) = dataMembersFrom' (Ast.callee call) (Ast.args call)
 dataMembersFrom _ = Ast.DataMembers Data.Map.empty
 
-keepJsonDataMember :: Ast.DataMember -> Bool
-keepJsonDataMember d = (Token.content (Token.getNominalTyToken (Ast.dataMemberNominalType d))) == "json"
+keepJsonDataMember' :: Token.VarName -> Bool
+keepJsonDataMember' (Token.VarName (Token.Named v _)) = (v == "json")
 
-keepJsonDataMembers :: Map Token.MembrName Ast.DataMember -> Map Token.MembrName Ast.DataMember
+keepJsonDataMember :: Ast.DataMember -> Bool
+keepJsonDataMember (Ast.DataMember _ (Just (Ast.VarSimple (Ast.VarSimpleContent v))) _) = keepJsonDataMember' v
+keepJsonDataMember _ = False
+
+keepJsonDataMembers :: Map Token.MemberName Ast.DataMember -> Map Token.MemberName Ast.DataMember
 keepJsonDataMembers = Data.Map.filter keepJsonDataMember
 
 paramFrom :: Token.Named -> Ast.Param
 paramFrom name = Ast.Param {
     Ast.paramName = Token.ParamName (Token.Named "json" (Token.location name)),
-    Ast.paramNominalType = Token.NominalTy (Token.Named "json" (Token.location name)),
-    Ast.paramNominalTypeV2 = Just (Ast.VarSimple (Ast.VarSimpleContent (Token.VarName (Token.Named "json" (Token.location name))))),
+    Ast.paramNominalType = Just (varme (Token.Named "json" (Token.location name))),
     Ast.paramSerialIdx = 0
 }
 
 methodFrom :: Token.ClassName -> Ast.DataMember -> Ast.StmtMethodContent
-methodFrom c (Ast.DataMember (Token.MembrName name) (Token.NominalTy t) _) = Ast.StmtMethodContent {
-    Ast.stmtMethodReturnType = Token.NominalTy (Token.Named "any" (Token.location t)),
-    Ast.stmtMethodName = Token.MethdName name,
+methodFrom c (Ast.DataMember (Token.MemberName name) _ _) = Ast.StmtMethodContent {
+    Ast.stmtMethodReturnType = Nothing,
+    Ast.stmtMethodName = Token.MethodName name,
     Ast.stmtMethodParams = [paramFrom name],
     Ast.stmtMethodBody = [],
-    Ast.stmtMethodLocation = (Token.location t),
+    Ast.stmtMethodLocation = (Token.location name),
     Ast.hostingClassName = c,
     Ast.hostingClassSupers = []
 }
 
-toMethodPair :: Token.ClassName -> (Token.MembrName, Ast.DataMember) -> (Token.MethdName, Ast.StmtMethodContent)
-toMethodPair c ((Token.MembrName name), d) = ((Token.MethdName name), methodFrom c d)
+toMethodPair :: Token.ClassName -> (Token.MemberName, Ast.DataMember) -> (Token.MethodName, Ast.StmtMethodContent)
+toMethodPair c ((Token.MemberName name), d) = ((Token.MethodName name), methodFrom c d)
 
-toMethodPairs :: Token.ClassName -> [(Token.MembrName, Ast.DataMember)] -> [(Token.MethdName, Ast.StmtMethodContent)]
+toMethodPairs :: Token.ClassName -> [(Token.MemberName, Ast.DataMember)] -> [(Token.MethodName, Ast.StmtMethodContent)]
 toMethodPairs c = Data.List.map (toMethodPair c)
 
-methodsFrom'' :: Token.ClassName -> Map Token.MembrName Ast.DataMember -> Map Token.MethdName Ast.StmtMethodContent
+methodsFrom'' :: Token.ClassName -> Map Token.MemberName Ast.DataMember -> Map Token.MethodName Ast.StmtMethodContent
 methodsFrom'' c = Data.Map.fromList . (toMethodPairs c) . Data.Map.toList
 
-methodsFrom' :: Token.ClassName -> Map Token.MembrName Ast.DataMember -> Ast.Methods
+methodsFrom' :: Token.ClassName -> Map Token.MemberName Ast.DataMember -> Ast.Methods
 methodsFrom' c = Ast.Methods . (methodsFrom'' c)
 
 methodsFrom :: Token.ClassName -> Ast.DataMembers -> Ast.Methods
@@ -1723,7 +1690,7 @@ vardecify' v exp = Ast.StmtAssign $ Ast.StmtAssignContent {
 vardecify'' :: Token.Named -> [ Token.Named ] -> Token.Named -> [ Ast.Stmt ]
 vardecify'' name names t = [ Ast.StmtVardec $ Ast.StmtVardecContent {
     Ast.stmtVardecName = Token.VarName name,
-    Ast.stmtVardecNominalType = Token.NominalTy t,
+    Ast.stmtVardecNominalType = Just (varme t),
     Ast.stmtVardecInitValue = Nothing,
     Ast.stmtVardecLocation = Token.location name
 }]
@@ -1780,34 +1747,8 @@ import_normalizer Nothing (Just alias) imported = import_normalizer'' alias impo
 import_normalizer (Just m) Nothing imported = import_normalizer''' m imported
 import_normalizer (Just m) (Just alias) imported = import_normalizer4 m alias imported
 
-getFuncNameAttr :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.FuncName
-getFuncNameAttr = undefined
-
-getFuncReturnType :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe Token.NominalTy
-getFuncReturnType = undefined
-
-getFuncBody :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe [ Ast.Stmt ]
-getFuncBody = undefined
-
-getFuncParams :: [ Either (Either Token.FuncName [ Ast.Param ] ) (Either Token.NominalTy [ Ast.Stmt ] ) ] -> Maybe [ Ast.Param ]
-getFuncParams = undefined
-
--- getFilename :: (Either Location Ast.Dec) -> FilePath
--- getFilename x = case x of { Left l -> Location.filename l; Right dec -> Location.filename $ Ast.locationDec dec }
-
--- add the /real/ serial index of the param
--- the parser just puts an arbitrary value
--- there because it lacks context
-enumerateParams :: (Word,[Param]) -> [Param]
-enumerateParams (_,[    ]) = []
-enumerateParams (i,(p:ps)) =
-    let
-        n = (paramName        p)
-        t = (paramNominalType p)
-        head = Param { paramName = n, paramNominalType = t, paramNominalTypeV2 = Nothing, paramSerialIdx = i }
-        tail = (enumerateParams (i+1,ps))
-    in
-        head:tail
+varme :: Token.Named -> Ast.Var
+varme = Ast.VarSimple . Ast.VarSimpleContent . Token.VarName
 
 -- ***********
 -- *         *
