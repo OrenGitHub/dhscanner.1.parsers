@@ -831,11 +831,7 @@ exp_slice:
 {
     Ast.ExpCall $ Ast.ExpCallContent
     {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
-        {
-            Token.content = "slicify",
-            Token.location = $6
-        },
+        Ast.callee = expmyname (Token.Named "slicify" $6),
         Ast.args = [],
         Ast.expCallLocation = $6
     }
@@ -1088,11 +1084,11 @@ keyword:
     loc
 ')'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
+    Ast.ExpKwArg $ Ast.ExpKwArgContent
     {
-        Ast.callee = expmyname (Token.Named "keyword_arg" $8),
-        Ast.args = [ (expmyname (Token.Named (case $3 of { Just s -> s; _ -> "<missing>" }) $8)), $6 ],
-        Ast.expCallLocation = $8
+        Ast.expKwArgName = case $3 of { Just kw -> kw; _ -> "" },
+        Ast.expKwArgValue = $6,
+        Ast.expKwArgLocation = $8
     }
 }
 
@@ -1845,14 +1841,6 @@ loc:
 
 dummyExp :: Location -> Ast.Exp
 dummyExp loc = Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt 888 loc
-
-dummyVar :: Location -> Ast.Var
-dummyVar loc = Ast.VarSimple $ Ast.VarSimpleContent {
-    Ast.varName = Token.VarName $ Token.Named {
-        Token.content = "bestVarInTheWorld",
-        Token.location = loc
-    }
-}
 
 methodify :: Token.ClassName -> [ Ast.Var ] -> [ Ast.Stmt ] -> [(Token.MethodName, Ast.StmtMethodContent)]
 methodify c vars stmts = catMaybes $ Data.List.map (methodify' c vars) stmts
