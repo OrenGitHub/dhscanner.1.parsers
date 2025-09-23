@@ -530,6 +530,7 @@ program: commalistof(stmt)
 {
     Ast.Root
     {
+        Ast.filename = "",
         stmts = $1
     }
 }

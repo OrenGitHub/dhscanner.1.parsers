@@ -288,6 +288,7 @@ program: stmts
 {
     Ast.Root
     {
+        Ast.filename = "",
         Ast.stmts = $1
     }
 }

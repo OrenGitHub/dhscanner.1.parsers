@@ -225,6 +225,7 @@ program:
 {
     Ast.Root
     {
+        Ast.filename = getFilename $1,
         stmts = []
     }
 }

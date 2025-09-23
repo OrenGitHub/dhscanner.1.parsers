@@ -327,6 +327,7 @@ program:
 {
     Ast.Root
     {
+        Ast.filename = getFilename $1,
         Ast.stmts = rights (catMaybes $12)
     }
 }

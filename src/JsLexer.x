@@ -775,6 +775,14 @@ location = tokenLoc
 
 -- ***************
 -- *             *
+-- * getFilename *
+-- *             *
+-- ***************
+getFilename :: AlexTokenTag -> String
+getFilename = Location.filename . location
+
+-- ***************
+-- *             *
 -- * tokIntValue *
 -- *             *
 -- ***************

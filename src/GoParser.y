@@ -348,7 +348,8 @@ program:
 {
     Ast.Root
     {
-        stmts = $16
+        Ast.filename = getFilename $1,
+        Ast.stmts = $16
     }
 }
 
