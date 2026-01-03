@@ -26,6 +26,7 @@ where
 import Prelude hiding (lex)
 import Control.Monad ( liftM )
 import Location
+import Common
 }
 
 -- ***********
@@ -552,16 +553,16 @@ tokens :-
 -- > `AlexUserState` /must/ be defined in the user's program
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
-data AlexUserState = AlexUserState { filepath :: FilePath } deriving ( Show )
+data AlexUserState = AlexUserState { filepath :: FilePath, additional_repo_info :: Common.AdditionalRepoInfo } deriving ( Show )
 
 -- | According to [the docs][1] (emphasis mine):
 --
 -- > a call to an initialization function (`alexInitUserState`) ...
--- > must also be defined in the user’s program
+-- > must also be defined in the user's program
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
 alexInitUserState :: AlexUserState
-alexInitUserState = AlexUserState "<unknown>"
+alexInitUserState = AlexUserState "<unknown>" (Common.AdditionalRepoInfo [] [] Nothing)
 
 -- | getter of the AlexUserState
 -- this is w.r.t to alexGetUserState :: Alex AlexUserState
@@ -578,7 +579,8 @@ getFilePath = filepath <$> alexGetUserState
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
 setFilePath :: FilePath -> Alex ()
 setFilePath fp = do
-  alexSetUserState (AlexUserState { filepath = fp })
+  state <- alexGetUserState
+  alexSetUserState (AlexUserState { filepath = fp, additional_repo_info = additional_repo_info state })
 
 -- *********
 -- *       *
@@ -928,7 +930,7 @@ tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> s; _ -> ""; }
 -- * runAlex' *
 -- *          *
 -- ************
-runAlex' :: Alex a -> FilePath -> Maybe String -> String -> Either String a
-runAlex' a fp _ input = runAlex input (setFilePath fp >> a)
+runAlex' :: Alex a -> FilePath -> Common.AdditionalRepoInfo -> String -> Either String a
+runAlex' a fp additionalInfo input = runAlex input (setFilePath fp >> alexSetUserState (AlexUserState fp additionalInfo) >> a)
 }
 

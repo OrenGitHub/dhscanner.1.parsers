@@ -12,6 +12,7 @@ import Ast
 import GoLexer
 import Location
 import qualified Token
+import qualified Common
 
 -- *******************
 -- *                 *
@@ -1708,17 +1709,17 @@ getLastSegment = last . splitOn "/"
 
 import_normalizer' :: Token.ConstStr -> Ast.Stmt
 import_normalizer' s = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = Token.constStrValue s,
-    Ast.stmtImportFromSource = Nothing,
-    Ast.stmtImportAlias = Just (getLastSegment (Token.constStrValue s)),
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (Token.constStrValue s)),
+    Ast.stmtImportSpecific = Nothing,
+    Ast.stmtImportAlias = Just (Ast.ImportAlias (getLastSegment (Token.constStrValue s))),
     Ast.stmtImportLocation = Token.constStrLocation s
 }
 
 import_normalizer'' :: Token.Named -> Token.ConstStr -> Ast.Stmt
 import_normalizer'' alias imported = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = Token.constStrValue imported,
-    Ast.stmtImportFromSource = Nothing,
-    Ast.stmtImportAlias = Just (Token.content alias),
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (Token.constStrValue imported)),
+    Ast.stmtImportSpecific = Nothing,
+    Ast.stmtImportAlias = Just (Ast.ImportAlias (Token.content alias)),
     Ast.stmtImportLocation = Token.constStrLocation imported
 }
 
@@ -1735,9 +1736,9 @@ import_normalizer4 :: String -> Token.Named -> Token.ConstStr -> Ast.Stmt
 import_normalizer4 m alias imported = case stripPrefix m (Token.constStrValue imported) of {
     Nothing -> import_normalizer'' alias imported;
     Just suffix -> Ast.StmtImport $ Ast.StmtImportContent {
-        Ast.stmtImportSource = suffix,
-        Ast.stmtImportFromSource = Nothing,
-        Ast.stmtImportAlias = Just (Token.content alias),
+        Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent suffix),
+        Ast.stmtImportSpecific = Nothing,
+        Ast.stmtImportAlias = Just (Ast.ImportAlias (Token.content alias)),
         Ast.stmtImportLocation = Token.constStrLocation imported
     }
 }
@@ -1772,6 +1773,6 @@ parseError t = alexError' (tokenLoc t)
 -- * parseProgram *
 -- *              *
 -- ****************
-parseProgram :: FilePath -> Maybe String -> String -> Either String Ast.Root
-parseProgram = runAlex' parse
+parseProgram :: Common.SourceCodeFilePath -> Common.SourceCodeContent -> Common.AdditionalRepoInfo -> Either String Ast.Root
+parseProgram (Common.SourceCodeFilePath fp) (Common.SourceCodeContent content) additionalInfo = runAlex' parse fp additionalInfo content
 }

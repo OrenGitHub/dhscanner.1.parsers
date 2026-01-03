@@ -12,6 +12,7 @@ import Ast
 import CsLexer
 import Location
 import qualified Token
+import qualified Common
 
 -- *******************
 -- *                 *
@@ -327,8 +328,8 @@ stmt_using_1:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportSource = stringify $16,
-        Ast.stmtImportFromSource = Nothing,
+        Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (stringify $16)),
+        Ast.stmtImportSpecific = Nothing,
         Ast.stmtImportAlias = Nothing,
         Ast.stmtImportLocation = $12
     }
@@ -355,8 +356,8 @@ stmt_using_2:
 {
     Ast.StmtImport $ Ast.StmtImportContent
     {
-        Ast.stmtImportSource = stringify [$19],
-        Ast.stmtImportFromSource = Just (Token.content $17),
+        Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (stringify [$19])),
+        Ast.stmtImportSpecific = Just (Ast.ImportSpecific (Token.content $17)),
         Ast.stmtImportAlias = Nothing,
         Ast.stmtImportLocation = $12
     }
@@ -1204,15 +1205,15 @@ simportify loc args = Data.List.map (simportify' loc) args
 
 simportify' :: Location -> (String, Maybe String) -> Ast.Stmt
 simportify' loc (src, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = src,
-    Ast.stmtImportFromSource = Nothing,
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent src),
+    Ast.stmtImportSpecific = Nothing,
     Ast.stmtImportAlias = Nothing,
     Ast.stmtImportLocation = loc
 }
 simportify' loc (src, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = src,
-    Ast.stmtImportFromSource = Nothing,
-    Ast.stmtImportAlias = Just alias,
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent src),
+    Ast.stmtImportSpecific = Nothing,
+    Ast.stmtImportAlias = Just (Ast.ImportAlias alias),
     Ast.stmtImportLocation = loc
 }
 
@@ -1222,29 +1223,29 @@ importify loc (Just src) args = Data.List.map (importify'' loc src) args
 
 importify' :: Location -> (String, Maybe String) -> Ast.Stmt
 importify' loc (specific, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = "",
-    Ast.stmtImportFromSource = Just specific,
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent ""),
+    Ast.stmtImportSpecific = Just (Ast.ImportSpecific specific),
     Ast.stmtImportAlias = Nothing,
     Ast.stmtImportLocation = loc
 }
 importify' loc (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource  = "",
-    Ast.stmtImportFromSource = Just specific,
-    Ast.stmtImportAlias = Just alias,
+    Ast.stmtImportSource  = ImportThirdParty (ImportThirdPartyContent ""),
+    Ast.stmtImportSpecific = Just (Ast.ImportSpecific specific),
+    Ast.stmtImportAlias = Just (Ast.ImportAlias alias),
     Ast.stmtImportLocation = loc
 }
 
 importify'' :: Location -> String -> (String, Maybe String) -> Ast.Stmt
 importify'' loc src (specific, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = src,
-    Ast.stmtImportFromSource = Just specific,
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent src),
+    Ast.stmtImportSpecific = Just (Ast.ImportSpecific specific),
     Ast.stmtImportAlias = Nothing,
     Ast.stmtImportLocation = loc
 }
 importify'' loc src (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = src,
-    Ast.stmtImportFromSource = Just specific,
-    Ast.stmtImportAlias = Just alias,
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent src),
+    Ast.stmtImportSpecific = Just (Ast.ImportSpecific specific),
+    Ast.stmtImportAlias = Just (Ast.ImportAlias alias),
     Ast.stmtImportLocation = loc
 }
 
@@ -1277,7 +1278,7 @@ parseError t = alexError' (tokenLoc t)
 -- * parseProgram *
 -- *              *
 -- ****************
-parseProgram :: FilePath -> Maybe String -> String -> Either String Ast.Root
-parseProgram = runAlex' parse
+parseProgram :: Common.SourceCodeFilePath -> Common.SourceCodeContent -> Common.AdditionalRepoInfo -> Either String Ast.Root
+parseProgram (Common.SourceCodeFilePath fp) (Common.SourceCodeContent content) additionalInfo = runAlex' parse fp additionalInfo content
 }
 

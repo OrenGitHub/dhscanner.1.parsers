@@ -12,6 +12,7 @@ import Ast
 import PhpLexer
 import Location
 import qualified Token
+import qualified Common
 
 -- *******************
 -- *                 *
@@ -746,8 +747,8 @@ use_item:
 {
     Ast.StmtImportContent
     {
-        Ast.stmtImportSource = $9,
-        Ast.stmtImportFromSource = Nothing,
+        Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent $9),
+        Ast.stmtImportSpecific = Nothing,
         Ast.stmtImportAlias = Nothing,
         Ast.stmtImportLocation = $2
     }
@@ -2320,8 +2321,8 @@ loc: '[' INT ':' INT '-' INT ':' INT ']'
 
 importify' :: Location -> String -> Ast.StmtImportContent -> Ast.Stmt
 importify' loc src content = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = src,
-    Ast.stmtImportFromSource = Just (Ast.stmtImportSource content),
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent src),
+    Ast.stmtImportSpecific = Nothing,
     Ast.stmtImportAlias = Ast.stmtImportAlias content,
     Ast.stmtImportLocation = loc
 }
@@ -2412,6 +2413,6 @@ parseError t = alexError' (tokenLoc t)
 -- * parseProgram *
 -- *              *
 -- ****************
-parseProgram :: FilePath -> Maybe String -> String -> Either String Ast.Root
-parseProgram = runAlex' parse
+parseProgram :: Common.SourceCodeFilePath -> Common.SourceCodeContent -> Common.AdditionalRepoInfo -> Either String Ast.Root
+parseProgram (Common.SourceCodeFilePath fp) (Common.SourceCodeContent content) additionalInfo = runAlex' parse fp additionalInfo content
 }

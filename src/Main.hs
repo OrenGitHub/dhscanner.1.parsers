@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE DeriveAnyClass    #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 import Yesod
 import Prelude
@@ -26,6 +26,7 @@ import qualified Network.Wai.Middleware.RequestLogger as Wai
 -- project imports
 import qualified Location
 import qualified Ast
+import qualified Common
 
 -- project imports
 import qualified JsParser
@@ -36,12 +37,14 @@ import qualified PyParser
 import qualified RbParser
 import qualified PhpParser
 
-data SourceFile
-   = SourceFile
+data SourceFileInput
+   = SourceFileInput
      {
          filename :: String,
          content :: String,
-         module_name_resolver :: String
+         optional_github_url :: Maybe String,
+         source_containing_dirs :: [ String ],
+         all_filenames :: [ String ]
      }
      deriving ( Generic, ToJSON, FromJSON )
 
@@ -56,7 +59,7 @@ data Error
      deriving ( Generic, ToJSON )
 
 -- | This is just for the health check ...
-instance ToJSON Healthy where toJSON (Healthy status) = object [ "healthy" .= status ]
+instance ToJSON Healthy where toJSON (Healthy isHealthy) = object [ "healthy" .= isHealthy ]
 
 data App = App
 
@@ -109,21 +112,32 @@ postFailed errorMsg _filename = do
 postSucceeded :: Ast.Root -> Handler Value
 postSucceeded = returnJson
 
-modName :: String -> Maybe String
-modName m = case m == "-" of { True -> Nothing; _ -> Just m }
+type ProgramParser = Common.SourceCodeFilePath -> Common.SourceCodeContent -> Common.AdditionalRepoInfo -> Either String Ast.Root
 
-post :: (FilePath -> Maybe String -> String -> Either String Ast.Root) -> Handler Value
+post :: ProgramParser -> Handler Value
 post parseProgram = do
-    src <- requireCheckJsonBody :: Handler SourceFile
-    case parseProgram (filename src) (modName (module_name_resolver src)) (content src) of
-        Left errorMsg -> postFailed errorMsg (filename src)
-        Right ast -> postSucceeded ast
+    src <- requireCheckJsonBody :: Handler SourceFileInput
+    post' parseProgram src
+
+post' :: ProgramParser -> SourceFileInput -> Handler Value
+post' parseProgram src = case parseProgram (sourceCodeFilePath src) (sourceContent src) (additionalInfo src) of
+    Left errorMsg -> postFailed errorMsg (filename src)
+    Right ast -> postSucceeded ast
+
+sourceCodeFilePath :: SourceFileInput -> Common.SourceCodeFilePath
+sourceCodeFilePath = Common.SourceCodeFilePath . filename
+
+sourceContent :: SourceFileInput -> Common.SourceCodeContent
+sourceContent = Common.SourceCodeContent . content
+
+additionalInfo :: SourceFileInput -> Common.AdditionalRepoInfo
+additionalInfo src = Common.AdditionalRepoInfo (source_containing_dirs src) (all_filenames src) (optional_github_url src)
 
 myLogger :: IO Logger
 myLogger = do
     _loggerSet <- newStdoutLoggerSet defaultBufSize
-    formatter <- newTimeCache "[%d/%m/%Y ( %H:%M:%S )]"
-    return $ Logger _loggerSet formatter
+    _formatter <- newTimeCache "[%d/%m/%Y ( %H:%M:%S )]"
+    return $ Logger _loggerSet _formatter
 
 dateFormatter :: String -> String
 dateFormatter date = let
@@ -141,7 +155,7 @@ logify date req = let
     in datePart ++ " [Info#(Wai)] " ++ method ++ " " ++ url ++ "\n"
 
 formatter :: Network.Wai.Logger.ZonedDate -> Network.Wai.Request -> Network.HTTP.Types.Status.Status -> Maybe Integer -> LogStr
-formatter zonedDate req status responseSize = toLogStr (logify (unquote (show zonedDate)) req)
+formatter zonedDate req _status _responseSize = toLogStr (logify (unquote (show zonedDate)) req)
 
 loggerSettings :: Wai.RequestLoggerSettings
 loggerSettings = Wai.defaultRequestLoggerSettings { Wai.outputFormat = Wai.CustomOutputFormat formatter }
@@ -152,4 +166,3 @@ main = do
     myLoggingMiddleware <- Wai.mkRequestLogger loggerSettings
     let middleware = myLoggingMiddleware . defaultMiddlewaresNoLogging
     run 3000 $ middleware waiApp
-

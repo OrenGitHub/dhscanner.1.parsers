@@ -12,6 +12,7 @@ import Ast
 import RbLexer
 import Location
 import qualified Token
+import qualified Common
 
 -- *******************
 -- *                 *
@@ -2541,7 +2542,7 @@ parseError t = alexError' (tokenLoc t)
 -- * parseProgram *
 -- *              *
 -- ****************
-parseProgram :: FilePath -> Maybe String -> String -> Either String Ast.Root
-parseProgram = runAlex' parse
+parseProgram :: Common.SourceCodeFilePath -> Common.SourceCodeContent -> Common.AdditionalRepoInfo -> Either String Ast.Root
+parseProgram (Common.SourceCodeFilePath fp) (Common.SourceCodeContent content) additionalInfo = runAlex' parse fp additionalInfo content
 }
 

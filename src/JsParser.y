@@ -12,6 +12,7 @@ import Ast
 import JsLexer
 import Location
 import qualified Token
+import qualified Common
 
 -- *******************
 -- *                 *
@@ -1148,9 +1149,9 @@ specifier_default:
 {
     Ast.StmtImportContent
     {
-        Ast.stmtImportSource = "",
-        Ast.stmtImportFromSource = Just "default",
-        Ast.stmtImportAlias = Just (Token.content $8),
+        Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent ""),
+        Ast.stmtImportSpecific = Just (Ast.ImportSpecific "default"),
+        Ast.stmtImportAlias = Just (Ast.ImportAlias (Token.content $8)),
         Ast.stmtImportLocation = $12
     } 
 }
@@ -1165,9 +1166,9 @@ specifier_named:
 {
     Ast.StmtImportContent
     {
-        Ast.stmtImportSource = "",
-        Ast.stmtImportFromSource = Just (Token.content $8),
-        Ast.stmtImportAlias = Just (Token.content $8),
+        Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent ""),
+        Ast.stmtImportSpecific = Just (Ast.ImportSpecific (Token.content $8)),
+        Ast.stmtImportAlias = Just (Ast.ImportAlias (Token.content $8)),
         Ast.stmtImportLocation = $16
     }
 }
@@ -1317,17 +1318,17 @@ resolveImport importedFrom content = addJsExt (joinPaths (takeParentDir imported
 
 require7 :: Token.Named -> String -> Location -> Ast.Stmt
 require7 v imported loc = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = resolveImport (Location.filename loc) imported,
-    Ast.stmtImportFromSource = Nothing,
-    Ast.stmtImportAlias = Just (Token.content v),
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (resolveImport (Location.filename loc) imported)),
+    Ast.stmtImportSpecific = Nothing,
+    Ast.stmtImportAlias = Just (Ast.ImportAlias (Token.content v)),
     Ast.stmtImportLocation = loc
 }
 
 require6 :: Token.Named -> String -> Location -> Ast.Stmt
 require6 v imported loc = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = imported,
-    Ast.stmtImportFromSource = Nothing,
-    Ast.stmtImportAlias = Just (Token.content v),
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent imported),
+    Ast.stmtImportSpecific = Nothing,
+    Ast.stmtImportAlias = Just (Ast.ImportAlias (Token.content v)),
     Ast.stmtImportLocation = loc
 }
 
@@ -1396,8 +1397,8 @@ importify l src = Data.List.map (importifySingle l src)
 
 importifySingle :: Location -> String -> Ast.StmtImportContent -> Ast.Stmt
 importifySingle l src stmt = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = src,
-    Ast.stmtImportFromSource = Ast.stmtImportFromSource stmt,
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent src),
+    Ast.stmtImportSpecific = Ast.stmtImportSpecific stmt,
     Ast.stmtImportAlias = Ast.stmtImportAlias stmt,
     Ast.stmtImportLocation = l
 }
@@ -1415,7 +1416,7 @@ parseError t = alexError' (tokenLoc t)
 -- * parseProgram *
 -- *              *
 -- ****************
-parseProgram :: FilePath -> Maybe String -> String -> Either String Ast.Root
-parseProgram = runAlex' parse
+parseProgram :: Common.SourceCodeFilePath -> Common.SourceCodeContent -> Common.AdditionalRepoInfo -> Either String Ast.Root
+parseProgram (Common.SourceCodeFilePath fp) (Common.SourceCodeContent content) additionalInfo = runAlex' parse fp additionalInfo content
 }
 

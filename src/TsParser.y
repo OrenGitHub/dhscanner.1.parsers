@@ -12,6 +12,7 @@ import Ast
 import TsLexer
 import Location
 import qualified Token
+import qualified Common
 
 -- *******************
 -- *                 *
@@ -1859,8 +1860,8 @@ assignify (v:vs) e = (assignify' v e):(assignify vs e)
 
 importify' :: Token.ConstStr -> Token.Named -> Ast.Stmt
 importify' importSource importFromSource = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = unlocalify (Token.constStrValue importSource),
-    Ast.stmtImportFromSource = Just (Token.content importFromSource),
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (unlocalify (Token.constStrValue importSource))),
+   Ast.stmtImportSpecific = Just (Ast.ImportSpecific (Token.content importFromSource)),
     Ast.stmtImportAlias = Nothing,
     Ast.stmtImportLocation = Token.location importFromSource
 }
@@ -1988,6 +1989,6 @@ parseError t = alexError' (tokenLoc t)
 -- * parseProgram *
 -- *              *
 -- ****************
-parseProgram :: FilePath -> Maybe String -> String -> Either String Ast.Root
-parseProgram = runAlex' parse
+parseProgram :: Common.SourceCodeFilePath -> Common.SourceCodeContent -> Common.AdditionalRepoInfo -> Either String Ast.Root
+parseProgram (Common.SourceCodeFilePath fp) (Common.SourceCodeContent content) additionalInfo = runAlex' parse fp additionalInfo content
 }

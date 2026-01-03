@@ -9,6 +9,7 @@ where
 import Prelude hiding (lex)
 import Control.Monad ( liftM )
 import Location
+import Common
 }
 
 -- ***********
@@ -499,7 +500,8 @@ data AlexUserState
    = AlexUserState
      {
          filepath :: FilePath,
-         modulename :: Maybe String
+         modulename :: Maybe String,
+         additional_repo_info :: Common.AdditionalRepoInfo
      }
      deriving ( Show )
 
@@ -510,7 +512,7 @@ data AlexUserState
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
 alexInitUserState :: AlexUserState
-alexInitUserState = AlexUserState { filepath = "<N/A>", modulename = Nothing }
+alexInitUserState = AlexUserState { filepath = "<N/A>", modulename = Nothing, additional_repo_info = Common.AdditionalRepoInfo [] [] Nothing }
 
 -- | getter of the AlexUserState
 -- this is w.r.t to alexGetUserState :: Alex AlexUserState
@@ -533,9 +535,9 @@ getModuleName = modulename <$> alexGetUserState
 -- according to [the docs][1]
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
-updateAlexUserState :: FilePath -> Maybe String -> Alex ()
-updateAlexUserState fp module_name = do
-    alexSetUserState (AlexUserState { filepath = fp, modulename = module_name })
+updateAlexUserState :: FilePath -> Maybe String -> Common.AdditionalRepoInfo -> Alex ()
+updateAlexUserState fp module_name additionalInfo = do
+    alexSetUserState (AlexUserState { filepath = fp, modulename = module_name, additional_repo_info = additionalInfo })
 
 -- *********
 -- *       *
@@ -894,6 +896,10 @@ tokIDValue t = case (tokenRaw t) of { AlexRawToken_QUOTED_ID s -> s; _ -> "" }
 -- * runAlex' *
 -- *          *
 -- ************
-runAlex' :: Alex a -> FilePath -> Maybe String -> String -> Either String a
-runAlex' a fp module_name input = runAlex input (updateAlexUserState fp module_name >> a)
+runAlex' :: Alex a -> FilePath -> Common.AdditionalRepoInfo -> String -> Either String a
+runAlex' a fp additionalInfo input = do
+    -- For Go, we can derive module name from optional_github_url if needed
+    -- For now, set to Nothing (can be enhanced later to extract from GitHub URL)
+    let module_name = Nothing
+    runAlex input (updateAlexUserState fp module_name additionalInfo >> a)
 }
