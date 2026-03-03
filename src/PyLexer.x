@@ -23,10 +23,16 @@ module PyLexer
 
 where
 
+-- project imports
+import Common
+import Location
+import qualified Ast
+
+-- general imports
 import Prelude hiding (lex)
 import Control.Monad ( liftM )
-import Location
-import Common
+import System.FilePath ( takeDirectory, (</>), (<.>) )
+
 }
 
 -- ***********
@@ -570,7 +576,8 @@ data AlexTokenTag
    = AlexTokenTag
      {
          tokenRaw :: AlexRawToken,
-         tokenLoc :: Location
+         tokenLoc :: Location,
+         addionalRepoInfo :: Common.AdditionalRepoInfo
      }
      deriving ( Show )
 
@@ -879,7 +886,8 @@ alexEOF = do
                 colStart = fromIntegral c,
                 colEnd = fromIntegral c,
                 filename = (filepath alexUserState)
-            }
+            },
+            addionalRepoInfo = additional_repo_info alexUserState
         }
 
 -- *******
@@ -900,7 +908,8 @@ lex f ((AlexPn _ l c),_,_,str) i = do
                 colStart = fromIntegral c,
                 colEnd = fromIntegral (c+i),
                 filename = (filepath alexUserState)
-            }
+            },
+            addionalRepoInfo = additional_repo_info alexUserState
         }
 
 -- *********************************************
@@ -928,6 +937,72 @@ alexError' location = alexError (show location)
 location :: AlexTokenTag -> Location
 location = tokenLoc
 
+-- ***********
+-- *         *
+-- * dirname *
+-- *         *
+-- ***********
+dirname :: FilePath -> String -> FilePath
+dirname path src = takeDirectory path </> src
+
+-- ***************
+-- *             *
+-- * addPySuffix *
+-- *             *
+-- ***************
+addPySuffix :: FilePath -> FilePath
+addPySuffix f = f <.> "py"
+
+-- *****************************
+-- *                           *
+-- * resolve 1st party imports *
+-- *                           *
+-- *****************************
+mkCandidate :: FilePath -> String -> FilePath
+mkCandidate path src = addPySuffix (dirname path src)
+
+-- *****************************
+-- *                           *
+-- * resolve 1st party imports *
+-- *                           *
+-- *****************************
+resolveFirstParty :: FilePath -> String -> Common.AdditionalRepoInfo -> Ast.ImportSource
+resolveFirstParty path src repoInfo = resolveFirstParty' (mkCandidate path src) (Common.filenames repoInfo) src
+
+-- *****************************
+-- *                           *
+-- * resolve 1st party imports *
+-- *                           *
+-- *****************************
+resolveFirstParty' :: FilePath -> [ String ] -> String -> Ast.ImportSource
+resolveFirstParty' candidate files src = resolveFirstParty'' (elem candidate files) candidate src
+
+-- *****************************
+-- *                           *
+-- * resolve 1st party imports *
+-- *                           *
+-- *****************************
+resolveFirstParty'' :: Bool -> FilePath -> String -> Ast.ImportSource
+resolveFirstParty'' True candidate _ = Ast.ImportLocal (Ast.ImportLocalContent candidate)
+resolveFirstParty'' False _ src = Ast.ImportThirdParty (Ast.ImportThirdPartyContent src)
+
+-- *****************************
+-- *                           *
+-- * resolve 3rd party imports *
+-- *                           *
+-- *****************************
+resolveThirdParty :: FilePath -> Ast.ImportSource
+resolveThirdParty path = Ast.ImportThirdParty (Ast.ImportThirdPartyContent path)
+
+-- ***********************************
+-- *                                 *
+-- * resolve 1st / 3rd party imports *
+-- *                                 *
+-- ***********************************
+resolve :: FilePath -> String -> Bool -> Common.AdditionalRepoInfo -> Ast.ImportSource
+resolve path _ False _ = resolveThirdParty path
+resolve path src True repoInfo = resolveFirstParty path src repoInfo
+
 -- ***************
 -- *             *
 -- * getFilename *
@@ -951,6 +1026,14 @@ tokIntValue t = case (tokenRaw t) of { AlexRawToken_INT i -> i; _ -> 0; }
 -- **************
 tokIDValue :: AlexTokenTag -> String
 tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> s; _ -> ""; }
+
+-- ***********************
+-- *                     *
+-- * getAddionalRepoInfo *
+-- *                     *
+-- ***********************
+getAddionalRepoInfo :: AlexTokenTag -> Common.AdditionalRepoInfo
+getAddionalRepoInfo = addionalRepoInfo
 
 -- ************
 -- *          *

@@ -52,7 +52,7 @@ import Data.Map ( fromList, empty )
 -- * lexer *
 -- *       *
 -- *********
-%lexer { lexwrap } { AlexTokenTag TokenEOF _ }
+%lexer { lexwrap } { AlexTokenTag TokenEOF _ _ }
 
 -- ***************************************************
 -- * Call this function when an error is encountered *
@@ -67,12 +67,12 @@ import Data.Map ( fromList, empty )
 -- *             *
 -- ***************
 
-'('    { AlexTokenTag AlexRawToken_LPAREN _ }
-')'    { AlexTokenTag AlexRawToken_RPAREN _ }
-'['    { AlexTokenTag AlexRawToken_LBRACK _ }
-']'    { AlexTokenTag AlexRawToken_RBRACK _ }
-'{'    { AlexTokenTag AlexRawToken_LBRACE _ }
-'}'    { AlexTokenTag AlexRawToken_RBRACE _ }
+'('    { AlexTokenTag AlexRawToken_LPAREN _ _ }
+')'    { AlexTokenTag AlexRawToken_RPAREN _ _ }
+'['    { AlexTokenTag AlexRawToken_LBRACK _ _ }
+']'    { AlexTokenTag AlexRawToken_RBRACK _ _ }
+'{'    { AlexTokenTag AlexRawToken_LBRACE _ _ }
+'}'    { AlexTokenTag AlexRawToken_RBRACE _ _ }
 
 -- ***************
 -- *             *
@@ -80,9 +80,9 @@ import Data.Map ( fromList, empty )
 -- *             *
 -- ***************
 
-':'    { AlexTokenTag AlexRawToken_COLON  _ }
-','    { AlexTokenTag AlexRawToken_COMMA  _ }
-'-'    { AlexTokenTag AlexRawToken_HYPHEN _ }
+':'    { AlexTokenTag AlexRawToken_COLON  _ _ }
+','    { AlexTokenTag AlexRawToken_COMMA  _ _ }
+'-'    { AlexTokenTag AlexRawToken_HYPHEN _ _ }
 
 -- *********************
 -- *                   *
@@ -90,145 +90,145 @@ import Data.Map ( fromList, empty )
 -- *                   *
 -- *********************
 
-'id'                        { AlexTokenTag AlexRawToken_KWID            _ }
-'left'                      { AlexTokenTag AlexRawToken_LEFT            _ }
-'iter'                      { AlexTokenTag AlexRawToken_ITER            _ }
-'Dict'                      { AlexTokenTag AlexRawToken_DICT            _ }
-'keys'                      { AlexTokenTag AlexRawToken_KEYS            _ }
-'right'                     { AlexTokenTag AlexRawToken_RIGHT           _ }
-'op'                        { AlexTokenTag AlexRawToken_OPERATOR        _ }
-'ops'                       { AlexTokenTag AlexRawToken_OPERATOR2       _ }
-'decorator_list'            { AlexTokenTag AlexRawToken_DECORATORS      _ }
-'optional_vars'             { AlexTokenTag AlexRawToken_WITH_VARS       _ }
-'type_params'               { AlexTokenTag AlexRawToken_TYPE_PARAMS     _ }
-'type_ignores'              { AlexTokenTag AlexRawToken_TYPE_IGNORES    _ }
-'comparators'               { AlexTokenTag AlexRawToken_COMPARE2        _ }
-'BoolOp'                    { AlexTokenTag AlexRawToken_COMPARE3        _ }
-'Compare'                   { AlexTokenTag AlexRawToken_COMPARE         _ }
-'operand'                   { AlexTokenTag AlexRawToken_OPERAND         _ }
-'Return'                    { AlexTokenTag AlexRawToken_STMT_RETURN     _ }
-'returns'                   { AlexTokenTag AlexRawToken_STMT_RETURN2    _ }
-'Yield'                     { AlexTokenTag AlexRawToken_STMT_YIELD      _ }
-'Raise'                     { AlexTokenTag AlexRawToken_STMT_RAISE      _ }
-'cause'                     { AlexTokenTag AlexRawToken_STMT_CAUSE      _ }
-'Del'                       { AlexTokenTag AlexRawToken_STMT_DEL        _ }
-'Delete'                    { AlexTokenTag AlexRawToken_STMT_DELETE     _ }
-'Global'                    { AlexTokenTag AlexRawToken_STMT_GLOBAL     _ }
-'Try'                       { AlexTokenTag AlexRawToken_STMT_TRY        _ }
-'exc'                       { AlexTokenTag AlexRawToken_EXC             _ }
-'With'                      { AlexTokenTag AlexRawToken_WITH            _ }
-'AsyncWith'                 { AlexTokenTag AlexRawToken_WITH            _ }
-'withitem'                  { AlexTokenTag AlexRawToken_WITH2           _ }
-'context_expr'              { AlexTokenTag AlexRawToken_CTX_MANAGER     _ }
-'items'                     { AlexTokenTag AlexRawToken_ITEMS           _ }
-'List'                      { AlexTokenTag AlexRawToken_LIST            _ }
-'Set'                       { AlexTokenTag AlexRawToken_SET             _ }
-'SetComp'                   { AlexTokenTag AlexRawToken_SET_COMP        _ }
-'ListComp'                  { AlexTokenTag AlexRawToken_LIST_COMP       _ }
-'DictComp'                  { AlexTokenTag AlexRawToken_DICT_COMP       _ }
-'GeneratorExp'              { AlexTokenTag AlexRawToken_GENERATOR_EXP   _ }
-'Tuple'                     { AlexTokenTag AlexRawToken_TUPLE           _ }
-'elt'                       { AlexTokenTag AlexRawToken_ELT             _ }
-'elts'                      { AlexTokenTag AlexRawToken_ELTS            _ }
-'False'                     { AlexTokenTag AlexRawToken_FALSE           _ }
-'True'                      { AlexTokenTag AlexRawToken_TRUE            _ }
-'Ellipsis'                  { AlexTokenTag AlexRawToken_ELLIPSIS        _ }
-'Constant'                  { AlexTokenTag AlexRawToken_EXPR_CONST      _ }
-'Continue'                  { AlexTokenTag AlexRawToken_STMT_CONTINUE   _ }
-'Break'                     { AlexTokenTag AlexRawToken_STMT_BREAK      _ }
-'Pass'                      { AlexTokenTag AlexRawToken_STMT_PASS       _ }
-'Not'                       { AlexTokenTag AlexRawToken_NOT             _ }
-'NotEq'                     { AlexTokenTag AlexRawToken_NOTEQ           _ }
-'NotIn'                     { AlexTokenTag AlexRawToken_NOTIN           _ }
-'Add'                       { AlexTokenTag AlexRawToken_ADD             _ }
-'Pow'                       { AlexTokenTag AlexRawToken_POW             _ }
-'FloorDiv'                  { AlexTokenTag AlexRawToken_FLOOR_DIV       _ }
-'Mod'                       { AlexTokenTag AlexRawToken_MOD             _ }
-'Div'                       { AlexTokenTag AlexRawToken_DIV             _ }
-'Sub'                       { AlexTokenTag AlexRawToken_SUB             _ }
-'USub'                      { AlexTokenTag AlexRawToken_USUB            _ }
-'Mult'                      { AlexTokenTag AlexRawToken_MULT            _ }
-'Eq'                        { AlexTokenTag AlexRawToken_EQ              _ }
-'Gt'                        { AlexTokenTag AlexRawToken_GT              _ }
-'GtE'                       { AlexTokenTag AlexRawToken_GE              _ }
-'LtE'                       { AlexTokenTag AlexRawToken_LE              _ }
-'Lt'                        { AlexTokenTag AlexRawToken_LT              _ }
-'In'                        { AlexTokenTag AlexRawToken_IN              _ }
-'Is'                        { AlexTokenTag AlexRawToken_IS              _ }
-'IsNot'                     { AlexTokenTag AlexRawToken_ISNOT           _ }
-'Or'                        { AlexTokenTag AlexRawToken_OR              _ }
-'BitOr'                     { AlexTokenTag AlexRawToken_OR2             _ }
-'BitXor'                    { AlexTokenTag AlexRawToken_BITXOR          _ }
-'And'                       { AlexTokenTag AlexRawToken_AND             _ }
-'BitAnd'                    { AlexTokenTag AlexRawToken_AND2            _ }
-'LShift'                    { AlexTokenTag AlexRawToken_LSHIFT          _ }
-'RShift'                    { AlexTokenTag AlexRawToken_RSHIFT          _ }
-'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ }
-'kwonlyargs'                { AlexTokenTag AlexRawToken_ARGS4           _ }
-'posonlyargs'               { AlexTokenTag AlexRawToken_ARGS3           _ }
-'arguments'                 { AlexTokenTag AlexRawToken_ARGS2           _ }
-'arg'                       { AlexTokenTag AlexRawToken_ARG             _ }
-'vararg'                    { AlexTokenTag AlexRawToken_VARARG          _ }
-'args'                      { AlexTokenTag AlexRawToken_ARGS            _ }
-'attr'                      { AlexTokenTag AlexRawToken_ATTR            _ }
-'Attribute'                 { AlexTokenTag AlexRawToken_ATTR2           _ }
-'Starred'                   { AlexTokenTag AlexRawToken_STARRED         _ }
-'Subscript'                 { AlexTokenTag AlexRawToken_SUBSCRIPT       _ }
-'slice'                     { AlexTokenTag AlexRawToken_SLICE           _ }
-'lower'                     { AlexTokenTag AlexRawToken_LOWER           _ }
-'step'                      { AlexTokenTag AlexRawToken_STEP            _ }
-'upper'                     { AlexTokenTag AlexRawToken_UPPER           _ }
-'Slice'                     { AlexTokenTag AlexRawToken_EXPR_SLICE      _ }
-'func'                      { AlexTokenTag AlexRawToken_FUNC            _ }
-'body'                      { AlexTokenTag AlexRawToken_BODY            _ }
-'None'                      { AlexTokenTag AlexRawToken_NONE            _ }
-'handlers'                  { AlexTokenTag AlexRawToken_HANDLERS        _ }
-'type'                      { AlexTokenTag AlexRawToken_TYPE            _ }
-'finalbody'                 { AlexTokenTag AlexRawToken_BODY2           _ }
-'ExceptHandler'             { AlexTokenTag AlexRawToken_EXCEPT_HANDLER  _ }
-'test'                      { AlexTokenTag AlexRawToken_TEST            _ }
-'Name'                      { AlexTokenTag AlexRawToken_NAME2           _ }
-'Call'                      { AlexTokenTag AlexRawToken_CALL            _ }
-'Expr'                      { AlexTokenTag AlexRawToken_STMT_EXPR       _ }
-'level'                     { AlexTokenTag AlexRawToken_LEVEL           _ }
-'key'                       { AlexTokenTag AlexRawToken_KEY             _ }
-'value'                     { AlexTokenTag AlexRawToken_VALUE           _ }
-'kind'                      { AlexTokenTag AlexRawToken_KIND            _ }
-'values'                    { AlexTokenTag AlexRawToken_VALUES          _ }
-'name'                      { AlexTokenTag AlexRawToken_NAME            _ }
-'asname'                    { AlexTokenTag AlexRawToken_ASNAME          _ }
-'orelse'                    { AlexTokenTag AlexRawToken_ORELSE          _ }
-'defaults'                  { AlexTokenTag AlexRawToken_DEFAULTS        _ }
-'kwarg'                     { AlexTokenTag AlexRawToken_KWARG           _ }
-'comprehension'             { AlexTokenTag AlexRawToken_COMPREHENSION   _ }
-'generators'                { AlexTokenTag AlexRawToken_GENERATORS      _ }
-'kw_defaults'               { AlexTokenTag AlexRawToken_KW_DEFAULTS     _ }
-'target'                    { AlexTokenTag AlexRawToken_TARGET          _ }
-'targets'                   { AlexTokenTag AlexRawToken_TARGETS         _ }
-'names'                     { AlexTokenTag AlexRawToken_NAMES           _ }
-'alias'                     { AlexTokenTag AlexRawToken_ALIAS           _ }
-'keyword'                   { AlexTokenTag AlexRawToken_KEYWORD         _ }
-'keywords'                  { AlexTokenTag AlexRawToken_KEYWORDS        _ }
-'Import'                    { AlexTokenTag AlexRawToken_IMPORT          _ }
-'conversion'                { AlexTokenTag AlexRawToken_CONVERSION      _ }
-'JoinedStr'                 { AlexTokenTag AlexRawToken_FSTRING         _ }
-'ImportFrom'                { AlexTokenTag AlexRawToken_IMPORTF         _ }
-'format_spec'               { AlexTokenTag AlexRawToken_FORMAT_SPEC     _ }
-'FormattedValue'            { AlexTokenTag AlexRawToken_FORMATTED_VAL   _ }
-'Load'                      { AlexTokenTag AlexRawToken_LOAD            _ }
-'Store'                     { AlexTokenTag AlexRawToken_STORE           _ }
-'is_async'                  { AlexTokenTag AlexRawToken_IS_ASYNC        _ }
-'simple'                    { AlexTokenTag AlexRawToken_SIMPLE          _ }
-'Assign'                    { AlexTokenTag AlexRawToken_ASSIGN          _ }
-'Await'                     { AlexTokenTag AlexRawToken_AWAIT           _ }
-'Assert'                    { AlexTokenTag AlexRawToken_ASSERT          _ }
-'Lambda'                    { AlexTokenTag AlexRawToken_LAMBDA          _ }
-'AugAssign'                 { AlexTokenTag AlexRawToken_ASSIGN2         _ }
-'AnnAssign'                 { AlexTokenTag AlexRawToken_ASSIGN3         _ }
-'annotation'                { AlexTokenTag AlexRawToken_ANNOTATION      _ }
-'Module'                    { AlexTokenTag AlexRawToken_MODULE          _ }
-'module'                    { AlexTokenTag AlexRawToken_MODULE2         _ }
-'msg' { AlexTokenTag AlexRawToken_msg _ }
+'id'                        { AlexTokenTag AlexRawToken_KWID            _ _ }
+'left'                      { AlexTokenTag AlexRawToken_LEFT            _ _ }
+'iter'                      { AlexTokenTag AlexRawToken_ITER            _ _ }
+'Dict'                      { AlexTokenTag AlexRawToken_DICT            _ _ }
+'keys'                      { AlexTokenTag AlexRawToken_KEYS            _ _ }
+'right'                     { AlexTokenTag AlexRawToken_RIGHT           _ _ }
+'op'                        { AlexTokenTag AlexRawToken_OPERATOR        _ _ }
+'ops'                       { AlexTokenTag AlexRawToken_OPERATOR2       _ _ }
+'decorator_list'            { AlexTokenTag AlexRawToken_DECORATORS      _ _ }
+'optional_vars'             { AlexTokenTag AlexRawToken_WITH_VARS       _ _ }
+'type_params'               { AlexTokenTag AlexRawToken_TYPE_PARAMS     _ _ }
+'type_ignores'              { AlexTokenTag AlexRawToken_TYPE_IGNORES    _ _ }
+'comparators'               { AlexTokenTag AlexRawToken_COMPARE2        _ _ }
+'BoolOp'                    { AlexTokenTag AlexRawToken_COMPARE3        _ _ }
+'Compare'                   { AlexTokenTag AlexRawToken_COMPARE         _ _ }
+'operand'                   { AlexTokenTag AlexRawToken_OPERAND         _ _ }
+'Return'                    { AlexTokenTag AlexRawToken_STMT_RETURN     _ _ }
+'returns'                   { AlexTokenTag AlexRawToken_STMT_RETURN2    _ _ }
+'Yield'                     { AlexTokenTag AlexRawToken_STMT_YIELD      _ _ }
+'Raise'                     { AlexTokenTag AlexRawToken_STMT_RAISE      _ _ }
+'cause'                     { AlexTokenTag AlexRawToken_STMT_CAUSE      _ _ }
+'Del'                       { AlexTokenTag AlexRawToken_STMT_DEL        _ _ }
+'Delete'                    { AlexTokenTag AlexRawToken_STMT_DELETE     _ _ }
+'Global'                    { AlexTokenTag AlexRawToken_STMT_GLOBAL     _ _ }
+'Try'                       { AlexTokenTag AlexRawToken_STMT_TRY        _ _ }
+'exc'                       { AlexTokenTag AlexRawToken_EXC             _ _ }
+'With'                      { AlexTokenTag AlexRawToken_WITH            _ _ }
+'AsyncWith'                 { AlexTokenTag AlexRawToken_WITH            _ _ }
+'withitem'                  { AlexTokenTag AlexRawToken_WITH2           _ _ }
+'context_expr'              { AlexTokenTag AlexRawToken_CTX_MANAGER     _ _ }
+'items'                     { AlexTokenTag AlexRawToken_ITEMS           _ _ }
+'List'                      { AlexTokenTag AlexRawToken_LIST            _ _ }
+'Set'                       { AlexTokenTag AlexRawToken_SET             _ _ }
+'SetComp'                   { AlexTokenTag AlexRawToken_SET_COMP        _ _ }
+'ListComp'                  { AlexTokenTag AlexRawToken_LIST_COMP       _ _ }
+'DictComp'                  { AlexTokenTag AlexRawToken_DICT_COMP       _ _ }
+'GeneratorExp'              { AlexTokenTag AlexRawToken_GENERATOR_EXP   _ _ }
+'Tuple'                     { AlexTokenTag AlexRawToken_TUPLE           _ _ }
+'elt'                       { AlexTokenTag AlexRawToken_ELT             _ _ }
+'elts'                      { AlexTokenTag AlexRawToken_ELTS            _ _ }
+'False'                     { AlexTokenTag AlexRawToken_FALSE           _ _ }
+'True'                      { AlexTokenTag AlexRawToken_TRUE            _ _ }
+'Ellipsis'                  { AlexTokenTag AlexRawToken_ELLIPSIS        _ _ }
+'Constant'                  { AlexTokenTag AlexRawToken_EXPR_CONST      _ _ }
+'Continue'                  { AlexTokenTag AlexRawToken_STMT_CONTINUE   _ _ }
+'Break'                     { AlexTokenTag AlexRawToken_STMT_BREAK      _ _ }
+'Pass'                      { AlexTokenTag AlexRawToken_STMT_PASS       _ _ }
+'Not'                       { AlexTokenTag AlexRawToken_NOT             _ _ }
+'NotEq'                     { AlexTokenTag AlexRawToken_NOTEQ           _ _ }
+'NotIn'                     { AlexTokenTag AlexRawToken_NOTIN           _ _ }
+'Add'                       { AlexTokenTag AlexRawToken_ADD             _ _ }
+'Pow'                       { AlexTokenTag AlexRawToken_POW             _ _ }
+'FloorDiv'                  { AlexTokenTag AlexRawToken_FLOOR_DIV       _ _ }
+'Mod'                       { AlexTokenTag AlexRawToken_MOD             _ _ }
+'Div'                       { AlexTokenTag AlexRawToken_DIV             _ _ }
+'Sub'                       { AlexTokenTag AlexRawToken_SUB             _ _ }
+'USub'                      { AlexTokenTag AlexRawToken_USUB            _ _ }
+'Mult'                      { AlexTokenTag AlexRawToken_MULT            _ _ }
+'Eq'                        { AlexTokenTag AlexRawToken_EQ              _ _ }
+'Gt'                        { AlexTokenTag AlexRawToken_GT              _ _ }
+'GtE'                       { AlexTokenTag AlexRawToken_GE              _ _ }
+'LtE'                       { AlexTokenTag AlexRawToken_LE              _ _ }
+'Lt'                        { AlexTokenTag AlexRawToken_LT              _ _ }
+'In'                        { AlexTokenTag AlexRawToken_IN              _ _ }
+'Is'                        { AlexTokenTag AlexRawToken_IS              _ _ }
+'IsNot'                     { AlexTokenTag AlexRawToken_ISNOT           _ _ }
+'Or'                        { AlexTokenTag AlexRawToken_OR              _ _ }
+'BitOr'                     { AlexTokenTag AlexRawToken_OR2             _ _ }
+'BitXor'                    { AlexTokenTag AlexRawToken_BITXOR          _ _ }
+'And'                       { AlexTokenTag AlexRawToken_AND             _ _ }
+'BitAnd'                    { AlexTokenTag AlexRawToken_AND2            _ _ }
+'LShift'                    { AlexTokenTag AlexRawToken_LSHIFT          _ _ }
+'RShift'                    { AlexTokenTag AlexRawToken_RSHIFT          _ _ }
+'ctx'                       { AlexTokenTag AlexRawToken_CTX             _ _ }
+'kwonlyargs'                { AlexTokenTag AlexRawToken_ARGS4           _ _ }
+'posonlyargs'               { AlexTokenTag AlexRawToken_ARGS3           _ _ }
+'arguments'                 { AlexTokenTag AlexRawToken_ARGS2           _ _ }
+'arg'                       { AlexTokenTag AlexRawToken_ARG             _ _ }
+'vararg'                    { AlexTokenTag AlexRawToken_VARARG          _ _ }
+'args'                      { AlexTokenTag AlexRawToken_ARGS            _ _ }
+'attr'                      { AlexTokenTag AlexRawToken_ATTR            _ _ }
+'Attribute'                 { AlexTokenTag AlexRawToken_ATTR2           _ _ }
+'Starred'                   { AlexTokenTag AlexRawToken_STARRED         _ _ }
+'Subscript'                 { AlexTokenTag AlexRawToken_SUBSCRIPT       _ _ }
+'slice'                     { AlexTokenTag AlexRawToken_SLICE           _ _ }
+'lower'                     { AlexTokenTag AlexRawToken_LOWER           _ _ }
+'step'                      { AlexTokenTag AlexRawToken_STEP            _ _ }
+'upper'                     { AlexTokenTag AlexRawToken_UPPER           _ _ }
+'Slice'                     { AlexTokenTag AlexRawToken_EXPR_SLICE      _ _ }
+'func'                      { AlexTokenTag AlexRawToken_FUNC            _ _ }
+'body'                      { AlexTokenTag AlexRawToken_BODY            _ _ }
+'None'                      { AlexTokenTag AlexRawToken_NONE            _ _ }
+'handlers'                  { AlexTokenTag AlexRawToken_HANDLERS        _ _ }
+'type'                      { AlexTokenTag AlexRawToken_TYPE            _ _ }
+'finalbody'                 { AlexTokenTag AlexRawToken_BODY2           _ _ }
+'ExceptHandler'             { AlexTokenTag AlexRawToken_EXCEPT_HANDLER  _ _ }
+'test'                      { AlexTokenTag AlexRawToken_TEST            _ _ }
+'Name'                      { AlexTokenTag AlexRawToken_NAME2           _ _ }
+'Call'                      { AlexTokenTag AlexRawToken_CALL            _ _ }
+'Expr'                      { AlexTokenTag AlexRawToken_STMT_EXPR       _ _ }
+'level'                     { AlexTokenTag AlexRawToken_LEVEL           _ _ }
+'key'                       { AlexTokenTag AlexRawToken_KEY             _ _ }
+'value'                     { AlexTokenTag AlexRawToken_VALUE           _ _ }
+'kind'                      { AlexTokenTag AlexRawToken_KIND            _ _ }
+'values'                    { AlexTokenTag AlexRawToken_VALUES          _ _ }
+'name'                      { AlexTokenTag AlexRawToken_NAME            _ _ }
+'asname'                    { AlexTokenTag AlexRawToken_ASNAME          _ _ }
+'orelse'                    { AlexTokenTag AlexRawToken_ORELSE          _ _ }
+'defaults'                  { AlexTokenTag AlexRawToken_DEFAULTS        _ _ }
+'kwarg'                     { AlexTokenTag AlexRawToken_KWARG           _ _ }
+'comprehension'             { AlexTokenTag AlexRawToken_COMPREHENSION   _ _ }
+'generators'                { AlexTokenTag AlexRawToken_GENERATORS      _ _ }
+'kw_defaults'               { AlexTokenTag AlexRawToken_KW_DEFAULTS     _ _ }
+'target'                    { AlexTokenTag AlexRawToken_TARGET          _ _ }
+'targets'                   { AlexTokenTag AlexRawToken_TARGETS         _ _ }
+'names'                     { AlexTokenTag AlexRawToken_NAMES           _ _ }
+'alias'                     { AlexTokenTag AlexRawToken_ALIAS           _ _ }
+'keyword'                   { AlexTokenTag AlexRawToken_KEYWORD         _ _ }
+'keywords'                  { AlexTokenTag AlexRawToken_KEYWORDS        _ _ }
+'Import'                    { AlexTokenTag AlexRawToken_IMPORT          _ _ }
+'conversion'                { AlexTokenTag AlexRawToken_CONVERSION      _ _ }
+'JoinedStr'                 { AlexTokenTag AlexRawToken_FSTRING         _ _ }
+'ImportFrom'                { AlexTokenTag AlexRawToken_IMPORTF         _ _ }
+'format_spec'               { AlexTokenTag AlexRawToken_FORMAT_SPEC     _ _ }
+'FormattedValue'            { AlexTokenTag AlexRawToken_FORMATTED_VAL   _ _ }
+'Load'                      { AlexTokenTag AlexRawToken_LOAD            _ _ }
+'Store'                     { AlexTokenTag AlexRawToken_STORE           _ _ }
+'is_async'                  { AlexTokenTag AlexRawToken_IS_ASYNC        _ _ }
+'simple'                    { AlexTokenTag AlexRawToken_SIMPLE          _ _ }
+'Assign'                    { AlexTokenTag AlexRawToken_ASSIGN          _ _ }
+'Await'                     { AlexTokenTag AlexRawToken_AWAIT           _ _ }
+'Assert'                    { AlexTokenTag AlexRawToken_ASSERT          _ _ }
+'Lambda'                    { AlexTokenTag AlexRawToken_LAMBDA          _ _ }
+'AugAssign'                 { AlexTokenTag AlexRawToken_ASSIGN2         _ _ }
+'AnnAssign'                 { AlexTokenTag AlexRawToken_ASSIGN3         _ _ }
+'annotation'                { AlexTokenTag AlexRawToken_ANNOTATION      _ _ }
+'Module'                    { AlexTokenTag AlexRawToken_MODULE          _ _ }
+'module'                    { AlexTokenTag AlexRawToken_MODULE2         _ _ }
+'msg' { AlexTokenTag AlexRawToken_msg _ _ }
 -- last keywords first part
 
 -- ************
@@ -237,18 +237,18 @@ import Data.Map ( fromList, empty )
 -- *          *
 -- ************
 
-'lineno'                    { AlexTokenTag AlexRawToken_LINE            _ }
-'col_offset'                { AlexTokenTag AlexRawToken_COL             _ }
-'end_lineno'                { AlexTokenTag AlexRawToken_ELINE           _ }
-'end_col_offset'            { AlexTokenTag AlexRawToken_ECOL            _ }
+'lineno'                    { AlexTokenTag AlexRawToken_LINE            _ _ }
+'col_offset'                { AlexTokenTag AlexRawToken_COL             _ _ }
+'end_lineno'                { AlexTokenTag AlexRawToken_ELINE           _ _ }
+'end_col_offset'            { AlexTokenTag AlexRawToken_ECOL            _ _ }
 
 -- ***************
 -- *             *
 -- * expressions *
 -- *             *
 -- ***************
-'UnaryOp'                   { AlexTokenTag AlexRawToken_EXPR_UNOP       _ }
-'BinOp'                     { AlexTokenTag AlexRawToken_EXPR_BINOP      _ }
+'UnaryOp'                   { AlexTokenTag AlexRawToken_EXPR_UNOP       _ _ }
+'BinOp'                     { AlexTokenTag AlexRawToken_EXPR_BINOP      _ _ }
 
 
 -- **************
@@ -257,16 +257,16 @@ import Data.Map ( fromList, empty )
 -- *            *
 -- **************
 
-'If'                        { AlexTokenTag AlexRawToken_STMT_IF         _ }
-'ifs'                       { AlexTokenTag AlexRawToken_STMT_IFS        _ }
-'While'                     { AlexTokenTag AlexRawToken_STMT_WHILE      _ }
-'IfExp'                     { AlexTokenTag AlexRawToken_EXPR_IF         _ }
-'For'                       { AlexTokenTag AlexRawToken_FOR             _ }
-'AsyncFor'                  { AlexTokenTag AlexRawToken_FOR             _ }
-'FunctionDef'               { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
-'AsyncFunctionDef'          { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ }
-'ClassDef'                  { AlexTokenTag AlexRawToken_STMT_CLASS      _ }
-'bases'                     { AlexTokenTag AlexRawToken_SUPERS          _ }
+'If'                        { AlexTokenTag AlexRawToken_STMT_IF         _ _ }
+'ifs'                       { AlexTokenTag AlexRawToken_STMT_IFS        _ _ }
+'While'                     { AlexTokenTag AlexRawToken_STMT_WHILE      _ _ }
+'IfExp'                     { AlexTokenTag AlexRawToken_EXPR_IF         _ _ }
+'For'                       { AlexTokenTag AlexRawToken_FOR             _ _ }
+'AsyncFor'                  { AlexTokenTag AlexRawToken_FOR             _ _ }
+'FunctionDef'               { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ _ }
+'AsyncFunctionDef'          { AlexTokenTag AlexRawToken_STMT_FUNCTION   _ _ }
+'ClassDef'                  { AlexTokenTag AlexRawToken_STMT_CLASS      _ _ }
+'bases'                     { AlexTokenTag AlexRawToken_SUPERS          _ _ }
 
 -- *************
 -- *           *
@@ -274,10 +274,10 @@ import Data.Map ( fromList, empty )
 -- *           *
 -- *************
 
-'<'  { AlexTokenTag AlexRawToken_OP_LT       _ }
-'==' { AlexTokenTag AlexRawToken_OP_EQ       _ }
-'='  { AlexTokenTag AlexRawToken_OP_ASSIGN   _ }
-'*'  { AlexTokenTag AlexRawToken_OP_TIMES    _ }
+'<'  { AlexTokenTag AlexRawToken_OP_LT       _ _ }
+'==' { AlexTokenTag AlexRawToken_OP_EQ       _ _ }
+'='  { AlexTokenTag AlexRawToken_OP_ASSIGN   _ _ }
+'*'  { AlexTokenTag AlexRawToken_OP_TIMES    _ _ }
 
 -- ****************************
 -- *                          *
@@ -285,8 +285,8 @@ import Data.Map ( fromList, empty )
 -- *                          *
 -- ****************************
 
-INT    { AlexTokenTag (AlexRawToken_INT  i) _ }
-ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
+INT    { AlexTokenTag (AlexRawToken_INT  i) _ _ }
+ID     { AlexTokenTag (AlexRawToken_ID  id) _ _ }
 
 -- *************************
 -- *                       *
@@ -1783,7 +1783,7 @@ stmt_import_from:
 {
     Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtBlockContent = importify $14 $3 $7,
+        Ast.stmtBlockContent = importify $14 $3 ((tokIntValue $12) > 0) (getAddionalRepoInfo $1) $7,
         Ast.stmtBlockLocation = $14
     }
 }
@@ -1885,33 +1885,33 @@ simportify' loc (src, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
     Ast.stmtImportLocation = loc
 }
 
-importify :: Location -> (Maybe String) -> [(String, Maybe String)] -> [ Ast.Stmt ] 
-importify loc Nothing args = Data.List.map (importify' loc) args
-importify loc (Just src) args = Data.List.map (importify'' loc src) args
+importify :: Location -> (Maybe String) -> Bool -> Common.AdditionalRepoInfo -> [(String, Maybe String)] -> [ Ast.Stmt ]
+importify loc Nothing localImportLevel _ = Data.List.map (importify' loc localImportLevel)
+importify loc (Just src) localImportLevel repoInfo = Data.List.map (importify'' loc src localImportLevel repoInfo)
 
-importify' :: Location -> (String, Maybe String) -> Ast.Stmt
-importify' loc (specific, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
+importify' :: Location -> Bool -> (String, Maybe String) -> Ast.Stmt
+importify' loc localImportLevel (specific, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
     Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent ""),
     Ast.stmtImportSpecific = Just (Ast.ImportSpecific specific),
     Ast.stmtImportAlias = Nothing,
     Ast.stmtImportLocation = loc
 }
-importify' loc (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
+importify' loc localImportLevel (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
     Ast.stmtImportSource  = ImportThirdParty (ImportThirdPartyContent ""),
     Ast.stmtImportSpecific = Just (Ast.ImportSpecific specific),
     Ast.stmtImportAlias = Just (Ast.ImportAlias alias),
     Ast.stmtImportLocation = loc
 }
 
-importify'' :: Location -> String -> (String, Maybe String) -> Ast.Stmt
-importify'' loc src (specific, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent src),
+importify'' :: Location -> String -> Bool -> Common.AdditionalRepoInfo -> (String, Maybe String) -> Ast.Stmt
+importify'' loc src localImportLevel repoInfo (specific, Nothing) = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = resolve (Location.filename loc) src localImportLevel repoInfo,
     Ast.stmtImportSpecific = Just (Ast.ImportSpecific specific),
     Ast.stmtImportAlias = Nothing,
     Ast.stmtImportLocation = loc
 }
-importify'' loc src (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent src),
+importify'' loc src localImportLevel repoInfo (specific, Just alias) = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = resolve (Location.filename loc) src localImportLevel repoInfo,
     Ast.stmtImportSpecific = Just (Ast.ImportSpecific specific),
     Ast.stmtImportAlias = Just (Ast.ImportAlias alias),
     Ast.stmtImportLocation = loc
