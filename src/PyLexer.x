@@ -991,8 +991,8 @@ resolveFirstParty'' False _ src = Ast.ImportThirdParty (Ast.ImportThirdPartyCont
 -- * resolve 3rd party imports *
 -- *                           *
 -- *****************************
-resolveThirdParty :: FilePath -> Ast.ImportSource
-resolveThirdParty path = Ast.ImportThirdParty (Ast.ImportThirdPartyContent path)
+resolveThirdParty :: String -> Ast.ImportSource
+resolveThirdParty src = Ast.ImportThirdParty (Ast.ImportThirdPartyContent src)
 
 -- ***********************************
 -- *                                 *
@@ -1000,7 +1000,7 @@ resolveThirdParty path = Ast.ImportThirdParty (Ast.ImportThirdPartyContent path)
 -- *                                 *
 -- ***********************************
 resolve :: FilePath -> String -> Bool -> Common.AdditionalRepoInfo -> Ast.ImportSource
-resolve path _ False _ = resolveThirdParty path
+resolve _ src False _ = resolveThirdParty src
 resolve path src True repoInfo = resolveFirstParty path src repoInfo
 
 -- ***************
