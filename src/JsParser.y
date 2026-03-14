@@ -497,7 +497,7 @@ param_1:
     Ast.Param
     {
         Ast.paramName = Token.ParamName $ Token.Named (unquote $8) $12,
-        Ast.paramNominalType = Just (varme (Token.Named (unquote $8) $12)),
+        Ast.paramNominalType = Nothing,
         Ast.paramSerialIdx = 156
     }
 }
