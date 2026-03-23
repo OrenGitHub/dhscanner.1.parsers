@@ -500,7 +500,6 @@ data AlexUserState
    = AlexUserState
      {
          filepath :: FilePath,
-         modulename :: Maybe String,
          additional_repo_info :: Common.AdditionalRepoInfo
      }
      deriving ( Show )
@@ -512,7 +511,7 @@ data AlexUserState
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
 alexInitUserState :: AlexUserState
-alexInitUserState = AlexUserState { filepath = "<N/A>", modulename = Nothing, additional_repo_info = Common.AdditionalRepoInfo [] [] Nothing }
+alexInitUserState = AlexUserState { filepath = "<N/A>", additional_repo_info = Common.AdditionalRepoInfo [] [] Nothing }
 
 -- | getter of the AlexUserState
 -- this is w.r.t to alexGetUserState :: Alex AlexUserState
@@ -522,22 +521,14 @@ alexInitUserState = AlexUserState { filepath = "<N/A>", modulename = Nothing, ad
 getFilePath :: Alex FilePath
 getFilePath = filepath <$> alexGetUserState
 
--- | getter of the AlexUserState
--- this is w.r.t to alexGetUserState :: Alex AlexUserState
--- according to [the docs][1]
---
--- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
-getModuleName :: Alex (Maybe String)
-getModuleName = modulename <$> alexGetUserState
-
 -- | setter of the AlexUserState
 -- this is w.r.t to alexSetUserState :: AlexUserState -> Alex ()
 -- according to [the docs][1]
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
-updateAlexUserState :: FilePath -> Maybe String -> Common.AdditionalRepoInfo -> Alex ()
-updateAlexUserState fp module_name additionalInfo = do
-    alexSetUserState (AlexUserState { filepath = fp, modulename = module_name, additional_repo_info = additionalInfo })
+updateAlexUserState :: FilePath -> Common.AdditionalRepoInfo -> Alex ()
+updateAlexUserState fp additionalInfo = do
+    alexSetUserState (AlexUserState { filepath = fp, additional_repo_info = additionalInfo })
 
 -- *********
 -- *       *
@@ -549,7 +540,7 @@ data AlexTokenTag
      {
          tokenRaw :: AlexRawToken,
          tokenLoc :: Location,
-         moduleName :: Maybe String
+         additionalRepoInfo :: Common.AdditionalRepoInfo
      }
      deriving ( Show )
 
@@ -808,7 +799,7 @@ alexEOF = do
                 colEnd = fromIntegral c,
                 filename = (filepath alexUserState)
             },
-            moduleName = Nothing
+            additionalRepoInfo = additional_repo_info alexUserState
         }
 
 -- *******
@@ -830,7 +821,7 @@ lex f ((AlexPn _ l c),_,_,str) i = do
                 colEnd = fromIntegral (c+i),
                 filename = (filepath alexUserState)
             },
-            moduleName = modulename alexUserState
+            additionalRepoInfo = additional_repo_info alexUserState
         }
 
 -- *********************************************
@@ -866,13 +857,24 @@ location = tokenLoc
 getFilename :: AlexTokenTag -> String
 getFilename = Location.filename . location
 
--- *************
--- *           *
--- * getModule *
--- *           *
--- *************
-getModule :: AlexTokenTag -> Maybe String
-getModule = moduleName
+-- ****************
+-- *              *
+-- * additional   *
+-- *              *
+-- ****************
+getAdditionalRepoInfo :: AlexTokenTag -> Common.AdditionalRepoInfo
+getAdditionalRepoInfo = additionalRepoInfo
+
+getSourceDirectories :: AlexTokenTag -> [ String ]
+getSourceDirectories = Common.directories . getAdditionalRepoInfo
+
+-- ****************
+-- *              *
+-- * getGithubUrl *
+-- *              *
+-- ****************
+getGithubUrl :: AlexTokenTag -> Maybe String
+getGithubUrl = Common.optional_github_url . getAdditionalRepoInfo
 
 
 -- ***************
@@ -898,8 +900,5 @@ tokIDValue t = case (tokenRaw t) of { AlexRawToken_QUOTED_ID s -> s; _ -> "" }
 -- ************
 runAlex' :: Alex a -> FilePath -> Common.AdditionalRepoInfo -> String -> Either String a
 runAlex' a fp additionalInfo input = do
-    -- For Go, we can derive module name from optional_github_url if needed
-    -- For now, set to Nothing (can be enhanced later to extract from GitHub URL)
-    let module_name = Nothing
-    runAlex input (updateAlexUserState fp module_name additionalInfo >> a)
+    runAlex input (updateAlexUserState fp additionalInfo >> a)
 }

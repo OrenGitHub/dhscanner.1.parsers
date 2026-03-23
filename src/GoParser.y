@@ -21,7 +21,7 @@ import qualified Common
 -- *******************
 import Data.Maybe
 import Data.Either
-import Data.List ( map, isPrefixOf, isInfixOf, stripPrefix )
+import Data.List ( map, isInfixOf, isPrefixOf )
 import Data.List.Split ( splitOn )
 import Data.Map ( toList, fromList, empty, Map, filter )
 
@@ -819,7 +819,7 @@ stmt_import:
     'EndPos' ':' '-'
 '}'
 {
-    import_normalizer (getModule $1) $8 $11
+    import_normalizer (getGithubUrl $1) (getSourceDirectories $1) $8 $11
 }
 
 numbered_identifier:
@@ -1707,6 +1707,36 @@ vardecify (name:names) (exp:exps) e = (vardecify' name exp):(vardeicfy names exp
 getLastSegment :: String -> String
 getLastSegment = last . splitOn "/"
 
+extractRepoRelativeImportPath :: String -> String -> Maybe String
+extractRepoRelativeImportPath githubUrl imported = extractRepoRelativeImportPath' ((githubUrl ++ "/") `isPrefixOf` imported) githubUrl imported
+
+extractRepoRelativeImportPath' :: Bool -> String -> String -> Maybe String
+extractRepoRelativeImportPath' False _ _ = Nothing
+extractRepoRelativeImportPath' True githubUrl imported = extractRepoRelativeImportPath'' (drop (Prelude.length githubUrl + 1) imported)
+
+extractRepoRelativeImportPath'' :: String -> Maybe String
+extractRepoRelativeImportPath'' "" = Nothing
+extractRepoRelativeImportPath'' relative = Just relative
+
+isKnownSourceDirectory :: [ String ] -> String -> Bool
+isKnownSourceDirectory dirs candidate = candidate `elem` dirs
+
+import_local' :: Token.ConstStr -> String -> Ast.Stmt
+import_local' imported localPath = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = ImportLocal (ImportLocalContent localPath),
+    Ast.stmtImportSpecific = Nothing,
+    Ast.stmtImportAlias = Just (Ast.ImportAlias (getLastSegment localPath)),
+    Ast.stmtImportLocation = Token.constStrLocation imported
+}
+
+import_local'' :: Token.Named -> Token.ConstStr -> String -> Ast.Stmt
+import_local'' alias imported localPath = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = ImportLocal (ImportLocalContent localPath),
+    Ast.stmtImportSpecific = Nothing,
+    Ast.stmtImportAlias = Just (Ast.ImportAlias (Token.content alias)),
+    Ast.stmtImportLocation = Token.constStrLocation imported
+}
+
 import_normalizer' :: Token.ConstStr -> Ast.Stmt
 import_normalizer' s = Ast.StmtImport $ Ast.StmtImportContent {
     Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (Token.constStrValue s)),
@@ -1723,31 +1753,31 @@ import_normalizer'' alias imported = Ast.StmtImport $ Ast.StmtImportContent {
     Ast.stmtImportLocation = Token.constStrLocation imported
 }
 
-import_normalizer''' :: String -> Token.ConstStr -> Ast.Stmt
-import_normalizer''' m imported = case (m `isPrefixOf` (Token.constStrValue imported)) of {
-    False -> import_normalizer' imported;
-    True -> Ast.StmtExp $ Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt {
-        Token.constIntValue = 0,
-        Token.constIntLocation = Token.constStrLocation imported
+import_normalizer''' :: String -> [ String ] -> Token.ConstStr -> Ast.Stmt
+import_normalizer''' githubUrl dirs imported = case extractRepoRelativeImportPath githubUrl (Token.constStrValue imported) of {
+    Nothing -> import_normalizer' imported;
+    Just localPath -> case isKnownSourceDirectory dirs localPath of {
+        True -> import_local' imported localPath;
+        False -> import_normalizer' imported
     }
 }
 
-import_normalizer4 :: String -> Token.Named -> Token.ConstStr -> Ast.Stmt
-import_normalizer4 m alias imported = case stripPrefix m (Token.constStrValue imported) of {
-    Nothing -> import_normalizer'' alias imported;
-    Just suffix -> Ast.StmtImport $ Ast.StmtImportContent {
-        Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent suffix),
-        Ast.stmtImportSpecific = Nothing,
-        Ast.stmtImportAlias = Just (Ast.ImportAlias (Token.content alias)),
-        Ast.stmtImportLocation = Token.constStrLocation imported
-    }
-}
+import_normalizer4 :: String -> [ String ] -> Token.Named -> Token.ConstStr -> Ast.Stmt
+import_normalizer4 githubUrl dirs alias imported = import_normalizer4' (extractRepoRelativeImportPath githubUrl (Token.constStrValue imported)) dirs alias imported
 
-import_normalizer :: Maybe String -> Maybe Token.Named -> Token.ConstStr -> Ast.Stmt
-import_normalizer Nothing Nothing imported = import_normalizer' imported
-import_normalizer Nothing (Just alias) imported = import_normalizer'' alias imported
-import_normalizer (Just m) Nothing imported = import_normalizer''' m imported
-import_normalizer (Just m) (Just alias) imported = import_normalizer4 m alias imported
+import_normalizer4' :: Maybe String -> [ String ] -> Token.Named -> Token.ConstStr -> Ast.Stmt
+import_normalizer4' Nothing _ alias imported = import_normalizer'' alias imported
+import_normalizer4' (Just localPath) dirs alias imported = import_normalizer4'' (isKnownSourceDirectory dirs localPath) localPath alias imported
+
+import_normalizer4'' :: Bool -> String -> Token.Named -> Token.ConstStr -> Ast.Stmt
+import_normalizer4'' True localPath alias imported = import_local'' alias imported localPath
+import_normalizer4'' False _ alias imported = import_normalizer'' alias imported
+
+import_normalizer :: Maybe String -> [ String ] -> Maybe Token.Named -> Token.ConstStr -> Ast.Stmt
+import_normalizer Nothing _ Nothing imported = import_normalizer' imported
+import_normalizer Nothing _ (Just alias) imported = import_normalizer'' alias imported
+import_normalizer (Just githubUrl) dirs Nothing imported = import_normalizer''' githubUrl dirs imported
+import_normalizer (Just githubUrl) dirs (Just alias) imported = import_normalizer4 githubUrl dirs alias imported
 
 varme :: Token.Named -> Ast.Var
 varme = Ast.VarSimple . Ast.VarSimpleContent . Token.VarName

@@ -558,15 +558,6 @@ setAdditionalRepoInfo info = do
   state <- alexGetUserState
   alexSetUserState (AlexUserState { filepath = filepath state, additional_repo_info = info })
 
-getAdditionalRepoInfo :: Alex Common.AdditionalRepoInfo
-getAdditionalRepoInfo = additional_repo_info <$> alexGetUserState
-
-getSourceDirectories :: Alex [String]
-getSourceDirectories = Common.directories <$> getAdditionalRepoInfo
-
-getSourceFilenames :: Alex [String]
-getSourceFilenames = Common.filenames <$> getAdditionalRepoInfo
-
 -- *********
 -- *       *
 -- * Token *
@@ -577,7 +568,7 @@ data AlexTokenTag
      {
          tokenRaw :: AlexRawToken,
          tokenLoc :: Location,
-         addionalRepoInfo :: Common.AdditionalRepoInfo
+         additionalRepoInfo :: Common.AdditionalRepoInfo
      }
      deriving ( Show )
 
@@ -887,7 +878,7 @@ alexEOF = do
                 colEnd = fromIntegral c,
                 filename = (filepath alexUserState)
             },
-            addionalRepoInfo = additional_repo_info alexUserState
+            additionalRepoInfo = additional_repo_info alexUserState
         }
 
 -- *******
@@ -909,7 +900,7 @@ lex f ((AlexPn _ l c),_,_,str) i = do
                 colEnd = fromIntegral (c+i),
                 filename = (filepath alexUserState)
             },
-            addionalRepoInfo = additional_repo_info alexUserState
+            additionalRepoInfo = additional_repo_info alexUserState
         }
 
 -- *********************************************
@@ -1027,13 +1018,13 @@ tokIntValue t = case (tokenRaw t) of { AlexRawToken_INT i -> i; _ -> 0; }
 tokIDValue :: AlexTokenTag -> String
 tokIDValue t = case (tokenRaw t) of { AlexRawToken_ID s -> s; _ -> ""; }
 
--- ***********************
--- *                     *
--- * getAddionalRepoInfo *
--- *                     *
--- ***********************
-getAddionalRepoInfo :: AlexTokenTag -> Common.AdditionalRepoInfo
-getAddionalRepoInfo = addionalRepoInfo
+-- *************************
+-- *                       *
+-- * getAdditionalRepoInfo *
+-- *                       *
+-- *************************
+getAdditionalRepoInfo :: AlexTokenTag -> Common.AdditionalRepoInfo
+getAdditionalRepoInfo = additionalRepoInfo
 
 -- ************
 -- *          *

@@ -1783,7 +1783,7 @@ stmt_import_from:
 {
     Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtBlockContent = importify $14 $3 ((tokIntValue $12) > 0) (getAddionalRepoInfo $1) $7,
+        Ast.stmtBlockContent = importify $14 $3 ((tokIntValue $12) > 0) (getAdditionalRepoInfo $1) $7,
         Ast.stmtBlockLocation = $14
     }
 }
