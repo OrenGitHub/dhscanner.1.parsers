@@ -949,8 +949,14 @@ addPySuffix f = f <.> "py"
 -- * resolve 1st party imports *
 -- *                           *
 -- *****************************
-mkCandidate :: FilePath -> String -> FilePath
-mkCandidate path src = addPySuffix (dirname path src)
+mkFileCandidate :: FilePath -> String -> FilePath
+mkFileCandidate path src = addPySuffix (dirname path src)
+
+mkDirCandidate :: FilePath -> String -> FilePath
+mkDirCandidate path src = dirname path src
+
+mkDirInitCandidate :: FilePath -> String -> FilePath
+mkDirInitCandidate path src = dirname path src </> "__init__.py"
 
 -- *****************************
 -- *                           *
@@ -958,24 +964,33 @@ mkCandidate path src = addPySuffix (dirname path src)
 -- *                           *
 -- *****************************
 resolveFirstParty :: FilePath -> String -> Common.AdditionalRepoInfo -> Ast.ImportSource
-resolveFirstParty path src repoInfo = resolveFirstParty' (mkCandidate path src) (Common.filenames repoInfo) src
+resolveFirstParty path src repoInfo = let
+    fileCandidate = mkFileCandidate path src
+    dirCandidate = mkDirCandidate path src
+    dirInitCandidate = mkDirInitCandidate path src
+    filenamesRepo = Common.filenames repoInfo
+    in resolveFirstParty' fileCandidate dirCandidate dirInitCandidate filenamesRepo src
 
 -- *****************************
 -- *                           *
 -- * resolve 1st party imports *
 -- *                           *
 -- *****************************
-resolveFirstParty' :: FilePath -> [ String ] -> String -> Ast.ImportSource
-resolveFirstParty' candidate files src = resolveFirstParty'' (elem candidate files) candidate src
+resolveFirstParty' :: FilePath -> FilePath -> FilePath -> [ String ] -> String -> Ast.ImportSource
+resolveFirstParty' fileCandidate dirCandidate dirInitCandidate files src = let
+    importedLocalFileExists = elem fileCandidate files
+    importedLocalDirAsPyModuleExists = elem dirInitCandidate files
+    in resolveFirstParty'' importedLocalFileExists importedLocalDirAsPyModuleExists fileCandidate dirCandidate src
 
 -- *****************************
 -- *                           *
 -- * resolve 1st party imports *
 -- *                           *
 -- *****************************
-resolveFirstParty'' :: Bool -> FilePath -> String -> Ast.ImportSource
-resolveFirstParty'' True candidate _ = Ast.ImportLocal (Ast.ImportLocalContent candidate)
-resolveFirstParty'' False _ src = Ast.ImportThirdParty (Ast.ImportThirdPartyContent src)
+resolveFirstParty'' :: Bool -> Bool -> FilePath -> FilePath -> String -> Ast.ImportSource
+resolveFirstParty'' True _ fileCandidate _ _ = Ast.ImportLocal (Ast.ImportLocalFile fileCandidate)
+resolveFirstParty'' False True _ dirCandidate _ = Ast.ImportLocal (Ast.ImportLocalDir dirCandidate)
+resolveFirstParty'' False False _ _ src = Ast.ImportThirdParty (Ast.ImportThirdPartyContent src)
 
 -- *****************************
 -- *                           *

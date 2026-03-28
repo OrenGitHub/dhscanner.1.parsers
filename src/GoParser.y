@@ -1723,7 +1723,7 @@ isKnownSourceDirectory dirs candidate = candidate `elem` dirs
 
 import_local' :: Token.ConstStr -> String -> Ast.Stmt
 import_local' imported localPath = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = ImportLocal (ImportLocalContent localPath),
+    Ast.stmtImportSource = ImportLocal (ImportLocalDir localPath),
     Ast.stmtImportSpecific = Nothing,
     Ast.stmtImportAlias = Just (Ast.ImportAlias (getLastSegment localPath)),
     Ast.stmtImportLocation = Token.constStrLocation imported
@@ -1731,7 +1731,7 @@ import_local' imported localPath = Ast.StmtImport $ Ast.StmtImportContent {
 
 import_local'' :: Token.Named -> Token.ConstStr -> String -> Ast.Stmt
 import_local'' alias imported localPath = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = ImportLocal (ImportLocalContent localPath),
+    Ast.stmtImportSource = ImportLocal (ImportLocalDir localPath),
     Ast.stmtImportSpecific = Nothing,
     Ast.stmtImportAlias = Just (Ast.ImportAlias (Token.content alias)),
     Ast.stmtImportLocation = Token.constStrLocation imported
