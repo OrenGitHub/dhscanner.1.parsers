@@ -22,6 +22,7 @@ import qualified Common
 import Data.Maybe
 import Data.Either
 import Data.List ( map, isInfixOf, isPrefixOf )
+import Data.Char ( isDigit )
 import Data.List.Split ( splitOn )
 import Data.Map ( toList, fromList, empty, Map, filter )
 
@@ -1707,6 +1708,32 @@ vardecify (name:names) (exp:exps) e = (vardecify' name exp):(vardeicfy names exp
 getLastSegment :: String -> String
 getLastSegment = last . splitOn "/"
 
+isGoMajorVersionSegment :: String -> Bool
+isGoMajorVersionSegment ('v':majorVersion) = not (null majorVersion) && all isDigit majorVersion
+isGoMajorVersionSegment _ = False
+
+getThirdPartyPackageName :: String -> String
+getThirdPartyPackageName importPath = getThirdPartyPackageName' (reverse (splitOn "/" importPath))
+
+getThirdPartyPackageName' :: [ String ] -> String
+getThirdPartyPackageName' [] = ""
+getThirdPartyPackageName' [ segment ] = segment
+getThirdPartyPackageName' (lastSegment:prevSegment:_) = getThirdPartyPackageName'' (isGoMajorVersionSegment lastSegment) lastSegment prevSegment
+
+getThirdPartyPackageName'' :: Bool -> String -> String -> String
+getThirdPartyPackageName'' True _ prevSegment = prevSegment
+getThirdPartyPackageName'' False lastSegment _ = lastSegment
+
+isGithubImportPath :: String -> Bool
+isGithubImportPath importPath = "github.com/" `isPrefixOf` importPath
+
+normalizeThirdPartyImportSource :: String -> String
+normalizeThirdPartyImportSource importPath = normalizeThirdPartyImportSource' (isGithubImportPath importPath) importPath
+
+normalizeThirdPartyImportSource' :: Bool -> String -> String
+normalizeThirdPartyImportSource' True importPath = getThirdPartyPackageName importPath
+normalizeThirdPartyImportSource' False importPath = importPath
+
 extractRepoRelativeImportPath :: String -> String -> Maybe String
 extractRepoRelativeImportPath githubUrl imported = extractRepoRelativeImportPath' ((githubUrl ++ "/") `isPrefixOf` imported) githubUrl imported
 
@@ -1739,15 +1766,15 @@ import_local'' alias imported localPath = Ast.StmtImport $ Ast.StmtImportContent
 
 import_normalizer' :: Token.ConstStr -> Ast.Stmt
 import_normalizer' s = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (Token.constStrValue s)),
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (normalizeThirdPartyImportSource (Token.constStrValue s))),
     Ast.stmtImportSpecific = Nothing,
-    Ast.stmtImportAlias = Just (Ast.ImportAlias (getLastSegment (Token.constStrValue s))),
+    Ast.stmtImportAlias = Just (Ast.ImportAlias (getThirdPartyPackageName (Token.constStrValue s))),
     Ast.stmtImportLocation = Token.constStrLocation s
 }
 
 import_normalizer'' :: Token.Named -> Token.ConstStr -> Ast.Stmt
 import_normalizer'' alias imported = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (Token.constStrValue imported)),
+    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (normalizeThirdPartyImportSource (Token.constStrValue imported))),
     Ast.stmtImportSpecific = Nothing,
     Ast.stmtImportAlias = Just (Ast.ImportAlias (Token.content alias)),
     Ast.stmtImportLocation = Token.constStrLocation imported
