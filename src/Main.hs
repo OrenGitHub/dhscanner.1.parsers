@@ -8,7 +8,7 @@
 
 import Yesod
 import Prelude
-import GHC.Generics
+import GHC.Generics hiding (from, to)
 import Data.Text
 import Text.Read (readMaybe)
 import Data.Time

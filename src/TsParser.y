@@ -21,7 +21,7 @@ import qualified Common
 -- *******************
 import Data.Maybe
 import Data.Either
-import Data.List ( map, stripPrefix )
+import Data.List ( map, stripPrefix, isPrefixOf )
 import Data.Map ( empty, fromList )
 import System.FilePath ( takeBaseName )
 
@@ -53,7 +53,7 @@ import System.FilePath ( takeBaseName )
 -- * lexer *
 -- *       *
 -- *********
-%lexer { lexwrap } { AlexTokenTag TokenEOF _ }
+%lexer { lexwrap } { AlexTokenTag TokenEOF _ _ }
 
 -- ***************************************************
 -- * Call this function when an error is encountered *
@@ -68,10 +68,10 @@ import System.FilePath ( takeBaseName )
 -- *             *
 -- ***************
 
-'('    { AlexTokenTag AlexRawToken_LPAREN _ }
-')'    { AlexTokenTag AlexRawToken_RPAREN _ }
-'['    { AlexTokenTag AlexRawToken_LBRACK _ }
-']'    { AlexTokenTag AlexRawToken_RBRACK _ }
+'('    { AlexTokenTag AlexRawToken_LPAREN _ _ }
+')'    { AlexTokenTag AlexRawToken_RPAREN _ _ }
+'['    { AlexTokenTag AlexRawToken_LBRACK _ _ }
+']'    { AlexTokenTag AlexRawToken_RBRACK _ _ }
 
 -- ************
 -- *          *
@@ -79,9 +79,9 @@ import System.FilePath ( takeBaseName )
 -- *          *
 -- ************
 
-':'    { AlexTokenTag AlexRawToken_COLON _ }
-','    { AlexTokenTag AlexRawToken_COMMA _ }
-'-'    { AlexTokenTag AlexRawToken_MINUS _ }
+':'    { AlexTokenTag AlexRawToken_COLON _ _ }
+','    { AlexTokenTag AlexRawToken_COMMA _ _ }
+'-'    { AlexTokenTag AlexRawToken_MINUS _ _ }
 
 -- *********************
 -- *                   *
@@ -89,397 +89,397 @@ import System.FilePath ( takeBaseName )
 -- *                   *
 -- *********************
 
-'Unknown' { AlexTokenTag AlexRawToken_Unknown _ }
-'EndOfFileToken' { AlexTokenTag AlexRawToken_EndOfFileToken _ }
-'SingleLineCommentTrivia' { AlexTokenTag AlexRawToken_SingleLineCommentTrivia _ }
-'MultiLineCommentTrivia' { AlexTokenTag AlexRawToken_MultiLineCommentTrivia _ }
-'NewLineTrivia' { AlexTokenTag AlexRawToken_NewLineTrivia _ }
-'WhitespaceTrivia' { AlexTokenTag AlexRawToken_WhitespaceTrivia _ }
-'ShebangTrivia' { AlexTokenTag AlexRawToken_ShebangTrivia _ }
-'ConflictMarkerTrivia' { AlexTokenTag AlexRawToken_ConflictMarkerTrivia _ }
-'NonTextFileMarkerTrivia' { AlexTokenTag AlexRawToken_NonTextFileMarkerTrivia _ }
-'NumericLiteral' { AlexTokenTag AlexRawToken_NumericLiteral _ }
-'BigIntLiteral' { AlexTokenTag AlexRawToken_BigIntLiteral _ }
-'StringLiteral' { AlexTokenTag AlexRawToken_StringLiteral _ }
-'JsxText' { AlexTokenTag AlexRawToken_JsxText _ }
-'JsxTextAllWhiteSpaces' { AlexTokenTag AlexRawToken_JsxTextAllWhiteSpaces _ }
-'RegularExpressionLiteral' { AlexTokenTag AlexRawToken_RegularExpressionLiteral _ }
-'NoSubstitutionTemplateLiteral' { AlexTokenTag AlexRawToken_NoSubstitutionTemplateLiteral _ }
-'TemplateHead' { AlexTokenTag AlexRawToken_TemplateHead _ }
-'TemplateMiddle' { AlexTokenTag AlexRawToken_TemplateMiddle _ }
-'TemplateTail' { AlexTokenTag AlexRawToken_TemplateTail _ }
-'OpenBraceToken' { AlexTokenTag AlexRawToken_OpenBraceToken _ }
-'CloseBraceToken' { AlexTokenTag AlexRawToken_CloseBraceToken _ }
-'OpenParenToken' { AlexTokenTag AlexRawToken_OpenParenToken _ }
-'CloseParenToken' { AlexTokenTag AlexRawToken_CloseParenToken _ }
-'OpenBracketToken' { AlexTokenTag AlexRawToken_OpenBracketToken _ }
-'CloseBracketToken' { AlexTokenTag AlexRawToken_CloseBracketToken _ }
-'DotToken' { AlexTokenTag AlexRawToken_DotToken _ }
-'DotDotDotToken' { AlexTokenTag AlexRawToken_DotDotDotToken _ }
-'SemicolonToken' { AlexTokenTag AlexRawToken_SemicolonToken _ }
-'CommaToken' { AlexTokenTag AlexRawToken_CommaToken _ }
-'QuestionDotToken' { AlexTokenTag AlexRawToken_QuestionDotToken _ }
-'LessThanToken' { AlexTokenTag AlexRawToken_LessThanToken _ }
-'LessThanSlashToken' { AlexTokenTag AlexRawToken_LessThanSlashToken _ }
-'GreaterThanToken' { AlexTokenTag AlexRawToken_GreaterThanToken _ }
-'LessThanEqualsToken' { AlexTokenTag AlexRawToken_LessThanEqualsToken _ }
-'GreaterThanEqualsToken' { AlexTokenTag AlexRawToken_GreaterThanEqualsToken _ }
-'EqualsEqualsToken' { AlexTokenTag AlexRawToken_EqualsEqualsToken _ }
-'ExclamationEqualsToken' { AlexTokenTag AlexRawToken_ExclamationEqualsToken _ }
-'EqualsEqualsEqualsToken' { AlexTokenTag AlexRawToken_EqualsEqualsEqualsToken _ }
-'ExclamationEqualsEqualsToken' { AlexTokenTag AlexRawToken_ExclamationEqualsEqualsToken _ }
-'EqualsGreaterThanToken' { AlexTokenTag AlexRawToken_EqualsGreaterThanToken _ }
-'PlusToken' { AlexTokenTag AlexRawToken_PlusToken _ }
-'MinusToken' { AlexTokenTag AlexRawToken_MinusToken _ }
-'AsteriskToken' { AlexTokenTag AlexRawToken_AsteriskToken _ }
-'AsteriskAsteriskToken' { AlexTokenTag AlexRawToken_AsteriskAsteriskToken _ }
-'SlashToken' { AlexTokenTag AlexRawToken_SlashToken _ }
-'PercentToken' { AlexTokenTag AlexRawToken_PercentToken _ }
-'PlusPlusToken' { AlexTokenTag AlexRawToken_PlusPlusToken _ }
-'MinusMinusToken' { AlexTokenTag AlexRawToken_MinusMinusToken _ }
-'LessThanLessThanToken' { AlexTokenTag AlexRawToken_LessThanLessThanToken _ }
-'GreaterThanGreaterThanToken' { AlexTokenTag AlexRawToken_GreaterThanGreaterThanToken _ }
-'GreaterThanGreaterThanGreaterThanToken' { AlexTokenTag AlexRawToken_GreaterThanGreaterThanGreaterThanToken _ }
-'AmpersandToken' { AlexTokenTag AlexRawToken_AmpersandToken _ }
-'BarToken' { AlexTokenTag AlexRawToken_BarToken _ }
-'CaretToken' { AlexTokenTag AlexRawToken_CaretToken _ }
-'ExclamationToken' { AlexTokenTag AlexRawToken_ExclamationToken _ }
-'TildeToken' { AlexTokenTag AlexRawToken_TildeToken _ }
-'AmpersandAmpersandToken' { AlexTokenTag AlexRawToken_AmpersandAmpersandToken _ }
-'BarBarToken' { AlexTokenTag AlexRawToken_BarBarToken _ }
-'QuestionToken' { AlexTokenTag AlexRawToken_QuestionToken _ }
-'ColonToken' { AlexTokenTag AlexRawToken_ColonToken _ }
-'AtToken' { AlexTokenTag AlexRawToken_AtToken _ }
-'QuestionQuestionToken' { AlexTokenTag AlexRawToken_QuestionQuestionToken _ }
-'BacktickToken' { AlexTokenTag AlexRawToken_BacktickToken _ }
-'HashToken' { AlexTokenTag AlexRawToken_HashToken _ }
-'EqualsToken' { AlexTokenTag AlexRawToken_EqualsToken _ }
-'PlusEqualsToken' { AlexTokenTag AlexRawToken_PlusEqualsToken _ }
-'MinusEqualsToken' { AlexTokenTag AlexRawToken_MinusEqualsToken _ }
-'AsteriskEqualsToken' { AlexTokenTag AlexRawToken_AsteriskEqualsToken _ }
-'AsteriskAsteriskEqualsToken' { AlexTokenTag AlexRawToken_AsteriskAsteriskEqualsToken _ }
-'SlashEqualsToken' { AlexTokenTag AlexRawToken_SlashEqualsToken _ }
-'PercentEqualsToken' { AlexTokenTag AlexRawToken_PercentEqualsToken _ }
-'LessThanLessThanEqualsToken' { AlexTokenTag AlexRawToken_LessThanLessThanEqualsToken _ }
-'GreaterThanGreaterThanEqualsToken' { AlexTokenTag AlexRawToken_GreaterThanGreaterThanEqualsToken _ }
-'GreaterThanGreaterThanGreaterThanEqualsToken' { AlexTokenTag AlexRawToken_GreaterThanGreaterThanGreaterThanEqualsToken _ }
-'AmpersandEqualsToken' { AlexTokenTag AlexRawToken_AmpersandEqualsToken _ }
-'BarEqualsToken' { AlexTokenTag AlexRawToken_BarEqualsToken _ }
-'BarBarEqualsToken' { AlexTokenTag AlexRawToken_BarBarEqualsToken _ }
-'AmpersandAmpersandEqualsToken' { AlexTokenTag AlexRawToken_AmpersandAmpersandEqualsToken _ }
-'QuestionQuestionEqualsToken' { AlexTokenTag AlexRawToken_QuestionQuestionEqualsToken _ }
-'CaretEqualsToken' { AlexTokenTag AlexRawToken_CaretEqualsToken _ }
-'Identifier' { AlexTokenTag AlexRawToken_Identifier _ }
-'PrivateIdentifier' { AlexTokenTag AlexRawToken_PrivateIdentifier _ }
-'BreakKeyword' { AlexTokenTag AlexRawToken_BreakKeyword _ }
-'CaseKeyword' { AlexTokenTag AlexRawToken_CaseKeyword _ }
-'CatchKeyword' { AlexTokenTag AlexRawToken_CatchKeyword _ }
-'ClassKeyword' { AlexTokenTag AlexRawToken_ClassKeyword _ }
-'ConstKeyword' { AlexTokenTag AlexRawToken_ConstKeyword _ }
-'ContinueKeyword' { AlexTokenTag AlexRawToken_ContinueKeyword _ }
-'DebuggerKeyword' { AlexTokenTag AlexRawToken_DebuggerKeyword _ }
-'DefaultKeyword' { AlexTokenTag AlexRawToken_DefaultKeyword _ }
-'DeleteKeyword' { AlexTokenTag AlexRawToken_DeleteKeyword _ }
-'DoKeyword' { AlexTokenTag AlexRawToken_DoKeyword _ }
-'ElseKeyword' { AlexTokenTag AlexRawToken_ElseKeyword _ }
-'EnumKeyword' { AlexTokenTag AlexRawToken_EnumKeyword _ }
-'ExportKeyword' { AlexTokenTag AlexRawToken_ExportKeyword _ }
-'ExtendsKeyword' { AlexTokenTag AlexRawToken_ExtendsKeyword _ }
-'FalseKeyword' { AlexTokenTag AlexRawToken_FalseKeyword _ }
-'FinallyKeyword' { AlexTokenTag AlexRawToken_FinallyKeyword _ }
-'ForKeyword' { AlexTokenTag AlexRawToken_ForKeyword _ }
-'FunctionKeyword' { AlexTokenTag AlexRawToken_FunctionKeyword _ }
-'IfKeyword' { AlexTokenTag AlexRawToken_IfKeyword _ }
-'ImportKeyword' { AlexTokenTag AlexRawToken_ImportKeyword _ }
-'InKeyword' { AlexTokenTag AlexRawToken_InKeyword _ }
-'InstanceOfKeyword' { AlexTokenTag AlexRawToken_InstanceOfKeyword _ }
-'NewKeyword' { AlexTokenTag AlexRawToken_NewKeyword _ }
-'NullKeyword' { AlexTokenTag AlexRawToken_NullKeyword _ }
-'ReturnKeyword' { AlexTokenTag AlexRawToken_ReturnKeyword _ }
-'SuperKeyword' { AlexTokenTag AlexRawToken_SuperKeyword _ }
-'SwitchKeyword' { AlexTokenTag AlexRawToken_SwitchKeyword _ }
-'ThisKeyword' { AlexTokenTag AlexRawToken_ThisKeyword _ }
-'ThrowKeyword' { AlexTokenTag AlexRawToken_ThrowKeyword _ }
-'TrueKeyword' { AlexTokenTag AlexRawToken_TrueKeyword _ }
-'TryKeyword' { AlexTokenTag AlexRawToken_TryKeyword _ }
-'TypeOfKeyword' { AlexTokenTag AlexRawToken_TypeOfKeyword _ }
-'VarKeyword' { AlexTokenTag AlexRawToken_VarKeyword _ }
-'VoidKeyword' { AlexTokenTag AlexRawToken_VoidKeyword _ }
-'WhileKeyword' { AlexTokenTag AlexRawToken_WhileKeyword _ }
-'WithKeyword' { AlexTokenTag AlexRawToken_WithKeyword _ }
-'ImplementsKeyword' { AlexTokenTag AlexRawToken_ImplementsKeyword _ }
-'InterfaceKeyword' { AlexTokenTag AlexRawToken_InterfaceKeyword _ }
-'LetKeyword' { AlexTokenTag AlexRawToken_LetKeyword _ }
-'PackageKeyword' { AlexTokenTag AlexRawToken_PackageKeyword _ }
-'PrivateKeyword' { AlexTokenTag AlexRawToken_PrivateKeyword _ }
-'ProtectedKeyword' { AlexTokenTag AlexRawToken_ProtectedKeyword _ }
-'PublicKeyword' { AlexTokenTag AlexRawToken_PublicKeyword _ }
-'StaticKeyword' { AlexTokenTag AlexRawToken_StaticKeyword _ }
-'YieldKeyword' { AlexTokenTag AlexRawToken_YieldKeyword _ }
-'AbstractKeyword' { AlexTokenTag AlexRawToken_AbstractKeyword _ }
-'AccessorKeyword' { AlexTokenTag AlexRawToken_AccessorKeyword _ }
-'AsKeyword' { AlexTokenTag AlexRawToken_AsKeyword _ }
-'AssertsKeyword' { AlexTokenTag AlexRawToken_AssertsKeyword _ }
-'AssertKeyword' { AlexTokenTag AlexRawToken_AssertKeyword _ }
-'AnyKeyword' { AlexTokenTag AlexRawToken_AnyKeyword _ }
-'AsyncKeyword' { AlexTokenTag AlexRawToken_AsyncKeyword _ }
-'AwaitKeyword' { AlexTokenTag AlexRawToken_AwaitKeyword _ }
-'BooleanKeyword' { AlexTokenTag AlexRawToken_BooleanKeyword _ }
-'ConstructorKeyword' { AlexTokenTag AlexRawToken_ConstructorKeyword _ }
-'DeclareKeyword' { AlexTokenTag AlexRawToken_DeclareKeyword _ }
-'GetKeyword' { AlexTokenTag AlexRawToken_GetKeyword _ }
-'InferKeyword' { AlexTokenTag AlexRawToken_InferKeyword _ }
-'IntrinsicKeyword' { AlexTokenTag AlexRawToken_IntrinsicKeyword _ }
-'IsKeyword' { AlexTokenTag AlexRawToken_IsKeyword _ }
-'KeyOfKeyword' { AlexTokenTag AlexRawToken_KeyOfKeyword _ }
-'ModuleKeyword' { AlexTokenTag AlexRawToken_ModuleKeyword _ }
-'NamespaceKeyword' { AlexTokenTag AlexRawToken_NamespaceKeyword _ }
-'NeverKeyword' { AlexTokenTag AlexRawToken_NeverKeyword _ }
-'OutKeyword' { AlexTokenTag AlexRawToken_OutKeyword _ }
-'ReadonlyKeyword' { AlexTokenTag AlexRawToken_ReadonlyKeyword _ }
-'RequireKeyword' { AlexTokenTag AlexRawToken_RequireKeyword _ }
-'NumberKeyword' { AlexTokenTag AlexRawToken_NumberKeyword _ }
-'ObjectKeyword' { AlexTokenTag AlexRawToken_ObjectKeyword _ }
-'SatisfiesKeyword' { AlexTokenTag AlexRawToken_SatisfiesKeyword _ }
-'SetKeyword' { AlexTokenTag AlexRawToken_SetKeyword _ }
-'StringKeyword' { AlexTokenTag AlexRawToken_StringKeyword _ }
-'SymbolKeyword' { AlexTokenTag AlexRawToken_SymbolKeyword _ }
-'TypeKeyword' { AlexTokenTag AlexRawToken_TypeKeyword _ }
-'UndefinedKeyword' { AlexTokenTag AlexRawToken_UndefinedKeyword _ }
-'UniqueKeyword' { AlexTokenTag AlexRawToken_UniqueKeyword _ }
-'UnknownKeyword' { AlexTokenTag AlexRawToken_UnknownKeyword _ }
-'UsingKeyword' { AlexTokenTag AlexRawToken_UsingKeyword _ }
-'FromKeyword' { AlexTokenTag AlexRawToken_FromKeyword _ }
-'GlobalKeyword' { AlexTokenTag AlexRawToken_GlobalKeyword _ }
-'BigIntKeyword' { AlexTokenTag AlexRawToken_BigIntKeyword _ }
-'OverrideKeyword' { AlexTokenTag AlexRawToken_OverrideKeyword _ }
-'OfKeyword' { AlexTokenTag AlexRawToken_OfKeyword _ }
-'QualifiedName' { AlexTokenTag AlexRawToken_QualifiedName _ }
-'ComputedPropertyName' { AlexTokenTag AlexRawToken_ComputedPropertyName _ }
-'TypeParameter' { AlexTokenTag AlexRawToken_TypeParameter _ }
-'Parameter' { AlexTokenTag AlexRawToken_Parameter _ }
-'Decorator' { AlexTokenTag AlexRawToken_Decorator _ }
-'PropertySignature' { AlexTokenTag AlexRawToken_PropertySignature _ }
-'PropertyDeclaration' { AlexTokenTag AlexRawToken_PropertyDeclaration _ }
-'MethodSignature' { AlexTokenTag AlexRawToken_MethodSignature _ }
-'MethodDeclaration' { AlexTokenTag AlexRawToken_MethodDeclaration _ }
-'ClassStaticBlockDeclaration' { AlexTokenTag AlexRawToken_ClassStaticBlockDeclaration _ }
-'Constructor' { AlexTokenTag AlexRawToken_Constructor _ }
-'GetAccessor' { AlexTokenTag AlexRawToken_GetAccessor _ }
-'SetAccessor' { AlexTokenTag AlexRawToken_SetAccessor _ }
-'CallSignature' { AlexTokenTag AlexRawToken_CallSignature _ }
-'ConstructSignature' { AlexTokenTag AlexRawToken_ConstructSignature _ }
-'IndexSignature' { AlexTokenTag AlexRawToken_IndexSignature _ }
-'TypePredicate' { AlexTokenTag AlexRawToken_TypePredicate _ }
-'TypeReference' { AlexTokenTag AlexRawToken_TypeReference _ }
-'FunctionType' { AlexTokenTag AlexRawToken_FunctionType _ }
-'ConstructorType' { AlexTokenTag AlexRawToken_ConstructorType _ }
-'TypeQuery' { AlexTokenTag AlexRawToken_TypeQuery _ }
-'TypeLiteral' { AlexTokenTag AlexRawToken_TypeLiteral _ }
-'ArrayType' { AlexTokenTag AlexRawToken_ArrayType _ }
-'TupleType' { AlexTokenTag AlexRawToken_TupleType _ }
-'OptionalType' { AlexTokenTag AlexRawToken_OptionalType _ }
-'RestType' { AlexTokenTag AlexRawToken_RestType _ }
-'UnionType' { AlexTokenTag AlexRawToken_UnionType _ }
-'IntersectionType' { AlexTokenTag AlexRawToken_IntersectionType _ }
-'ConditionalType' { AlexTokenTag AlexRawToken_ConditionalType _ }
-'InferType' { AlexTokenTag AlexRawToken_InferType _ }
-'ParenthesizedType' { AlexTokenTag AlexRawToken_ParenthesizedType _ }
-'ThisType' { AlexTokenTag AlexRawToken_ThisType _ }
-'TypeOperator' { AlexTokenTag AlexRawToken_TypeOperator _ }
-'IndexedAccessType' { AlexTokenTag AlexRawToken_IndexedAccessType _ }
-'MappedType' { AlexTokenTag AlexRawToken_MappedType _ }
-'LiteralType' { AlexTokenTag AlexRawToken_LiteralType _ }
-'NamedTupleMember' { AlexTokenTag AlexRawToken_NamedTupleMember _ }
-'TemplateLiteralType' { AlexTokenTag AlexRawToken_TemplateLiteralType _ }
-'TemplateLiteralTypeSpan' { AlexTokenTag AlexRawToken_TemplateLiteralTypeSpan _ }
-'ImportType' { AlexTokenTag AlexRawToken_ImportType _ }
-'ObjectBindingPattern' { AlexTokenTag AlexRawToken_ObjectBindingPattern _ }
-'ArrayBindingPattern' { AlexTokenTag AlexRawToken_ArrayBindingPattern _ }
-'BindingElement' { AlexTokenTag AlexRawToken_BindingElement _ }
-'ArrayLiteralExpression' { AlexTokenTag AlexRawToken_ArrayLiteralExpression _ }
-'ObjectLiteralExpression' { AlexTokenTag AlexRawToken_ObjectLiteralExpression _ }
-'PropertyAccessExpression' { AlexTokenTag AlexRawToken_PropertyAccessExpression _ }
-'ElementAccessExpression' { AlexTokenTag AlexRawToken_ElementAccessExpression _ }
-'CallExpression' { AlexTokenTag AlexRawToken_CallExpression _ }
-'NewExpression' { AlexTokenTag AlexRawToken_NewExpression _ }
-'TaggedTemplateExpression' { AlexTokenTag AlexRawToken_TaggedTemplateExpression _ }
-'TypeAssertionExpression' { AlexTokenTag AlexRawToken_TypeAssertionExpression _ }
-'ParenthesizedExpression' { AlexTokenTag AlexRawToken_ParenthesizedExpression _ }
-'FunctionExpression' { AlexTokenTag AlexRawToken_FunctionExpression _ }
-'ArrowFunction' { AlexTokenTag AlexRawToken_ArrowFunction _ }
-'DeleteExpression' { AlexTokenTag AlexRawToken_DeleteExpression _ }
-'TypeOfExpression' { AlexTokenTag AlexRawToken_TypeOfExpression _ }
-'VoidExpression' { AlexTokenTag AlexRawToken_VoidExpression _ }
-'AwaitExpression' { AlexTokenTag AlexRawToken_AwaitExpression _ }
-'PrefixUnaryExpression' { AlexTokenTag AlexRawToken_PrefixUnaryExpression _ }
-'PostfixUnaryExpression' { AlexTokenTag AlexRawToken_PostfixUnaryExpression _ }
-'BinaryExpression' { AlexTokenTag AlexRawToken_BinaryExpression _ }
-'ConditionalExpression' { AlexTokenTag AlexRawToken_ConditionalExpression _ }
-'TemplateExpression' { AlexTokenTag AlexRawToken_TemplateExpression _ }
-'YieldExpression' { AlexTokenTag AlexRawToken_YieldExpression _ }
-'SpreadElement' { AlexTokenTag AlexRawToken_SpreadElement _ }
-'ClassExpression' { AlexTokenTag AlexRawToken_ClassExpression _ }
-'OmittedExpression' { AlexTokenTag AlexRawToken_OmittedExpression _ }
-'ExpressionWithTypeArguments' { AlexTokenTag AlexRawToken_ExpressionWithTypeArguments _ }
-'AsExpression' { AlexTokenTag AlexRawToken_AsExpression _ }
-'NonNullExpression' { AlexTokenTag AlexRawToken_NonNullExpression _ }
-'MetaProperty' { AlexTokenTag AlexRawToken_MetaProperty _ }
-'SyntheticExpression' { AlexTokenTag AlexRawToken_SyntheticExpression _ }
-'SatisfiesExpression' { AlexTokenTag AlexRawToken_SatisfiesExpression _ }
-'TemplateSpan' { AlexTokenTag AlexRawToken_TemplateSpan _ }
-'SemicolonClassElement' { AlexTokenTag AlexRawToken_SemicolonClassElement _ }
-'Block' { AlexTokenTag AlexRawToken_Block _ }
-'EmptyStatement' { AlexTokenTag AlexRawToken_EmptyStatement _ }
-'VariableStatement' { AlexTokenTag AlexRawToken_VariableStatement _ }
-'ExpressionStatement' { AlexTokenTag AlexRawToken_ExpressionStatement _ }
-'IfStatement' { AlexTokenTag AlexRawToken_IfStatement _ }
-'DoStatement' { AlexTokenTag AlexRawToken_DoStatement _ }
-'WhileStatement' { AlexTokenTag AlexRawToken_WhileStatement _ }
-'ForStatement' { AlexTokenTag AlexRawToken_ForStatement _ }
-'ForInStatement' { AlexTokenTag AlexRawToken_ForInStatement _ }
-'ForOfStatement' { AlexTokenTag AlexRawToken_ForOfStatement _ }
-'ContinueStatement' { AlexTokenTag AlexRawToken_ContinueStatement _ }
-'BreakStatement' { AlexTokenTag AlexRawToken_BreakStatement _ }
-'ReturnStatement' { AlexTokenTag AlexRawToken_ReturnStatement _ }
-'WithStatement' { AlexTokenTag AlexRawToken_WithStatement _ }
-'SwitchStatement' { AlexTokenTag AlexRawToken_SwitchStatement _ }
-'LabeledStatement' { AlexTokenTag AlexRawToken_LabeledStatement _ }
-'ThrowStatement' { AlexTokenTag AlexRawToken_ThrowStatement _ }
-'TryStatement' { AlexTokenTag AlexRawToken_TryStatement _ }
-'DebuggerStatement' { AlexTokenTag AlexRawToken_DebuggerStatement _ }
-'VariableDeclaration' { AlexTokenTag AlexRawToken_VariableDeclaration _ }
-'VariableDeclarationList' { AlexTokenTag AlexRawToken_VariableDeclarationList _ }
-'FunctionDeclaration' { AlexTokenTag AlexRawToken_FunctionDeclaration _ }
-'ClassDeclaration' { AlexTokenTag AlexRawToken_ClassDeclaration _ }
-'InterfaceDeclaration' { AlexTokenTag AlexRawToken_InterfaceDeclaration _ }
-'TypeAliasDeclaration' { AlexTokenTag AlexRawToken_TypeAliasDeclaration _ }
-'EnumDeclaration' { AlexTokenTag AlexRawToken_EnumDeclaration _ }
-'ModuleDeclaration' { AlexTokenTag AlexRawToken_ModuleDeclaration _ }
-'ModuleBlock' { AlexTokenTag AlexRawToken_ModuleBlock _ }
-'CaseBlock' { AlexTokenTag AlexRawToken_CaseBlock _ }
-'NamespaceExportDeclaration' { AlexTokenTag AlexRawToken_NamespaceExportDeclaration _ }
-'ImportEqualsDeclaration' { AlexTokenTag AlexRawToken_ImportEqualsDeclaration _ }
-'ImportDeclaration' { AlexTokenTag AlexRawToken_ImportDeclaration _ }
-'ImportClause' { AlexTokenTag AlexRawToken_ImportClause _ }
-'NamespaceImport' { AlexTokenTag AlexRawToken_NamespaceImport _ }
-'NamedImports' { AlexTokenTag AlexRawToken_NamedImports _ }
-'ImportSpecifier' { AlexTokenTag AlexRawToken_ImportSpecifier _ }
-'ExportAssignment' { AlexTokenTag AlexRawToken_ExportAssignment _ }
-'ExportDeclaration' { AlexTokenTag AlexRawToken_ExportDeclaration _ }
-'NamedExports' { AlexTokenTag AlexRawToken_NamedExports _ }
-'NamespaceExport' { AlexTokenTag AlexRawToken_NamespaceExport _ }
-'ExportSpecifier' { AlexTokenTag AlexRawToken_ExportSpecifier _ }
-'MissingDeclaration' { AlexTokenTag AlexRawToken_MissingDeclaration _ }
-'ExternalModuleReference' { AlexTokenTag AlexRawToken_ExternalModuleReference _ }
-'JsxElement' { AlexTokenTag AlexRawToken_JsxElement _ }
-'JsxSelfClosingElement' { AlexTokenTag AlexRawToken_JsxSelfClosingElement _ }
-'JsxOpeningElement' { AlexTokenTag AlexRawToken_JsxOpeningElement _ }
-'JsxClosingElement' { AlexTokenTag AlexRawToken_JsxClosingElement _ }
-'JsxFragment' { AlexTokenTag AlexRawToken_JsxFragment _ }
-'JsxOpeningFragment' { AlexTokenTag AlexRawToken_JsxOpeningFragment _ }
-'JsxClosingFragment' { AlexTokenTag AlexRawToken_JsxClosingFragment _ }
-'JsxAttribute' { AlexTokenTag AlexRawToken_JsxAttribute _ }
-'JsxAttributes' { AlexTokenTag AlexRawToken_JsxAttributes _ }
-'JsxSpreadAttribute' { AlexTokenTag AlexRawToken_JsxSpreadAttribute _ }
-'JsxExpression' { AlexTokenTag AlexRawToken_JsxExpression _ }
-'JsxNamespacedName' { AlexTokenTag AlexRawToken_JsxNamespacedName _ }
-'CaseClause' { AlexTokenTag AlexRawToken_CaseClause _ }
-'DefaultClause' { AlexTokenTag AlexRawToken_DefaultClause _ }
-'HeritageClause' { AlexTokenTag AlexRawToken_HeritageClause _ }
-'CatchClause' { AlexTokenTag AlexRawToken_CatchClause _ }
-'ImportAttributes' { AlexTokenTag AlexRawToken_ImportAttributes _ }
-'ImportAttribute' { AlexTokenTag AlexRawToken_ImportAttribute _ }
-'AssertClause' { AlexTokenTag AlexRawToken_AssertClause _ }
-'AssertEntry' { AlexTokenTag AlexRawToken_AssertEntry _ }
-'ImportTypeAssertionContainer' { AlexTokenTag AlexRawToken_ImportTypeAssertionContainer _ }
-'PropertyAssignment' { AlexTokenTag AlexRawToken_PropertyAssignment _ }
-'ShorthandPropertyAssignment' { AlexTokenTag AlexRawToken_ShorthandPropertyAssignment _ }
-'SpreadAssignment' { AlexTokenTag AlexRawToken_SpreadAssignment _ }
-'EnumMember' { AlexTokenTag AlexRawToken_EnumMember _ }
-'SourceFile' { AlexTokenTag AlexRawToken_SourceFile _ }
-'Bundle' { AlexTokenTag AlexRawToken_Bundle _ }
-'JSDocTypeExpression' { AlexTokenTag AlexRawToken_JSDocTypeExpression _ }
-'JSDocNameReference' { AlexTokenTag AlexRawToken_JSDocNameReference _ }
-'JSDocMemberName' { AlexTokenTag AlexRawToken_JSDocMemberName _ }
-'JSDocAllType' { AlexTokenTag AlexRawToken_JSDocAllType _ }
-'JSDocUnknownType' { AlexTokenTag AlexRawToken_JSDocUnknownType _ }
-'JSDocNullableType' { AlexTokenTag AlexRawToken_JSDocNullableType _ }
-'JSDocNonNullableType' { AlexTokenTag AlexRawToken_JSDocNonNullableType _ }
-'JSDocOptionalType' { AlexTokenTag AlexRawToken_JSDocOptionalType _ }
-'JSDocFunctionType' { AlexTokenTag AlexRawToken_JSDocFunctionType _ }
-'JSDocVariadicType' { AlexTokenTag AlexRawToken_JSDocVariadicType _ }
-'JSDocNamepathType' { AlexTokenTag AlexRawToken_JSDocNamepathType _ }
-'JSDoc' { AlexTokenTag AlexRawToken_JSDoc _ }
-'JSDocComment' { AlexTokenTag AlexRawToken_JSDocComment _ }
-'JSDocText' { AlexTokenTag AlexRawToken_JSDocText _ }
-'JSDocTypeLiteral' { AlexTokenTag AlexRawToken_JSDocTypeLiteral _ }
-'JSDocSignature' { AlexTokenTag AlexRawToken_JSDocSignature _ }
-'JSDocLink' { AlexTokenTag AlexRawToken_JSDocLink _ }
-'JSDocLinkCode' { AlexTokenTag AlexRawToken_JSDocLinkCode _ }
-'JSDocLinkPlain' { AlexTokenTag AlexRawToken_JSDocLinkPlain _ }
-'JSDocTag' { AlexTokenTag AlexRawToken_JSDocTag _ }
-'JSDocAugmentsTag' { AlexTokenTag AlexRawToken_JSDocAugmentsTag _ }
-'JSDocImplementsTag' { AlexTokenTag AlexRawToken_JSDocImplementsTag _ }
-'JSDocAuthorTag' { AlexTokenTag AlexRawToken_JSDocAuthorTag _ }
-'JSDocDeprecatedTag' { AlexTokenTag AlexRawToken_JSDocDeprecatedTag _ }
-'JSDocClassTag' { AlexTokenTag AlexRawToken_JSDocClassTag _ }
-'JSDocPublicTag' { AlexTokenTag AlexRawToken_JSDocPublicTag _ }
-'JSDocPrivateTag' { AlexTokenTag AlexRawToken_JSDocPrivateTag _ }
-'JSDocProtectedTag' { AlexTokenTag AlexRawToken_JSDocProtectedTag _ }
-'JSDocReadonlyTag' { AlexTokenTag AlexRawToken_JSDocReadonlyTag _ }
-'JSDocOverrideTag' { AlexTokenTag AlexRawToken_JSDocOverrideTag _ }
-'JSDocCallbackTag' { AlexTokenTag AlexRawToken_JSDocCallbackTag _ }
-'JSDocOverloadTag' { AlexTokenTag AlexRawToken_JSDocOverloadTag _ }
-'JSDocEnumTag' { AlexTokenTag AlexRawToken_JSDocEnumTag _ }
-'JSDocParameterTag' { AlexTokenTag AlexRawToken_JSDocParameterTag _ }
-'JSDocReturnTag' { AlexTokenTag AlexRawToken_JSDocReturnTag _ }
-'JSDocThisTag' { AlexTokenTag AlexRawToken_JSDocThisTag _ }
-'JSDocTypeTag' { AlexTokenTag AlexRawToken_JSDocTypeTag _ }
-'JSDocTemplateTag' { AlexTokenTag AlexRawToken_JSDocTemplateTag _ }
-'JSDocTypedefTag' { AlexTokenTag AlexRawToken_JSDocTypedefTag _ }
-'JSDocSeeTag' { AlexTokenTag AlexRawToken_JSDocSeeTag _ }
-'JSDocPropertyTag' { AlexTokenTag AlexRawToken_JSDocPropertyTag _ }
-'JSDocThrowsTag' { AlexTokenTag AlexRawToken_JSDocThrowsTag _ }
-'JSDocSatisfiesTag' { AlexTokenTag AlexRawToken_JSDocSatisfiesTag _ }
-'JSDocImportTag' { AlexTokenTag AlexRawToken_JSDocImportTag _ }
-'SyntaxList' { AlexTokenTag AlexRawToken_SyntaxList _ }
-'NotEmittedStatement' { AlexTokenTag AlexRawToken_NotEmittedStatement _ }
-'PartiallyEmittedExpression' { AlexTokenTag AlexRawToken_PartiallyEmittedExpression _ }
-'CommaListExpression' { AlexTokenTag AlexRawToken_CommaListExpression _ }
-'SyntheticReferenceExpression' { AlexTokenTag AlexRawToken_SyntheticReferenceExpression _ }
-'Count' { AlexTokenTag AlexRawToken_Count _ }
-'FirstAssignment' { AlexTokenTag AlexRawToken_FirstAssignment _ }
-'LastAssignment' { AlexTokenTag AlexRawToken_LastAssignment _ }
-'FirstCompoundAssignment' { AlexTokenTag AlexRawToken_FirstCompoundAssignment _ }
-'LastCompoundAssignment' { AlexTokenTag AlexRawToken_LastCompoundAssignment _ }
-'FirstReservedWord' { AlexTokenTag AlexRawToken_FirstReservedWord _ }
-'LastReservedWord' { AlexTokenTag AlexRawToken_LastReservedWord _ }
-'FirstKeyword' { AlexTokenTag AlexRawToken_FirstKeyword _ }
-'LastKeyword' { AlexTokenTag AlexRawToken_LastKeyword _ }
-'FirstFutureReservedWord' { AlexTokenTag AlexRawToken_FirstFutureReservedWord _ }
-'LastFutureReservedWord' { AlexTokenTag AlexRawToken_LastFutureReservedWord _ }
-'FirstTypeNode' { AlexTokenTag AlexRawToken_FirstTypeNode _ }
-'LastTypeNode' { AlexTokenTag AlexRawToken_LastTypeNode _ }
-'FirstPunctuation' { AlexTokenTag AlexRawToken_FirstPunctuation _ }
-'LastPunctuation' { AlexTokenTag AlexRawToken_LastPunctuation _ }
-'FirstToken' { AlexTokenTag AlexRawToken_FirstToken _ }
-'LastToken' { AlexTokenTag AlexRawToken_LastToken _ }
-'FirstTriviaToken' { AlexTokenTag AlexRawToken_FirstTriviaToken _ }
-'LastTriviaToken' { AlexTokenTag AlexRawToken_LastTriviaToken _ }
-'FirstLiteralToken' { AlexTokenTag AlexRawToken_FirstLiteralToken _ }
-'LastLiteralToken' { AlexTokenTag AlexRawToken_LastLiteralToken _ }
-'FirstTemplateToken' { AlexTokenTag AlexRawToken_FirstTemplateToken _ }
-'LastTemplateToken' { AlexTokenTag AlexRawToken_LastTemplateToken _ }
-'FirstBinaryOperator' { AlexTokenTag AlexRawToken_FirstBinaryOperator _ }
-'LastBinaryOperator' { AlexTokenTag AlexRawToken_LastBinaryOperator _ }
-'FirstStatement' { AlexTokenTag AlexRawToken_FirstStatement _ }
-'LastStatement' { AlexTokenTag AlexRawToken_LastStatement _ }
-'FirstNode' { AlexTokenTag AlexRawToken_FirstNode _ }
-'FirstJSDocNode' { AlexTokenTag AlexRawToken_FirstJSDocNode _ }
-'LastJSDocNode' { AlexTokenTag AlexRawToken_LastJSDocNode _ }
-'FirstJSDocTagNode' { AlexTokenTag AlexRawToken_FirstJSDocTagNode _ }
-'LastJSDocTagNode' { AlexTokenTag AlexRawToken_LastJSDocTagNode _ }
+'Unknown' { AlexTokenTag AlexRawToken_Unknown _ _ }
+'EndOfFileToken' { AlexTokenTag AlexRawToken_EndOfFileToken _ _ }
+'SingleLineCommentTrivia' { AlexTokenTag AlexRawToken_SingleLineCommentTrivia _ _ }
+'MultiLineCommentTrivia' { AlexTokenTag AlexRawToken_MultiLineCommentTrivia _ _ }
+'NewLineTrivia' { AlexTokenTag AlexRawToken_NewLineTrivia _ _ }
+'WhitespaceTrivia' { AlexTokenTag AlexRawToken_WhitespaceTrivia _ _ }
+'ShebangTrivia' { AlexTokenTag AlexRawToken_ShebangTrivia _ _ }
+'ConflictMarkerTrivia' { AlexTokenTag AlexRawToken_ConflictMarkerTrivia _ _ }
+'NonTextFileMarkerTrivia' { AlexTokenTag AlexRawToken_NonTextFileMarkerTrivia _ _ }
+'NumericLiteral' { AlexTokenTag AlexRawToken_NumericLiteral _ _ }
+'BigIntLiteral' { AlexTokenTag AlexRawToken_BigIntLiteral _ _ }
+'StringLiteral' { AlexTokenTag AlexRawToken_StringLiteral _ _ }
+'JsxText' { AlexTokenTag AlexRawToken_JsxText _ _ }
+'JsxTextAllWhiteSpaces' { AlexTokenTag AlexRawToken_JsxTextAllWhiteSpaces _ _ }
+'RegularExpressionLiteral' { AlexTokenTag AlexRawToken_RegularExpressionLiteral _ _ }
+'NoSubstitutionTemplateLiteral' { AlexTokenTag AlexRawToken_NoSubstitutionTemplateLiteral _ _ }
+'TemplateHead' { AlexTokenTag AlexRawToken_TemplateHead _ _ }
+'TemplateMiddle' { AlexTokenTag AlexRawToken_TemplateMiddle _ _ }
+'TemplateTail' { AlexTokenTag AlexRawToken_TemplateTail _ _ }
+'OpenBraceToken' { AlexTokenTag AlexRawToken_OpenBraceToken _ _ }
+'CloseBraceToken' { AlexTokenTag AlexRawToken_CloseBraceToken _ _ }
+'OpenParenToken' { AlexTokenTag AlexRawToken_OpenParenToken _ _ }
+'CloseParenToken' { AlexTokenTag AlexRawToken_CloseParenToken _ _ }
+'OpenBracketToken' { AlexTokenTag AlexRawToken_OpenBracketToken _ _ }
+'CloseBracketToken' { AlexTokenTag AlexRawToken_CloseBracketToken _ _ }
+'DotToken' { AlexTokenTag AlexRawToken_DotToken _ _ }
+'DotDotDotToken' { AlexTokenTag AlexRawToken_DotDotDotToken _ _ }
+'SemicolonToken' { AlexTokenTag AlexRawToken_SemicolonToken _ _ }
+'CommaToken' { AlexTokenTag AlexRawToken_CommaToken _ _ }
+'QuestionDotToken' { AlexTokenTag AlexRawToken_QuestionDotToken _ _ }
+'LessThanToken' { AlexTokenTag AlexRawToken_LessThanToken _ _ }
+'LessThanSlashToken' { AlexTokenTag AlexRawToken_LessThanSlashToken _ _ }
+'GreaterThanToken' { AlexTokenTag AlexRawToken_GreaterThanToken _ _ }
+'LessThanEqualsToken' { AlexTokenTag AlexRawToken_LessThanEqualsToken _ _ }
+'GreaterThanEqualsToken' { AlexTokenTag AlexRawToken_GreaterThanEqualsToken _ _ }
+'EqualsEqualsToken' { AlexTokenTag AlexRawToken_EqualsEqualsToken _ _ }
+'ExclamationEqualsToken' { AlexTokenTag AlexRawToken_ExclamationEqualsToken _ _ }
+'EqualsEqualsEqualsToken' { AlexTokenTag AlexRawToken_EqualsEqualsEqualsToken _ _ }
+'ExclamationEqualsEqualsToken' { AlexTokenTag AlexRawToken_ExclamationEqualsEqualsToken _ _ }
+'EqualsGreaterThanToken' { AlexTokenTag AlexRawToken_EqualsGreaterThanToken _ _ }
+'PlusToken' { AlexTokenTag AlexRawToken_PlusToken _ _ }
+'MinusToken' { AlexTokenTag AlexRawToken_MinusToken _ _ }
+'AsteriskToken' { AlexTokenTag AlexRawToken_AsteriskToken _ _ }
+'AsteriskAsteriskToken' { AlexTokenTag AlexRawToken_AsteriskAsteriskToken _ _ }
+'SlashToken' { AlexTokenTag AlexRawToken_SlashToken _ _ }
+'PercentToken' { AlexTokenTag AlexRawToken_PercentToken _ _ }
+'PlusPlusToken' { AlexTokenTag AlexRawToken_PlusPlusToken _ _ }
+'MinusMinusToken' { AlexTokenTag AlexRawToken_MinusMinusToken _ _ }
+'LessThanLessThanToken' { AlexTokenTag AlexRawToken_LessThanLessThanToken _ _ }
+'GreaterThanGreaterThanToken' { AlexTokenTag AlexRawToken_GreaterThanGreaterThanToken _ _ }
+'GreaterThanGreaterThanGreaterThanToken' { AlexTokenTag AlexRawToken_GreaterThanGreaterThanGreaterThanToken _ _ }
+'AmpersandToken' { AlexTokenTag AlexRawToken_AmpersandToken _ _ }
+'BarToken' { AlexTokenTag AlexRawToken_BarToken _ _ }
+'CaretToken' { AlexTokenTag AlexRawToken_CaretToken _ _ }
+'ExclamationToken' { AlexTokenTag AlexRawToken_ExclamationToken _ _ }
+'TildeToken' { AlexTokenTag AlexRawToken_TildeToken _ _ }
+'AmpersandAmpersandToken' { AlexTokenTag AlexRawToken_AmpersandAmpersandToken _ _ }
+'BarBarToken' { AlexTokenTag AlexRawToken_BarBarToken _ _ }
+'QuestionToken' { AlexTokenTag AlexRawToken_QuestionToken _ _ }
+'ColonToken' { AlexTokenTag AlexRawToken_ColonToken _ _ }
+'AtToken' { AlexTokenTag AlexRawToken_AtToken _ _ }
+'QuestionQuestionToken' { AlexTokenTag AlexRawToken_QuestionQuestionToken _ _ }
+'BacktickToken' { AlexTokenTag AlexRawToken_BacktickToken _ _ }
+'HashToken' { AlexTokenTag AlexRawToken_HashToken _ _ }
+'EqualsToken' { AlexTokenTag AlexRawToken_EqualsToken _ _ }
+'PlusEqualsToken' { AlexTokenTag AlexRawToken_PlusEqualsToken _ _ }
+'MinusEqualsToken' { AlexTokenTag AlexRawToken_MinusEqualsToken _ _ }
+'AsteriskEqualsToken' { AlexTokenTag AlexRawToken_AsteriskEqualsToken _ _ }
+'AsteriskAsteriskEqualsToken' { AlexTokenTag AlexRawToken_AsteriskAsteriskEqualsToken _ _ }
+'SlashEqualsToken' { AlexTokenTag AlexRawToken_SlashEqualsToken _ _ }
+'PercentEqualsToken' { AlexTokenTag AlexRawToken_PercentEqualsToken _ _ }
+'LessThanLessThanEqualsToken' { AlexTokenTag AlexRawToken_LessThanLessThanEqualsToken _ _ }
+'GreaterThanGreaterThanEqualsToken' { AlexTokenTag AlexRawToken_GreaterThanGreaterThanEqualsToken _ _ }
+'GreaterThanGreaterThanGreaterThanEqualsToken' { AlexTokenTag AlexRawToken_GreaterThanGreaterThanGreaterThanEqualsToken _ _ }
+'AmpersandEqualsToken' { AlexTokenTag AlexRawToken_AmpersandEqualsToken _ _ }
+'BarEqualsToken' { AlexTokenTag AlexRawToken_BarEqualsToken _ _ }
+'BarBarEqualsToken' { AlexTokenTag AlexRawToken_BarBarEqualsToken _ _ }
+'AmpersandAmpersandEqualsToken' { AlexTokenTag AlexRawToken_AmpersandAmpersandEqualsToken _ _ }
+'QuestionQuestionEqualsToken' { AlexTokenTag AlexRawToken_QuestionQuestionEqualsToken _ _ }
+'CaretEqualsToken' { AlexTokenTag AlexRawToken_CaretEqualsToken _ _ }
+'Identifier' { AlexTokenTag AlexRawToken_Identifier _ _ }
+'PrivateIdentifier' { AlexTokenTag AlexRawToken_PrivateIdentifier _ _ }
+'BreakKeyword' { AlexTokenTag AlexRawToken_BreakKeyword _ _ }
+'CaseKeyword' { AlexTokenTag AlexRawToken_CaseKeyword _ _ }
+'CatchKeyword' { AlexTokenTag AlexRawToken_CatchKeyword _ _ }
+'ClassKeyword' { AlexTokenTag AlexRawToken_ClassKeyword _ _ }
+'ConstKeyword' { AlexTokenTag AlexRawToken_ConstKeyword _ _ }
+'ContinueKeyword' { AlexTokenTag AlexRawToken_ContinueKeyword _ _ }
+'DebuggerKeyword' { AlexTokenTag AlexRawToken_DebuggerKeyword _ _ }
+'DefaultKeyword' { AlexTokenTag AlexRawToken_DefaultKeyword _ _ }
+'DeleteKeyword' { AlexTokenTag AlexRawToken_DeleteKeyword _ _ }
+'DoKeyword' { AlexTokenTag AlexRawToken_DoKeyword _ _ }
+'ElseKeyword' { AlexTokenTag AlexRawToken_ElseKeyword _ _ }
+'EnumKeyword' { AlexTokenTag AlexRawToken_EnumKeyword _ _ }
+'ExportKeyword' { AlexTokenTag AlexRawToken_ExportKeyword _ _ }
+'ExtendsKeyword' { AlexTokenTag AlexRawToken_ExtendsKeyword _ _ }
+'FalseKeyword' { AlexTokenTag AlexRawToken_FalseKeyword _ _ }
+'FinallyKeyword' { AlexTokenTag AlexRawToken_FinallyKeyword _ _ }
+'ForKeyword' { AlexTokenTag AlexRawToken_ForKeyword _ _ }
+'FunctionKeyword' { AlexTokenTag AlexRawToken_FunctionKeyword _ _ }
+'IfKeyword' { AlexTokenTag AlexRawToken_IfKeyword _ _ }
+'ImportKeyword' { AlexTokenTag AlexRawToken_ImportKeyword _ _ }
+'InKeyword' { AlexTokenTag AlexRawToken_InKeyword _ _ }
+'InstanceOfKeyword' { AlexTokenTag AlexRawToken_InstanceOfKeyword _ _ }
+'NewKeyword' { AlexTokenTag AlexRawToken_NewKeyword _ _ }
+'NullKeyword' { AlexTokenTag AlexRawToken_NullKeyword _ _ }
+'ReturnKeyword' { AlexTokenTag AlexRawToken_ReturnKeyword _ _ }
+'SuperKeyword' { AlexTokenTag AlexRawToken_SuperKeyword _ _ }
+'SwitchKeyword' { AlexTokenTag AlexRawToken_SwitchKeyword _ _ }
+'ThisKeyword' { AlexTokenTag AlexRawToken_ThisKeyword _ _ }
+'ThrowKeyword' { AlexTokenTag AlexRawToken_ThrowKeyword _ _ }
+'TrueKeyword' { AlexTokenTag AlexRawToken_TrueKeyword _ _ }
+'TryKeyword' { AlexTokenTag AlexRawToken_TryKeyword _ _ }
+'TypeOfKeyword' { AlexTokenTag AlexRawToken_TypeOfKeyword _ _ }
+'VarKeyword' { AlexTokenTag AlexRawToken_VarKeyword _ _ }
+'VoidKeyword' { AlexTokenTag AlexRawToken_VoidKeyword _ _ }
+'WhileKeyword' { AlexTokenTag AlexRawToken_WhileKeyword _ _ }
+'WithKeyword' { AlexTokenTag AlexRawToken_WithKeyword _ _ }
+'ImplementsKeyword' { AlexTokenTag AlexRawToken_ImplementsKeyword _ _ }
+'InterfaceKeyword' { AlexTokenTag AlexRawToken_InterfaceKeyword _ _ }
+'LetKeyword' { AlexTokenTag AlexRawToken_LetKeyword _ _ }
+'PackageKeyword' { AlexTokenTag AlexRawToken_PackageKeyword _ _ }
+'PrivateKeyword' { AlexTokenTag AlexRawToken_PrivateKeyword _ _ }
+'ProtectedKeyword' { AlexTokenTag AlexRawToken_ProtectedKeyword _ _ }
+'PublicKeyword' { AlexTokenTag AlexRawToken_PublicKeyword _ _ }
+'StaticKeyword' { AlexTokenTag AlexRawToken_StaticKeyword _ _ }
+'YieldKeyword' { AlexTokenTag AlexRawToken_YieldKeyword _ _ }
+'AbstractKeyword' { AlexTokenTag AlexRawToken_AbstractKeyword _ _ }
+'AccessorKeyword' { AlexTokenTag AlexRawToken_AccessorKeyword _ _ }
+'AsKeyword' { AlexTokenTag AlexRawToken_AsKeyword _ _ }
+'AssertsKeyword' { AlexTokenTag AlexRawToken_AssertsKeyword _ _ }
+'AssertKeyword' { AlexTokenTag AlexRawToken_AssertKeyword _ _ }
+'AnyKeyword' { AlexTokenTag AlexRawToken_AnyKeyword _ _ }
+'AsyncKeyword' { AlexTokenTag AlexRawToken_AsyncKeyword _ _ }
+'AwaitKeyword' { AlexTokenTag AlexRawToken_AwaitKeyword _ _ }
+'BooleanKeyword' { AlexTokenTag AlexRawToken_BooleanKeyword _ _ }
+'ConstructorKeyword' { AlexTokenTag AlexRawToken_ConstructorKeyword _ _ }
+'DeclareKeyword' { AlexTokenTag AlexRawToken_DeclareKeyword _ _ }
+'GetKeyword' { AlexTokenTag AlexRawToken_GetKeyword _ _ }
+'InferKeyword' { AlexTokenTag AlexRawToken_InferKeyword _ _ }
+'IntrinsicKeyword' { AlexTokenTag AlexRawToken_IntrinsicKeyword _ _ }
+'IsKeyword' { AlexTokenTag AlexRawToken_IsKeyword _ _ }
+'KeyOfKeyword' { AlexTokenTag AlexRawToken_KeyOfKeyword _ _ }
+'ModuleKeyword' { AlexTokenTag AlexRawToken_ModuleKeyword _ _ }
+'NamespaceKeyword' { AlexTokenTag AlexRawToken_NamespaceKeyword _ _ }
+'NeverKeyword' { AlexTokenTag AlexRawToken_NeverKeyword _ _ }
+'OutKeyword' { AlexTokenTag AlexRawToken_OutKeyword _ _ }
+'ReadonlyKeyword' { AlexTokenTag AlexRawToken_ReadonlyKeyword _ _ }
+'RequireKeyword' { AlexTokenTag AlexRawToken_RequireKeyword _ _ }
+'NumberKeyword' { AlexTokenTag AlexRawToken_NumberKeyword _ _ }
+'ObjectKeyword' { AlexTokenTag AlexRawToken_ObjectKeyword _ _ }
+'SatisfiesKeyword' { AlexTokenTag AlexRawToken_SatisfiesKeyword _ _ }
+'SetKeyword' { AlexTokenTag AlexRawToken_SetKeyword _ _ }
+'StringKeyword' { AlexTokenTag AlexRawToken_StringKeyword _ _ }
+'SymbolKeyword' { AlexTokenTag AlexRawToken_SymbolKeyword _ _ }
+'TypeKeyword' { AlexTokenTag AlexRawToken_TypeKeyword _ _ }
+'UndefinedKeyword' { AlexTokenTag AlexRawToken_UndefinedKeyword _ _ }
+'UniqueKeyword' { AlexTokenTag AlexRawToken_UniqueKeyword _ _ }
+'UnknownKeyword' { AlexTokenTag AlexRawToken_UnknownKeyword _ _ }
+'UsingKeyword' { AlexTokenTag AlexRawToken_UsingKeyword _ _ }
+'FromKeyword' { AlexTokenTag AlexRawToken_FromKeyword _ _ }
+'GlobalKeyword' { AlexTokenTag AlexRawToken_GlobalKeyword _ _ }
+'BigIntKeyword' { AlexTokenTag AlexRawToken_BigIntKeyword _ _ }
+'OverrideKeyword' { AlexTokenTag AlexRawToken_OverrideKeyword _ _ }
+'OfKeyword' { AlexTokenTag AlexRawToken_OfKeyword _ _ }
+'QualifiedName' { AlexTokenTag AlexRawToken_QualifiedName _ _ }
+'ComputedPropertyName' { AlexTokenTag AlexRawToken_ComputedPropertyName _ _ }
+'TypeParameter' { AlexTokenTag AlexRawToken_TypeParameter _ _ }
+'Parameter' { AlexTokenTag AlexRawToken_Parameter _ _ }
+'Decorator' { AlexTokenTag AlexRawToken_Decorator _ _ }
+'PropertySignature' { AlexTokenTag AlexRawToken_PropertySignature _ _ }
+'PropertyDeclaration' { AlexTokenTag AlexRawToken_PropertyDeclaration _ _ }
+'MethodSignature' { AlexTokenTag AlexRawToken_MethodSignature _ _ }
+'MethodDeclaration' { AlexTokenTag AlexRawToken_MethodDeclaration _ _ }
+'ClassStaticBlockDeclaration' { AlexTokenTag AlexRawToken_ClassStaticBlockDeclaration _ _ }
+'Constructor' { AlexTokenTag AlexRawToken_Constructor _ _ }
+'GetAccessor' { AlexTokenTag AlexRawToken_GetAccessor _ _ }
+'SetAccessor' { AlexTokenTag AlexRawToken_SetAccessor _ _ }
+'CallSignature' { AlexTokenTag AlexRawToken_CallSignature _ _ }
+'ConstructSignature' { AlexTokenTag AlexRawToken_ConstructSignature _ _ }
+'IndexSignature' { AlexTokenTag AlexRawToken_IndexSignature _ _ }
+'TypePredicate' { AlexTokenTag AlexRawToken_TypePredicate _ _ }
+'TypeReference' { AlexTokenTag AlexRawToken_TypeReference _ _ }
+'FunctionType' { AlexTokenTag AlexRawToken_FunctionType _ _ }
+'ConstructorType' { AlexTokenTag AlexRawToken_ConstructorType _ _ }
+'TypeQuery' { AlexTokenTag AlexRawToken_TypeQuery _ _ }
+'TypeLiteral' { AlexTokenTag AlexRawToken_TypeLiteral _ _ }
+'ArrayType' { AlexTokenTag AlexRawToken_ArrayType _ _ }
+'TupleType' { AlexTokenTag AlexRawToken_TupleType _ _ }
+'OptionalType' { AlexTokenTag AlexRawToken_OptionalType _ _ }
+'RestType' { AlexTokenTag AlexRawToken_RestType _ _ }
+'UnionType' { AlexTokenTag AlexRawToken_UnionType _ _ }
+'IntersectionType' { AlexTokenTag AlexRawToken_IntersectionType _ _ }
+'ConditionalType' { AlexTokenTag AlexRawToken_ConditionalType _ _ }
+'InferType' { AlexTokenTag AlexRawToken_InferType _ _ }
+'ParenthesizedType' { AlexTokenTag AlexRawToken_ParenthesizedType _ _ }
+'ThisType' { AlexTokenTag AlexRawToken_ThisType _ _ }
+'TypeOperator' { AlexTokenTag AlexRawToken_TypeOperator _ _ }
+'IndexedAccessType' { AlexTokenTag AlexRawToken_IndexedAccessType _ _ }
+'MappedType' { AlexTokenTag AlexRawToken_MappedType _ _ }
+'LiteralType' { AlexTokenTag AlexRawToken_LiteralType _ _ }
+'NamedTupleMember' { AlexTokenTag AlexRawToken_NamedTupleMember _ _ }
+'TemplateLiteralType' { AlexTokenTag AlexRawToken_TemplateLiteralType _ _ }
+'TemplateLiteralTypeSpan' { AlexTokenTag AlexRawToken_TemplateLiteralTypeSpan _ _ }
+'ImportType' { AlexTokenTag AlexRawToken_ImportType _ _ }
+'ObjectBindingPattern' { AlexTokenTag AlexRawToken_ObjectBindingPattern _ _ }
+'ArrayBindingPattern' { AlexTokenTag AlexRawToken_ArrayBindingPattern _ _ }
+'BindingElement' { AlexTokenTag AlexRawToken_BindingElement _ _ }
+'ArrayLiteralExpression' { AlexTokenTag AlexRawToken_ArrayLiteralExpression _ _ }
+'ObjectLiteralExpression' { AlexTokenTag AlexRawToken_ObjectLiteralExpression _ _ }
+'PropertyAccessExpression' { AlexTokenTag AlexRawToken_PropertyAccessExpression _ _ }
+'ElementAccessExpression' { AlexTokenTag AlexRawToken_ElementAccessExpression _ _ }
+'CallExpression' { AlexTokenTag AlexRawToken_CallExpression _ _ }
+'NewExpression' { AlexTokenTag AlexRawToken_NewExpression _ _ }
+'TaggedTemplateExpression' { AlexTokenTag AlexRawToken_TaggedTemplateExpression _ _ }
+'TypeAssertionExpression' { AlexTokenTag AlexRawToken_TypeAssertionExpression _ _ }
+'ParenthesizedExpression' { AlexTokenTag AlexRawToken_ParenthesizedExpression _ _ }
+'FunctionExpression' { AlexTokenTag AlexRawToken_FunctionExpression _ _ }
+'ArrowFunction' { AlexTokenTag AlexRawToken_ArrowFunction _ _ }
+'DeleteExpression' { AlexTokenTag AlexRawToken_DeleteExpression _ _ }
+'TypeOfExpression' { AlexTokenTag AlexRawToken_TypeOfExpression _ _ }
+'VoidExpression' { AlexTokenTag AlexRawToken_VoidExpression _ _ }
+'AwaitExpression' { AlexTokenTag AlexRawToken_AwaitExpression _ _ }
+'PrefixUnaryExpression' { AlexTokenTag AlexRawToken_PrefixUnaryExpression _ _ }
+'PostfixUnaryExpression' { AlexTokenTag AlexRawToken_PostfixUnaryExpression _ _ }
+'BinaryExpression' { AlexTokenTag AlexRawToken_BinaryExpression _ _ }
+'ConditionalExpression' { AlexTokenTag AlexRawToken_ConditionalExpression _ _ }
+'TemplateExpression' { AlexTokenTag AlexRawToken_TemplateExpression _ _ }
+'YieldExpression' { AlexTokenTag AlexRawToken_YieldExpression _ _ }
+'SpreadElement' { AlexTokenTag AlexRawToken_SpreadElement _ _ }
+'ClassExpression' { AlexTokenTag AlexRawToken_ClassExpression _ _ }
+'OmittedExpression' { AlexTokenTag AlexRawToken_OmittedExpression _ _ }
+'ExpressionWithTypeArguments' { AlexTokenTag AlexRawToken_ExpressionWithTypeArguments _ _ }
+'AsExpression' { AlexTokenTag AlexRawToken_AsExpression _ _ }
+'NonNullExpression' { AlexTokenTag AlexRawToken_NonNullExpression _ _ }
+'MetaProperty' { AlexTokenTag AlexRawToken_MetaProperty _ _ }
+'SyntheticExpression' { AlexTokenTag AlexRawToken_SyntheticExpression _ _ }
+'SatisfiesExpression' { AlexTokenTag AlexRawToken_SatisfiesExpression _ _ }
+'TemplateSpan' { AlexTokenTag AlexRawToken_TemplateSpan _ _ }
+'SemicolonClassElement' { AlexTokenTag AlexRawToken_SemicolonClassElement _ _ }
+'Block' { AlexTokenTag AlexRawToken_Block _ _ }
+'EmptyStatement' { AlexTokenTag AlexRawToken_EmptyStatement _ _ }
+'VariableStatement' { AlexTokenTag AlexRawToken_VariableStatement _ _ }
+'ExpressionStatement' { AlexTokenTag AlexRawToken_ExpressionStatement _ _ }
+'IfStatement' { AlexTokenTag AlexRawToken_IfStatement _ _ }
+'DoStatement' { AlexTokenTag AlexRawToken_DoStatement _ _ }
+'WhileStatement' { AlexTokenTag AlexRawToken_WhileStatement _ _ }
+'ForStatement' { AlexTokenTag AlexRawToken_ForStatement _ _ }
+'ForInStatement' { AlexTokenTag AlexRawToken_ForInStatement _ _ }
+'ForOfStatement' { AlexTokenTag AlexRawToken_ForOfStatement _ _ }
+'ContinueStatement' { AlexTokenTag AlexRawToken_ContinueStatement _ _ }
+'BreakStatement' { AlexTokenTag AlexRawToken_BreakStatement _ _ }
+'ReturnStatement' { AlexTokenTag AlexRawToken_ReturnStatement _ _ }
+'WithStatement' { AlexTokenTag AlexRawToken_WithStatement _ _ }
+'SwitchStatement' { AlexTokenTag AlexRawToken_SwitchStatement _ _ }
+'LabeledStatement' { AlexTokenTag AlexRawToken_LabeledStatement _ _ }
+'ThrowStatement' { AlexTokenTag AlexRawToken_ThrowStatement _ _ }
+'TryStatement' { AlexTokenTag AlexRawToken_TryStatement _ _ }
+'DebuggerStatement' { AlexTokenTag AlexRawToken_DebuggerStatement _ _ }
+'VariableDeclaration' { AlexTokenTag AlexRawToken_VariableDeclaration _ _ }
+'VariableDeclarationList' { AlexTokenTag AlexRawToken_VariableDeclarationList _ _ }
+'FunctionDeclaration' { AlexTokenTag AlexRawToken_FunctionDeclaration _ _ }
+'ClassDeclaration' { AlexTokenTag AlexRawToken_ClassDeclaration _ _ }
+'InterfaceDeclaration' { AlexTokenTag AlexRawToken_InterfaceDeclaration _ _ }
+'TypeAliasDeclaration' { AlexTokenTag AlexRawToken_TypeAliasDeclaration _ _ }
+'EnumDeclaration' { AlexTokenTag AlexRawToken_EnumDeclaration _ _ }
+'ModuleDeclaration' { AlexTokenTag AlexRawToken_ModuleDeclaration _ _ }
+'ModuleBlock' { AlexTokenTag AlexRawToken_ModuleBlock _ _ }
+'CaseBlock' { AlexTokenTag AlexRawToken_CaseBlock _ _ }
+'NamespaceExportDeclaration' { AlexTokenTag AlexRawToken_NamespaceExportDeclaration _ _ }
+'ImportEqualsDeclaration' { AlexTokenTag AlexRawToken_ImportEqualsDeclaration _ _ }
+'ImportDeclaration' { AlexTokenTag AlexRawToken_ImportDeclaration _ _ }
+'ImportClause' { AlexTokenTag AlexRawToken_ImportClause _ _ }
+'NamespaceImport' { AlexTokenTag AlexRawToken_NamespaceImport _ _ }
+'NamedImports' { AlexTokenTag AlexRawToken_NamedImports _ _ }
+'ImportSpecifier' { AlexTokenTag AlexRawToken_ImportSpecifier _ _ }
+'ExportAssignment' { AlexTokenTag AlexRawToken_ExportAssignment _ _ }
+'ExportDeclaration' { AlexTokenTag AlexRawToken_ExportDeclaration _ _ }
+'NamedExports' { AlexTokenTag AlexRawToken_NamedExports _ _ }
+'NamespaceExport' { AlexTokenTag AlexRawToken_NamespaceExport _ _ }
+'ExportSpecifier' { AlexTokenTag AlexRawToken_ExportSpecifier _ _ }
+'MissingDeclaration' { AlexTokenTag AlexRawToken_MissingDeclaration _ _ }
+'ExternalModuleReference' { AlexTokenTag AlexRawToken_ExternalModuleReference _ _ }
+'JsxElement' { AlexTokenTag AlexRawToken_JsxElement _ _ }
+'JsxSelfClosingElement' { AlexTokenTag AlexRawToken_JsxSelfClosingElement _ _ }
+'JsxOpeningElement' { AlexTokenTag AlexRawToken_JsxOpeningElement _ _ }
+'JsxClosingElement' { AlexTokenTag AlexRawToken_JsxClosingElement _ _ }
+'JsxFragment' { AlexTokenTag AlexRawToken_JsxFragment _ _ }
+'JsxOpeningFragment' { AlexTokenTag AlexRawToken_JsxOpeningFragment _ _ }
+'JsxClosingFragment' { AlexTokenTag AlexRawToken_JsxClosingFragment _ _ }
+'JsxAttribute' { AlexTokenTag AlexRawToken_JsxAttribute _ _ }
+'JsxAttributes' { AlexTokenTag AlexRawToken_JsxAttributes _ _ }
+'JsxSpreadAttribute' { AlexTokenTag AlexRawToken_JsxSpreadAttribute _ _ }
+'JsxExpression' { AlexTokenTag AlexRawToken_JsxExpression _ _ }
+'JsxNamespacedName' { AlexTokenTag AlexRawToken_JsxNamespacedName _ _ }
+'CaseClause' { AlexTokenTag AlexRawToken_CaseClause _ _ }
+'DefaultClause' { AlexTokenTag AlexRawToken_DefaultClause _ _ }
+'HeritageClause' { AlexTokenTag AlexRawToken_HeritageClause _ _ }
+'CatchClause' { AlexTokenTag AlexRawToken_CatchClause _ _ }
+'ImportAttributes' { AlexTokenTag AlexRawToken_ImportAttributes _ _ }
+'ImportAttribute' { AlexTokenTag AlexRawToken_ImportAttribute _ _ }
+'AssertClause' { AlexTokenTag AlexRawToken_AssertClause _ _ }
+'AssertEntry' { AlexTokenTag AlexRawToken_AssertEntry _ _ }
+'ImportTypeAssertionContainer' { AlexTokenTag AlexRawToken_ImportTypeAssertionContainer _ _ }
+'PropertyAssignment' { AlexTokenTag AlexRawToken_PropertyAssignment _ _ }
+'ShorthandPropertyAssignment' { AlexTokenTag AlexRawToken_ShorthandPropertyAssignment _ _ }
+'SpreadAssignment' { AlexTokenTag AlexRawToken_SpreadAssignment _ _ }
+'EnumMember' { AlexTokenTag AlexRawToken_EnumMember _ _ }
+'SourceFile' { AlexTokenTag AlexRawToken_SourceFile _ _ }
+'Bundle' { AlexTokenTag AlexRawToken_Bundle _ _ }
+'JSDocTypeExpression' { AlexTokenTag AlexRawToken_JSDocTypeExpression _ _ }
+'JSDocNameReference' { AlexTokenTag AlexRawToken_JSDocNameReference _ _ }
+'JSDocMemberName' { AlexTokenTag AlexRawToken_JSDocMemberName _ _ }
+'JSDocAllType' { AlexTokenTag AlexRawToken_JSDocAllType _ _ }
+'JSDocUnknownType' { AlexTokenTag AlexRawToken_JSDocUnknownType _ _ }
+'JSDocNullableType' { AlexTokenTag AlexRawToken_JSDocNullableType _ _ }
+'JSDocNonNullableType' { AlexTokenTag AlexRawToken_JSDocNonNullableType _ _ }
+'JSDocOptionalType' { AlexTokenTag AlexRawToken_JSDocOptionalType _ _ }
+'JSDocFunctionType' { AlexTokenTag AlexRawToken_JSDocFunctionType _ _ }
+'JSDocVariadicType' { AlexTokenTag AlexRawToken_JSDocVariadicType _ _ }
+'JSDocNamepathType' { AlexTokenTag AlexRawToken_JSDocNamepathType _ _ }
+'JSDoc' { AlexTokenTag AlexRawToken_JSDoc _ _ }
+'JSDocComment' { AlexTokenTag AlexRawToken_JSDocComment _ _ }
+'JSDocText' { AlexTokenTag AlexRawToken_JSDocText _ _ }
+'JSDocTypeLiteral' { AlexTokenTag AlexRawToken_JSDocTypeLiteral _ _ }
+'JSDocSignature' { AlexTokenTag AlexRawToken_JSDocSignature _ _ }
+'JSDocLink' { AlexTokenTag AlexRawToken_JSDocLink _ _ }
+'JSDocLinkCode' { AlexTokenTag AlexRawToken_JSDocLinkCode _ _ }
+'JSDocLinkPlain' { AlexTokenTag AlexRawToken_JSDocLinkPlain _ _ }
+'JSDocTag' { AlexTokenTag AlexRawToken_JSDocTag _ _ }
+'JSDocAugmentsTag' { AlexTokenTag AlexRawToken_JSDocAugmentsTag _ _ }
+'JSDocImplementsTag' { AlexTokenTag AlexRawToken_JSDocImplementsTag _ _ }
+'JSDocAuthorTag' { AlexTokenTag AlexRawToken_JSDocAuthorTag _ _ }
+'JSDocDeprecatedTag' { AlexTokenTag AlexRawToken_JSDocDeprecatedTag _ _ }
+'JSDocClassTag' { AlexTokenTag AlexRawToken_JSDocClassTag _ _ }
+'JSDocPublicTag' { AlexTokenTag AlexRawToken_JSDocPublicTag _ _ }
+'JSDocPrivateTag' { AlexTokenTag AlexRawToken_JSDocPrivateTag _ _ }
+'JSDocProtectedTag' { AlexTokenTag AlexRawToken_JSDocProtectedTag _ _ }
+'JSDocReadonlyTag' { AlexTokenTag AlexRawToken_JSDocReadonlyTag _ _ }
+'JSDocOverrideTag' { AlexTokenTag AlexRawToken_JSDocOverrideTag _ _ }
+'JSDocCallbackTag' { AlexTokenTag AlexRawToken_JSDocCallbackTag _ _ }
+'JSDocOverloadTag' { AlexTokenTag AlexRawToken_JSDocOverloadTag _ _ }
+'JSDocEnumTag' { AlexTokenTag AlexRawToken_JSDocEnumTag _ _ }
+'JSDocParameterTag' { AlexTokenTag AlexRawToken_JSDocParameterTag _ _ }
+'JSDocReturnTag' { AlexTokenTag AlexRawToken_JSDocReturnTag _ _ }
+'JSDocThisTag' { AlexTokenTag AlexRawToken_JSDocThisTag _ _ }
+'JSDocTypeTag' { AlexTokenTag AlexRawToken_JSDocTypeTag _ _ }
+'JSDocTemplateTag' { AlexTokenTag AlexRawToken_JSDocTemplateTag _ _ }
+'JSDocTypedefTag' { AlexTokenTag AlexRawToken_JSDocTypedefTag _ _ }
+'JSDocSeeTag' { AlexTokenTag AlexRawToken_JSDocSeeTag _ _ }
+'JSDocPropertyTag' { AlexTokenTag AlexRawToken_JSDocPropertyTag _ _ }
+'JSDocThrowsTag' { AlexTokenTag AlexRawToken_JSDocThrowsTag _ _ }
+'JSDocSatisfiesTag' { AlexTokenTag AlexRawToken_JSDocSatisfiesTag _ _ }
+'JSDocImportTag' { AlexTokenTag AlexRawToken_JSDocImportTag _ _ }
+'SyntaxList' { AlexTokenTag AlexRawToken_SyntaxList _ _ }
+'NotEmittedStatement' { AlexTokenTag AlexRawToken_NotEmittedStatement _ _ }
+'PartiallyEmittedExpression' { AlexTokenTag AlexRawToken_PartiallyEmittedExpression _ _ }
+'CommaListExpression' { AlexTokenTag AlexRawToken_CommaListExpression _ _ }
+'SyntheticReferenceExpression' { AlexTokenTag AlexRawToken_SyntheticReferenceExpression _ _ }
+'Count' { AlexTokenTag AlexRawToken_Count _ _ }
+'FirstAssignment' { AlexTokenTag AlexRawToken_FirstAssignment _ _ }
+'LastAssignment' { AlexTokenTag AlexRawToken_LastAssignment _ _ }
+'FirstCompoundAssignment' { AlexTokenTag AlexRawToken_FirstCompoundAssignment _ _ }
+'LastCompoundAssignment' { AlexTokenTag AlexRawToken_LastCompoundAssignment _ _ }
+'FirstReservedWord' { AlexTokenTag AlexRawToken_FirstReservedWord _ _ }
+'LastReservedWord' { AlexTokenTag AlexRawToken_LastReservedWord _ _ }
+'FirstKeyword' { AlexTokenTag AlexRawToken_FirstKeyword _ _ }
+'LastKeyword' { AlexTokenTag AlexRawToken_LastKeyword _ _ }
+'FirstFutureReservedWord' { AlexTokenTag AlexRawToken_FirstFutureReservedWord _ _ }
+'LastFutureReservedWord' { AlexTokenTag AlexRawToken_LastFutureReservedWord _ _ }
+'FirstTypeNode' { AlexTokenTag AlexRawToken_FirstTypeNode _ _ }
+'LastTypeNode' { AlexTokenTag AlexRawToken_LastTypeNode _ _ }
+'FirstPunctuation' { AlexTokenTag AlexRawToken_FirstPunctuation _ _ }
+'LastPunctuation' { AlexTokenTag AlexRawToken_LastPunctuation _ _ }
+'FirstToken' { AlexTokenTag AlexRawToken_FirstToken _ _ }
+'LastToken' { AlexTokenTag AlexRawToken_LastToken _ _ }
+'FirstTriviaToken' { AlexTokenTag AlexRawToken_FirstTriviaToken _ _ }
+'LastTriviaToken' { AlexTokenTag AlexRawToken_LastTriviaToken _ _ }
+'FirstLiteralToken' { AlexTokenTag AlexRawToken_FirstLiteralToken _ _ }
+'LastLiteralToken' { AlexTokenTag AlexRawToken_LastLiteralToken _ _ }
+'FirstTemplateToken' { AlexTokenTag AlexRawToken_FirstTemplateToken _ _ }
+'LastTemplateToken' { AlexTokenTag AlexRawToken_LastTemplateToken _ _ }
+'FirstBinaryOperator' { AlexTokenTag AlexRawToken_FirstBinaryOperator _ _ }
+'LastBinaryOperator' { AlexTokenTag AlexRawToken_LastBinaryOperator _ _ }
+'FirstStatement' { AlexTokenTag AlexRawToken_FirstStatement _ _ }
+'LastStatement' { AlexTokenTag AlexRawToken_LastStatement _ _ }
+'FirstNode' { AlexTokenTag AlexRawToken_FirstNode _ _ }
+'FirstJSDocNode' { AlexTokenTag AlexRawToken_FirstJSDocNode _ _ }
+'LastJSDocNode' { AlexTokenTag AlexRawToken_LastJSDocNode _ _ }
+'FirstJSDocTagNode' { AlexTokenTag AlexRawToken_FirstJSDocTagNode _ _ }
+'LastJSDocTagNode' { AlexTokenTag AlexRawToken_LastJSDocTagNode _ _ }
 
 -- ****************************
 -- *                          *
@@ -487,9 +487,9 @@ import System.FilePath ( takeBaseName )
 -- *                          *
 -- ****************************
 
-INT    { AlexTokenTag (AlexRawToken_INT  i) _ }
-STR    { AlexTokenTag (AlexRawToken_STR  s) _ }
-ID     { AlexTokenTag (AlexRawToken_ID  id) _ }
+INT    { AlexTokenTag (AlexRawToken_INT  i) _ _ }
+STR    { AlexTokenTag (AlexRawToken_STR  s) _ _ }
+ID     { AlexTokenTag (AlexRawToken_ID  id) _ _ }
 
 -- *************************
 -- *                       *
@@ -997,7 +997,7 @@ stmt_function:
     functionKeyword
     identifier
     openParenToken
-    optional(parameters)
+    parameters
     closeParenToken
     optional(type_hint)
     optional(body)
@@ -1007,7 +1007,7 @@ stmt_function:
     {
         Ast.stmtFuncReturnType = Just (varme (Token.Named "any" $2)),
         Ast.stmtFuncName = Token.FuncName $5,
-        Ast.stmtFuncParams = case $7 of { Nothing -> []; Just params -> params },
+        Ast.stmtFuncParams = $7,
         Ast.stmtFuncBody = case $10 of { Nothing -> []; Just stmts -> stmts },
         Ast.stmtFuncAnnotations = [],
         Ast.stmtFuncLocation = $2
@@ -1865,11 +1865,8 @@ loc:
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
 
-unlocalify :: String -> String
-unlocalify imported = case (Data.List.stripPrefix "./" imported) of { Just filename -> filename; _ -> imported }
-
 normalizeImportPath :: String -> String
-normalizeImportPath imported = case Data.List.stripPrefix "/" (unlocalify imported) of { Just p -> p; Nothing -> unlocalify imported }
+normalizeImportPath i = case Data.List.stripPrefix "./" i of { Just p -> p; _ -> i }
 
 resolvePathAlias :: [ Common.PathMapping ] -> String -> String
 resolvePathAlias [] imported = imported
@@ -1879,24 +1876,24 @@ resolvePathAlias (m:rest) imported =
         Nothing -> resolvePathAlias rest imported
 
 isKnownFilename :: [ String ] -> String -> Bool
-isKnownFilename filenames imported =
-    Data.List.any (\filename -> filename == imported) filenames ||
-    Data.List.any (\filename -> Data.List.any (\ext -> filename == (imported ++ ext)) [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts", ".d.ts"]) filenames ||
-    Data.List.any (\filename -> Data.List.any (\ext -> filename == (imported ++ "/index" ++ ext)) [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts", ".d.ts"]) filenames
+isKnownFilename filenames imported = (imported ++ ".ts") `elem` filenames
 
 resolveImportSource :: Common.AdditionalRepoInfo -> String -> Ast.ImportSource
-resolveImportSource repoInfo imported =
-    let aliases = Common.path_mappings repoInfo
-        knownFilenames = Common.filenames repoInfo
-        importedNorm = normalizeImportPath imported
-        resolved = resolvePathAlias aliases importedNorm
-    in case Data.List.isPrefixOf "@" importedNorm of
-        False -> case isKnownFilename knownFilenames importedNorm of
-            True -> ImportLocal (ImportLocalDir importedNorm)
-            False -> ImportThirdParty (ImportThirdPartyContent importedNorm)
-        True -> case (resolved /= importedNorm) && (isKnownFilename knownFilenames resolved) of
-            True -> ImportLocal (ImportLocalDir resolved)
-            False -> ImportThirdParty (ImportThirdPartyContent importedNorm)
+resolveImportSource repoInfo imported = let
+    aliases = Common.path_mappings repoInfo
+    knownFilenames = Common.filenames repoInfo
+    importedNorm = normalizeImportPath imported
+    resolved = resolvePathAlias aliases importedNorm
+    in resolveImportSource' knownFilenames importedNorm resolved
+
+resolveImportSource' :: [ String ] -> String -> String -> Ast.ImportSource
+resolveImportSource' knownFilenames importedNorm resolved = case Data.List.isPrefixOf "@" importedNorm of
+    False -> if isKnownFilename knownFilenames importedNorm
+        then ImportLocal (ImportLocalDir importedNorm)
+        else ImportThirdParty (ImportThirdPartyContent importedNorm)
+    True -> if (resolved /= importedNorm) && (isKnownFilename knownFilenames resolved)
+        then ImportLocal (ImportLocalDir resolved)
+        else ImportThirdParty (ImportThirdPartyContent importedNorm)
 
 assignify' :: Ast.Var -> Exp -> Ast.Stmt
 assignify' v e = Ast.StmtAssign (Ast.StmtAssignContent v e)
