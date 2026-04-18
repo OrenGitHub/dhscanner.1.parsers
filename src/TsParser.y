@@ -549,7 +549,11 @@ identifier:
     }
 }
 
-parameter:
+parameters:
+possibly_empty_listof(simple_parameter) { $1 } |
+bound_parameters { $1 }
+
+simple_parameter:
 'Parameter' loc
 '('
     identifier
@@ -561,6 +565,35 @@ parameter:
     {
         Ast.paramName = Token.ParamName $4,
         Ast.paramNominalType = case $5 of { Just (Just t) -> Just (varme t); _ -> Nothing },
+        Ast.paramSerialIdx = 156
+    }
+}
+
+bound_parameters:
+'Parameter' loc
+'('
+    objectBindingPattern
+    colonToken
+    'TypeLiteral' loc
+    '('
+        commalistof(property_signature_as_param)
+    ')'
+')'
+{
+    $9
+}
+
+property_signature_as_param:
+'PropertySignature' loc
+'('
+    identifier
+    type_hint
+')'
+{
+    Ast.Param
+    {
+        Ast.paramName = Token.ParamName $4,
+        Ast.paramNominalType = case $5 of { Just t -> Just (varme t); _ -> Nothing },
         Ast.paramSerialIdx = 156
     }
 }
@@ -953,22 +986,6 @@ firstAssignment exp
     $2
 }
 
-param:
-'Parameter' loc
-'('
-    identifier
-    optional(type_hint)
-    optional(default_value)
-')'
-{
-    Ast.Param
-    {
-        Ast.paramName = Token.ParamName $4,
-        Ast.paramNominalType = Nothing,
-        Ast.paramSerialIdx = 156
-    }
-}
-
 -- *****************
 -- *               *
 -- * stmt function *
@@ -980,7 +997,7 @@ stmt_function:
     functionKeyword
     identifier
     openParenToken
-    optional(commalistof(parameter))
+    optional(parameters)
     closeParenToken
     optional(type_hint)
     optional(body)
@@ -1168,7 +1185,7 @@ exp_arrow_func:
 'ArrowFunction' loc
 '('
     openParenToken
-    possibly_empty_listof(parameter)
+    parameters
     closeParenToken
     optional(type_hint)
     equalsGreaterThanToken
@@ -1487,7 +1504,7 @@ stmt_method:
 '('
     identifier
     openParenToken
-    possibly_empty_listof(parameter)
+    parameters
     closeParenToken
     body
 ')'
