@@ -8,7 +8,6 @@
 
 import Yesod
 import Prelude
-import Data.Aeson()
 import GHC.Generics
 import Data.Text
 import Text.Read (readMaybe)
@@ -33,6 +32,14 @@ import qualified PyParser
 import qualified RbParser
 import qualified PhpParser
 
+data PathMappingInput
+   = PathMappingInput
+     {
+         from :: String,
+         to :: String
+     }
+     deriving ( Generic, ToJSON, FromJSON )
+
 data SourceFileInput
    = SourceFileInput
      {
@@ -40,7 +47,8 @@ data SourceFileInput
          content :: String,
          optional_github_url :: Maybe String,
          source_containing_dirs :: [ String ],
-         all_filenames :: [ String ]
+         all_filenames :: [ String ],
+         path_mappings :: Maybe [ PathMappingInput ]
      }
      deriving ( Generic, ToJSON, FromJSON )
 
@@ -129,7 +137,11 @@ sourceContent :: SourceFileInput -> Common.SourceCodeContent
 sourceContent = Common.SourceCodeContent . content
 
 additionalInfo :: SourceFileInput -> Common.AdditionalRepoInfo
-additionalInfo src = Common.AdditionalRepoInfo (source_containing_dirs src) (all_filenames src) (optional_github_url src)
+additionalInfo src = Common.AdditionalRepoInfo (source_containing_dirs src) (all_filenames src) (optional_github_url src) (convertPathMappings (path_mappings src))
+
+convertPathMappings :: Maybe [ PathMappingInput ] -> [ Common.PathMapping ]
+convertPathMappings Nothing = []
+convertPathMappings (Just mappings) = Prelude.map (\m -> Common.PathMapping (from m) (to m)) mappings
 
 myLogger :: IO Logger
 myLogger = do

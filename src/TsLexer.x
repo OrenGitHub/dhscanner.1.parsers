@@ -946,7 +946,7 @@ data AlexUserState = AlexUserState { filepath :: FilePath, additional_repo_info 
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
 alexInitUserState :: AlexUserState
-alexInitUserState = AlexUserState "<unknown>" (Common.AdditionalRepoInfo [] [] Nothing)
+alexInitUserState = AlexUserState "<unknown>" (Common.AdditionalRepoInfo [] [] Nothing [])
 
 -- | getter of the AlexUserState
 -- this is w.r.t to alexGetUserState :: Alex AlexUserState
@@ -975,7 +975,8 @@ data AlexTokenTag
    = AlexTokenTag
      {
          tokenRaw :: AlexRawToken,
-         tokenLoc :: Location
+         tokenLoc :: Location,
+         additionalRepoInfo :: Common.AdditionalRepoInfo
      }
      deriving ( Show )
 
@@ -1436,7 +1437,8 @@ alexEOF = do
                 colStart = fromIntegral c,
                 colEnd = fromIntegral c,
                 filename = (filepath alexUserState)
-            }
+            },
+            additionalRepoInfo = additional_repo_info alexUserState
         }
 
 -- *******
@@ -1457,7 +1459,8 @@ lex f ((AlexPn _ l c),_,_,str) i = do
                 colStart = fromIntegral c,
                 colEnd = fromIntegral (c+i),
                 filename = (filepath alexUserState)
-            }
+            },
+            additionalRepoInfo = additional_repo_info alexUserState
         }
 
 -- *********************************************
@@ -1481,6 +1484,9 @@ alexError' location = alexError (show location)
 -- ************
 getFilename :: AlexTokenTag -> String
 getFilename = Location.filename . location
+
+getAdditionalRepoInfo :: AlexTokenTag -> Common.AdditionalRepoInfo
+getAdditionalRepoInfo = additionalRepoInfo
 
 -- ************
 -- *          *

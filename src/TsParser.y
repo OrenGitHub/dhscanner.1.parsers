@@ -730,7 +730,7 @@ stmt_import:
 {
     Ast.StmtBlock $ Ast.StmtBlockContent
     {
-        Ast.stmtBlockContent = importify $7 $5,
+        Ast.stmtBlockContent = importify (getAdditionalRepoInfo $1) $7 $5,
         Ast.stmtBlockLocation = $2
     }
 }
@@ -1868,6 +1868,36 @@ unquote s = let n = length s in take (n-2) (drop 1 s)
 unlocalify :: String -> String
 unlocalify imported = case (Data.List.stripPrefix "./" imported) of { Just filename -> filename; _ -> imported }
 
+normalizeImportPath :: String -> String
+normalizeImportPath imported = case Data.List.stripPrefix "/" (unlocalify imported) of { Just p -> p; Nothing -> unlocalify imported }
+
+resolvePathAlias :: [ Common.PathMapping ] -> String -> String
+resolvePathAlias [] imported = imported
+resolvePathAlias (m:rest) imported =
+    case Data.List.stripPrefix (Common.path_mapping_from m) imported of
+        Just suffix -> (Common.path_mapping_to m) ++ suffix
+        Nothing -> resolvePathAlias rest imported
+
+isKnownFilename :: [ String ] -> String -> Bool
+isKnownFilename filenames imported =
+    Data.List.any (\filename -> filename == imported) filenames ||
+    Data.List.any (\filename -> Data.List.any (\ext -> filename == (imported ++ ext)) [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts", ".d.ts"]) filenames ||
+    Data.List.any (\filename -> Data.List.any (\ext -> filename == (imported ++ "/index" ++ ext)) [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts", ".d.ts"]) filenames
+
+resolveImportSource :: Common.AdditionalRepoInfo -> String -> Ast.ImportSource
+resolveImportSource repoInfo imported =
+    let aliases = Common.path_mappings repoInfo
+        knownFilenames = Common.filenames repoInfo
+        importedNorm = normalizeImportPath imported
+        resolved = resolvePathAlias aliases importedNorm
+    in case Data.List.isPrefixOf "@" importedNorm of
+        False -> case isKnownFilename knownFilenames importedNorm of
+            True -> ImportLocal (ImportLocalDir importedNorm)
+            False -> ImportThirdParty (ImportThirdPartyContent importedNorm)
+        True -> case (resolved /= importedNorm) && (isKnownFilename knownFilenames resolved) of
+            True -> ImportLocal (ImportLocalDir resolved)
+            False -> ImportThirdParty (ImportThirdPartyContent importedNorm)
+
 assignify' :: Ast.Var -> Exp -> Ast.Stmt
 assignify' v e = Ast.StmtAssign (Ast.StmtAssignContent v e)
 
@@ -1875,10 +1905,10 @@ assignify :: [ Ast.Var ] -> Exp -> [ Ast.Stmt ]
 assignify [] _ = []
 assignify (v:vs) e = (assignify' v e):(assignify vs e)
 
-importify' :: Token.ConstStr -> Token.Named -> Ast.Stmt
-importify' importSource importFromSource = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = ImportThirdParty (ImportThirdPartyContent (unlocalify (Token.constStrValue importSource))),
-   Ast.stmtImportSpecific = Just (Ast.ImportSpecific (Token.content importFromSource)),
+importify' :: Common.AdditionalRepoInfo -> Token.ConstStr -> Token.Named -> Ast.Stmt
+importify' repoInfo importSource importFromSource = Ast.StmtImport $ Ast.StmtImportContent {
+    Ast.stmtImportSource = resolveImportSource repoInfo (Token.constStrValue importSource),
+    Ast.stmtImportSpecific = Just (Ast.ImportSpecific (Token.content importFromSource)),
     Ast.stmtImportAlias = Nothing,
     Ast.stmtImportLocation = Token.location importFromSource
 }
@@ -1886,8 +1916,8 @@ importify' importSource importFromSource = Ast.StmtImport $ Ast.StmtImportConten
 varme :: Token.Named -> Ast.Var
 varme = Ast.VarSimple . Ast.VarSimpleContent . Token.VarName
 
-importify :: Token.ConstStr -> [ Token.Named ] -> [ Ast.Stmt ]
-importify = Data.List.map . importify'
+importify :: Common.AdditionalRepoInfo -> Token.ConstStr -> [ Token.Named ] -> [ Ast.Stmt ]
+importify repoInfo = Data.List.map . (importify' repoInfo)
 
 lambdame' :: Ast.StmtMethodContent -> Ast.Exp
 lambdame' m = let

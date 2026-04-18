@@ -511,7 +511,7 @@ data AlexUserState
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
 alexInitUserState :: AlexUserState
-alexInitUserState = AlexUserState { filepath = "<N/A>", additional_repo_info = Common.AdditionalRepoInfo [] [] Nothing }
+alexInitUserState = AlexUserState { filepath = "<N/A>", additional_repo_info = Common.AdditionalRepoInfo [] [] Nothing [] }
 
 -- | getter of the AlexUserState
 -- this is w.r.t to alexGetUserState :: Alex AlexUserState

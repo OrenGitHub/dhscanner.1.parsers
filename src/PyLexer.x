@@ -533,7 +533,7 @@ data AlexUserState = AlexUserState { filepath :: FilePath, additional_repo_info 
 --
 -- [1]: https://haskell-alex.readthedocs.io/en/latest/api.html#the-monaduserstate-wrapper
 alexInitUserState :: AlexUserState
-alexInitUserState = AlexUserState "<unknown>" (Common.AdditionalRepoInfo [] [] Nothing)
+alexInitUserState = AlexUserState "<unknown>" (Common.AdditionalRepoInfo [] [] Nothing [])
 
 -- | getter of the AlexUserState
 -- this is w.r.t to alexGetUserState :: Alex AlexUserState
