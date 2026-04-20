@@ -1889,10 +1889,10 @@ resolveImportSource repoInfo imported = let
 resolveImportSource' :: [ String ] -> String -> String -> Ast.ImportSource
 resolveImportSource' knownFilenames importedNorm resolved = case Data.List.isPrefixOf "@" importedNorm of
     False -> if isKnownFilename knownFilenames importedNorm
-        then ImportLocal (ImportLocalDir importedNorm)
+        then ImportLocal (ImportLocalFile importedNorm)
         else ImportThirdParty (ImportThirdPartyContent importedNorm)
     True -> if (resolved /= importedNorm) && (isKnownFilename knownFilenames resolved)
-        then ImportLocal (ImportLocalDir resolved)
+        then ImportLocal (ImportLocalFile resolved)
         else ImportThirdParty (ImportThirdPartyContent importedNorm)
 
 assignify' :: Ast.Var -> Exp -> Ast.Stmt
