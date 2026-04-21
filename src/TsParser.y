@@ -1889,10 +1889,10 @@ resolveImportSource repoInfo imported = let
 resolveImportSource' :: [ String ] -> String -> String -> Ast.ImportSource
 resolveImportSource' knownFilenames importedNorm resolved = case Data.List.isPrefixOf "@" importedNorm of
     False -> if isKnownFilename knownFilenames importedNorm
-        then ImportLocal (ImportLocalFile importedNorm)
+        then ImportLocal (ImportLocalFile (importedNorm ++ ".ts"))
         else ImportThirdParty (ImportThirdPartyContent importedNorm)
     True -> if (resolved /= importedNorm) && (isKnownFilename knownFilenames resolved)
-        then ImportLocal (ImportLocalFile resolved)
+        then ImportLocal (ImportLocalFile (resolved ++ ".ts"))
         else ImportThirdParty (ImportThirdPartyContent importedNorm)
 
 assignify' :: Ast.Var -> Exp -> Ast.Stmt
