@@ -515,6 +515,15 @@ ampersandlistof(a): a { [$1] } | a 'AmpersandToken' loc '(' ')' ampersandlistof(
 commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
 possibly_empty_listof(a): { [] } | commalistof(a) { $1 }
 
+-- ********************************************************
+-- *                                                      *
+-- * parametrized list with optional trailing comma       *
+-- *                                                      *
+-- ********************************************************
+possibly_empty_commalistof_with_optional_trailing_comma(a): { [] } | commalistof_with_optional_trailing_comma(a) { $1 }
+commalistof_with_optional_trailing_comma(a): a commalistof_with_optional_trailing_comma_rest(a) { $1:$2 }
+commalistof_with_optional_trailing_comma_rest(a): ',' a commalistof_with_optional_trailing_comma_rest(a) { $2:$3 } | ',' { [] } | { [] }
+
 -- ******************
 -- *                *
 -- * optional rules *
@@ -601,6 +610,7 @@ property_signature_as_param:
 throwKeyword:        'ThrowKeyword'        loc '(' ')' { Nothing }
 importKeyword:       'ImportKeyword'       loc '(' ')' { Nothing }
 interfaceKeyword:    'InterfaceKeyword'    loc '(' ')' { Nothing }
+instanceOfKeyword:   'InstanceOfKeyword'   loc '(' ')' { Nothing }
 nullKeyword:         'NullKeyword'         loc '(' ')' { $2 }
 ifKeyword:           'IfKeyword'           loc '(' ')' { Nothing }
 functionKeyword:     'FunctionKeyword'     loc '(' ')' { Nothing }
@@ -719,7 +729,7 @@ stringLiteral:
 -- * stmt import *
 -- *             *
 -- ***************
-stmt_import:
+stmt_import_1:
 'ImportDeclaration' loc
 '('
     importKeyword
@@ -734,6 +744,27 @@ stmt_import:
         Ast.stmtBlockLocation = $2
     }
 }
+
+-- ***************
+-- *             *
+-- * stmt import *
+-- *             *
+-- ***************
+stmt_import_2:
+'ImportDeclaration' loc
+'('
+    importKeyword
+    stringLiteral
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = importify (getAdditionalRepoInfo $1) $5 [],
+        Ast.stmtBlockLocation = $2
+    }
+}
+
+stmt_import: stmt_import_1 { $1 } | stmt_import_2 { $1 }
 
 literalType:
 'LiteralType' loc '(' stringLiteral ')' { Nothing } |
@@ -979,6 +1010,10 @@ body:
 {
     $4
 }
+
+lambdaBody:
+body { $1 } |
+exp { [] }
 
 default_value:
 firstAssignment exp
@@ -1261,6 +1296,7 @@ stringLiteral
 operator:
 inKeyword            { Nothing } |
 firstBinaryOperator  { Nothing } |
+instanceOfKeyword    { Nothing } |
 barBarToken          { Nothing } |
 eqEqEqToken          { Nothing } |
 ampAmpToken          { Nothing } |
@@ -1775,7 +1811,7 @@ spread_exp { $1 }
 exp_dict:
 'ObjectLiteralExpression' loc
 '('
-    commalistof(property_assignment)
+    possibly_empty_listof(property_assignment)
 ')'
 {
     Ast.ExpCall $ Ast.ExpCallContent
@@ -1795,7 +1831,7 @@ exp_array:
 'ArrayLiteralExpression' loc
 '('
     openBracketToken
-    possibly_empty_listof(exp)
+    possibly_empty_commalistof_with_optional_trailing_comma(exp)
     closeBracketToken
 ')'
 {
