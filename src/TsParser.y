@@ -20,11 +20,8 @@ import qualified Common
 -- * general imports *
 -- *                 *
 -- *******************
-import Data.Maybe
-import Data.Either
 import Data.List ( map, stripPrefix, isPrefixOf )
 import Data.Map ( empty, fromList )
-import System.FilePath ( takeBaseName )
 
 }
 
@@ -574,7 +571,7 @@ simple_parameter:
     Ast.Param
     {
         Ast.paramName = Token.ParamName $4,
-        Ast.paramNominalType = case $5 of { Just (Just t) -> Just (varme t); _ -> Nothing },
+        Ast.paramNominalType = case $5 of { Just (Just t) -> Just (Actions.varify t); _ -> Nothing },
         Ast.paramSerialIdx = 156
     }
 }
@@ -603,7 +600,7 @@ property_signature_as_param:
     Ast.Param
     {
         Ast.paramName = Token.ParamName $4,
-        Ast.paramNominalType = case $5 of { Just t -> Just (varme t); _ -> Nothing },
+        Ast.paramNominalType = case $5 of { Just t -> Just (Actions.varify t); _ -> Nothing },
         Ast.paramSerialIdx = 156
     }
 }
@@ -613,6 +610,8 @@ importKeyword:       'ImportKeyword'       loc '(' ')' { Nothing }
 interfaceKeyword:    'InterfaceKeyword'    loc '(' ')' { Nothing }
 instanceOfKeyword:   'InstanceOfKeyword'   loc '(' ')' { Nothing }
 nullKeyword:         'NullKeyword'         loc '(' ')' { $2 }
+trueKeyword:         'TrueKeyword'         loc '(' ')' { $2 }
+falseKeyword:        'FalseKeyword'        loc '(' ')' { $2 }
 ifKeyword:           'IfKeyword'           loc '(' ')' { Nothing }
 functionKeyword:     'FunctionKeyword'     loc '(' ')' { Nothing }
 inKeyword:           'InKeyword'           loc '(' ')' { Nothing }
@@ -725,11 +724,6 @@ stringLiteral:
     }
 }
 
--- ***************
--- *             *
--- * stmt import *
--- *             *
--- ***************
 stmtImport:
 'ImportDeclaration' loc
 '('
@@ -790,31 +784,13 @@ type_hint: colonToken type
     $2
 }
 
--- ***************
--- *             *
--- * stmt decvar *
--- *             *
--- ***************
-stmt_decvar_1:
-'VariableDeclarationList' loc
-'('
-    'VariableDeclaration' loc '(' identifier optional(type_hint) firstAssignment exp ')'
-')'
-{
-    normalize_vardec $7 (case $8 of { Just (Just t) -> Just t; _ -> Nothing }) $10
-}
-
---{
---    normalize_exports $7 $10 $2
---}
-
 bindingElement:
 'BindingElement' loc
 '('
     identifier
 ')'
 {
-    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $4
+    Actions.varify $4
 }
 
 objectBindingPattern:
@@ -826,28 +802,18 @@ objectBindingPattern:
     $4
 }
 
--- ***************
--- *             *
--- * stmt decvar *
--- *             *
--- ***************
-stmt_decvar_2:
+decvarLhs:
+identifier optional(type_hint) { [Actions.varify $1] } |
+objectBindingPattern           { $1 }
+
+stmtDecvar:
 'VariableDeclarationList' loc
 '('
-    'VariableDeclaration' loc
-    '('
-        objectBindingPattern
-        firstAssignment
-        exp
-    ')'
+    'VariableDeclaration' loc '(' decvarLhs firstAssignment exp ')'
 ')'
 {
-    Ast.StmtBlock $ Ast.StmtBlockContent (assignify $7 $9) $2
+    Actions.stmtDecvar $2 $7 $9
 }
-
-stmt_decvar:
-stmt_decvar_1 { $1 } |
-stmt_decvar_2 { $1 }
 
 expressionWithTypeArguments:
 'ExpressionWithTypeArguments' loc
@@ -972,7 +938,7 @@ stmt_property:
     Ast.StmtVardec $ Ast.StmtVardecContent
     {
         Ast.stmtVardecName = Token.VarName $4,
-        Ast.stmtVardecNominalType = Just (varme $4),
+        Ast.stmtVardecNominalType = Just (Actions.varify $4),
         Ast.stmtVardecInitValue = Nothing,
         Ast.stmtVardecLocation = $2
     }
@@ -997,12 +963,7 @@ firstAssignment exp
     $2
 }
 
--- *****************
--- *               *
--- * stmt function *
--- *               *
--- *****************
-stmt_function:
+stmtFunction:
 'FunctionDeclaration' loc
 '('
     functionKeyword
@@ -1014,15 +975,7 @@ stmt_function:
     optional(block)
 ')'
 {
-    Ast.StmtFunc $ Ast.StmtFuncContent
-    {
-        Ast.stmtFuncReturnType = Just (varme (Token.Named "any" $2)),
-        Ast.stmtFuncName = Token.FuncName $5,
-        Ast.stmtFuncParams = $7,
-        Ast.stmtFuncBody = case $10 of { Nothing -> []; Just stmts -> stmts },
-        Ast.stmtFuncAnnotations = [],
-        Ast.stmtFuncLocation = $2
-    }
+    Actions.stmtFunction $2 $5 $7 $10
 }
 
 elsePart:
@@ -1049,52 +1002,27 @@ stmtIf:
     Actions.stmtIf $2 $6 $8 $9
 }
 
--- ************
--- *          *
--- * stmt exp *
--- *          *
--- ************
-stmt_exp:
-'ExpressionStatement' loc
-'('
-    exp
-')'
-{
-    Ast.StmtExp $4
-}
+expOrStmtAssign:
+exp { Ast.StmtExp $1 } |
+stmtAssign { $1 }
 
--- ************
--- *          *
--- * stmt exp *
--- *          *
--- ************
-stmt_exp:
+stmtExp:
 'ExpressionStatement' loc
 '('
-    stmt_assign
+    expOrStmtAssign
 ')'
 {
     $4
 }
 
-
--- ***************
--- *             *
--- * stmt return *
--- *             *
--- ***************
-stmt_return:
+stmtReturn:
 'ReturnStatement' loc
 '('
     returnKeyword
     optional(exp)
 ')'
 {
-    Ast.StmtReturn $ Ast.StmtReturnContent
-    {
-        Ast.stmtReturnValue = $5,
-        Ast.stmtReturnLocation = $2
-    }
+    Actions.stmtReturn $2 $5
 }
 
 stmt_throw:
@@ -1135,29 +1063,19 @@ stmt_try:
     }
 }
 
--- ********
--- *      *
--- * stmt *
--- *      *
--- ********
 stmt:
 stmtIf           { $1 } |
-stmt_exp         { $1 } |
+stmtExp          { $1 } |
 stmt_try         { $1 } |
 stmtImport       { $1 } |
-stmt_function    { $1 } |
+stmtFunction     { $1 } |
 stmt_property    { $1 } |
 stmt_class       { $1 } |
-stmt_return      { $1 } |
+stmtReturn       { $1 } |
 stmt_throw       { $1 } |
-stmt_decvar      { $1 }
+stmtDecvar       { $1 }
 
--- ******************
--- *                *
--- * exp arrow func *
--- *                *
--- ******************
-exp_arrow_func:
+expArrowFunction:
 'ArrowFunction' loc
 '('
     openParenToken
@@ -1168,19 +1086,9 @@ exp_arrow_func:
     block
 ')'
 {
-    Ast.ExpLambda $ Ast.ExpLambdaContent
-    {
-        Ast.expLambdaParams = $5,
-        Ast.expLambdaBody = $9,
-        Ast.expLambdaLocation = $2
-    }
+    Actions.expArrowFunction $2 $5 $9
 }
 
--- ************
--- *          *
--- * exp call *
--- *          *
--- ************
 expCall:
 'CallExpression' loc
 '('
@@ -1222,7 +1130,7 @@ exclamationEqEqToken { Nothing }
 -- * exp binop *
 -- *           *
 -- *************
-exp_binop:
+expBinop:
 'BinaryExpression' loc
 '('
     exp
@@ -1230,21 +1138,15 @@ exp_binop:
     exp
 ')'
 {
-    Ast.ExpBinop $ Ast.ExpBinopContent
-    {
-        Ast.expBinopLeft = $4,
-        Ast.expBinopRight = $6,
-        Ast.expBinopOperator = Ast.PLUS,
-        Ast.expBinopLocation = $2
-    }
+    Actions.expBinop $2 $4 $6
 }
 
--- *************
--- *           *
--- * exp binop *
--- *           *
--- *************
-stmt_assign:
+-- ***************
+-- *             *
+-- * stmt assign *
+-- *             *
+-- ***************
+stmtAssign:
 'BinaryExpression' loc
 '('
     var
@@ -1252,11 +1154,7 @@ stmt_assign:
     exp
 ')'
 {
-    Ast.StmtAssign $ Ast.StmtAssignContent
-    {
-        Ast.stmtAssignLhs = $4,
-        Ast.stmtAssignRhs = $6
-    }
+    Actions.stmtAssign $4 $6
 }
 
 var_field:
@@ -1295,7 +1193,7 @@ var_subscript:
 var_simple:
 identifier
 {
-    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $1
+    Actions.varify $1
 }
 
 var:
@@ -1458,7 +1356,7 @@ stmt_method:
 {
     Ast.StmtMethodContent
     {
-        Ast.stmtMethodReturnType = Just (varme (Token.Named "any" $2)),
+        Ast.stmtMethodReturnType = Just (Actions.varify (Token.Named "any" $2)),
         Ast.stmtMethodName = Token.MethodName $4,
         Ast.stmtMethodParams = $6,
         Ast.stmtMethodBody = $8,
@@ -1473,7 +1371,7 @@ identifier
 {
     Ast.StmtMethodContent
     {
-        Ast.stmtMethodReturnType = Just (varme $1),
+        Ast.stmtMethodReturnType = Just (Actions.varify $1),
         Ast.stmtMethodName = Token.MethodName $1,
         Ast.stmtMethodParams = [],
         Ast.stmtMethodBody = [],
@@ -1540,59 +1438,11 @@ exp_as:
     $4
 }
 
--- ************
--- *          *
--- * exp bool *
--- *          *
--- ************
-exp_true:
-'TrueKeyword' loc '(' ')'
-{
-    Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool
-    {
-        Token.constBoolValue = True,
-        Token.constBoolLocation = $2
-    }
-}
+expTrue: trueKeyword { Actions.expBool True $1 }
+expFalse: falseKeyword { Actions.expBool False $1 }
+expBool: expTrue  { $1 } | expFalse { $1 }
 
--- ************
--- *          *
--- * exp bool *
--- *          *
--- ************
-exp_false:
-'FalseKeyword' loc '(' ')'
-{
-    Ast.ExpBool $ Ast.ExpBoolContent $ Token.ConstBool
-    {
-        Token.constBoolValue = False,
-        Token.constBoolLocation = $2
-    }
-}
-
--- ************
--- *          *
--- * exp bool *
--- *          *
--- ************
-exp_bool:
-exp_true  { $1 } |
-exp_false { $1 }
-
--- ************
--- *          *
--- * exp null *
--- *          *
--- ************
-exp_null:
-nullKeyword
-{
-    Ast.ExpInt $ Ast.ExpIntContent $ Token.ConstInt
-    {
-        Token.constIntValue = 888,
-        Token.constIntLocation = $1
-    }
-}
+expNull: nullKeyword { Actions.expNull $1 }
 
 -- ***********
 -- *         *
@@ -1764,19 +1614,14 @@ exp_non_null:
     $4
 }
 
--- *******
--- *     *
--- * exp *
--- *     *
--- *******
 exp:
 exp_str        { $1 } |
 exp_int        { $1 } |
 exp_new        { $1 } |
 exp_dict       { $1 } |
 exp_await      { $1 } |
-exp_bool       { $1 } |
-exp_null       { $1 } |
+expBool        { $1 } |
+expNull        { $1 } |
 fstring        { $1 } |
 expCall        { $1 } |
 exp_meta       { $1 } |
@@ -1788,11 +1633,11 @@ exp_paren      { $1 } |
 exp_unop       { $1 } |
 exp_delete     { $1 } |
 exp_typeof     { $1 } |
-exp_binop      { $1 } |
+expBinop       { $1 } |
 exp_regex      { $1 } |
 exp_non_null   { $1 } |
 exp_jsx        { $1 } |
-exp_arrow_func { $1 }
+expArrowFunction { $1 }
 
 loc:
 '[' INT ':' INT '-' INT ':' INT ']'
@@ -1812,21 +1657,9 @@ loc:
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
 
-assignify' :: Ast.Var -> Exp -> Ast.Stmt
-assignify' v e = Ast.StmtAssign (Ast.StmtAssignContent v e)
-
-assignify :: [ Ast.Var ] -> Exp -> [ Ast.Stmt ]
-assignify [] _ = []
-assignify (v:vs) e = (assignify' v e):(assignify vs e)
-
-varme :: Token.Named -> Ast.Var
-varme = Ast.VarSimple . Ast.VarSimpleContent . Token.VarName
-
 lambdame' :: Ast.StmtMethodContent -> Ast.Exp
 lambdame' m = let
-    l = Token.getMethodNameLocation (Ast.stmtMethodName m)
     p = Token.ParamName (Token.getMethodNameToken (Ast.stmtMethodName m))
-    t = varme (Token.Named "any" l)
     in Ast.ExpLambda $ Ast.ExpLambdaContent {
         Ast.expLambdaParams = [(Ast.Param p Nothing 174)] ++ (Ast.stmtMethodParams m),
         Ast.expLambdaBody = Ast.stmtMethodBody m,
@@ -1835,88 +1668,6 @@ lambdame' m = let
 
 lambdame :: [ Ast.StmtMethodContent ] -> [ Ast.Exp ]
 lambdame = Data.List.map lambdame'
-
-exported_dict_3 :: Ast.VarSimpleContent -> [ Ast.ExpLambdaContent ] -> Maybe [ Ast.ExpLambdaContent ]
-exported_dict_3 _ [] = Nothing
-exported_dict_3 (Ast.VarSimpleContent (Token.VarName (Token.Named "dictify" _))) lambdas = Just lambdas
-exported_dict_3 _ _ = Nothing
-
-lambdas_only' :: Ast.Exp -> Maybe Ast.ExpLambdaContent
-lambdas_only' (Ast.ExpLambda content) = Just content
-lambdas_only' _ = Nothing
-
-lambdas_only :: [ Ast.Exp ] -> [ Ast.ExpLambdaContent ]
-lambdas_only exps = catMaybes (Data.List.map lambdas_only' exps)
-
-exported_dict_2 :: Ast.ExpVarContent -> [ Ast.Exp ] -> Maybe [ Ast.ExpLambdaContent ]
-exported_dict_2 (Ast.ExpVarContent (Ast.VarSimple v)) exps = exported_dict_3 v (lambdas_only exps)
-exported_dict_2 _ _ = Nothing
-
-exported_dict_1 :: Ast.ExpCallContent -> Maybe [ Ast.ExpLambdaContent ]
-exported_dict_1 (Ast.ExpCallContent (Ast.ExpVar v) args _) = exported_dict_2 v args
-exported_dict_1 _ = Nothing
-
-exported_dict :: Ast.Exp -> Maybe [ Ast.ExpLambdaContent ]
-exported_dict (Ast.ExpCall e) = exported_dict_1 e
-exported_dict _ = Nothing
-
-normalize_exports_helper' :: Token.Named -> Ast.Exp -> Location -> Ast.ExpLambdaContent -> Ast.Stmt
-normalize_exports_helper' v exp _ lambda = let
-    location = Ast.expLambdaLocation lambda
-    params = Ast.expLambdaParams lambda
-    real_params = case params of { (p:ps) -> ps; _ -> [] }
-    methodName = case params of { ((Ast.Param (Token.ParamName p) _ _):_) -> p; _ -> Token.Named "popo" location }
-    filename = takeBaseName (Location.filename location)
-    exportedHost = filename ++ "." ++ (Token.content v)
-    in Ast.StmtMethod $ Ast.StmtMethodContent {
-        Ast.stmtMethodReturnType = Just (varme (Token.Named "any" location)),
-        Ast.stmtMethodName = Token.MethodName methodName,
-        Ast.stmtMethodParams = real_params,
-        Ast.stmtMethodBody = Ast.expLambdaBody lambda,
-        Ast.stmtMethodLocation = location,
-        Ast.hostingClassName = Token.ClassName $ Token.Named exportedHost location,
-        Ast.hostingClassSupers = []
-    } 
-
-normalize_exports_helper :: Token.Named -> Ast.Exp -> Location -> [ Ast.ExpLambdaContent ] -> [ Ast.Stmt ]
-normalize_exports_helper v exp l lambdas = Data.List.map (normalize_exports_helper' v exp l) lambdas
-
-normalize_exports' :: Token.Named -> Ast.Exp -> Location -> [ Ast.ExpLambdaContent ] -> Ast.Stmt
-normalize_exports' v exp l lambdas = let
-    methods = normalize_exports_helper v exp l lambdas
-    in Ast.StmtBlock $ Ast.StmtBlockContent methods l
-
-normalize_exports'' :: Token.Named -> Ast.Exp -> Location -> Ast.Stmt
-normalize_exports'' v exp l = Ast.StmtVardec $ Ast.StmtVardecContent {
-    Ast.stmtVardecName = Token.VarName v,
-    Ast.stmtVardecNominalType = Just (varme (Token.Named "any" l)),
-    Ast.stmtVardecInitValue = Just exp,
-    Ast.stmtVardecLocation = l
-}
-
-normalize_exports :: Token.Named -> Ast.Exp -> Location -> Ast.Stmt
-normalize_exports v exp l = case (exported_dict exp) of
-    Just lambdas -> normalize_exports' v exp l lambdas
-    Nothing -> normalize_exports'' v exp l 
-
-normalize_vardec_lambda :: Token.Named -> (Maybe Token.Named) -> Ast.ExpLambdaContent -> Ast.Stmt
-normalize_vardec_lambda v t lambda = Ast.StmtFunc $ Ast.StmtFuncContent {
-    Ast.stmtFuncReturnType = Just (varme (Token.Named "any" (Token.location v))),
-    Ast.stmtFuncName = Token.FuncName v,
-    Ast.stmtFuncParams = Ast.expLambdaParams lambda,
-    Ast.stmtFuncBody = Ast.expLambdaBody lambda,
-    Ast.stmtFuncAnnotations = [],
-    Ast.stmtFuncLocation = Ast.expLambdaLocation lambda
-}
-
-normalize_vardec :: Token.Named -> (Maybe Token.Named) -> Ast.Exp -> Ast.Stmt
-normalize_vardec v t (Ast.ExpLambda lambda) = normalize_vardec_lambda v t lambda
-normalize_vardec v t init_value = Ast.StmtVardec $ Ast.StmtVardecContent {
-    Ast.stmtVardecName = Token.VarName v,
-    Ast.stmtVardecNominalType = Just (varme (Token.Named "any" (Token.location v))),
-    Ast.stmtVardecInitValue = Just init_value,
-    Ast.stmtVardecLocation = Token.location v
-}
 
 -- ***********
 -- *         *
