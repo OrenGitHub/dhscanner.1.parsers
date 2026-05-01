@@ -43,6 +43,7 @@ executable parser
         GoParser,
         TsLexer,
         TsParser,
+        TsParserActions,
         PyLexer,
         PyParser,
         RbLexer,

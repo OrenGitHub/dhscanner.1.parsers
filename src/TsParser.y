@@ -11,6 +11,7 @@ module TsParser( parseProgram ) where
 import Ast
 import TsLexer
 import Location
+import qualified TsParserActions as Actions
 import qualified Token
 import qualified Common
 
@@ -513,7 +514,7 @@ ampersandlistof(a): a { [$1] } | a 'AmpersandToken' loc '(' ')' ampersandlistof(
 -- *                    *
 -- **********************
 commalistof(a): a { [$1] } | a ',' commalistof(a) { $1:$3 }
-possibly_empty_listof(a): { [] } | commalistof(a) { $1 }
+possibly_empty_commalistof(a): { [] } | commalistof(a) { $1 }
 
 -- ********************************************************
 -- *                                                      *
@@ -559,7 +560,7 @@ identifier:
 }
 
 parameters:
-possibly_empty_listof(simple_parameter) { $1 } |
+possibly_empty_commalistof(simple_parameter) { $1 } |
 bound_parameters { $1 }
 
 simple_parameter:
@@ -729,42 +730,17 @@ stringLiteral:
 -- * stmt import *
 -- *             *
 -- ***************
-stmt_import_1:
+stmtImport:
 'ImportDeclaration' loc
 '('
     importKeyword
-    importClause
-    fromKeyword
+    optional(importClause)
+    optional(fromKeyword)
     stringLiteral
 ')'
 {
-    Ast.StmtBlock $ Ast.StmtBlockContent
-    {
-        Ast.stmtBlockContent = importify (getAdditionalRepoInfo $1) $7 $5,
-        Ast.stmtBlockLocation = $2
-    }
+    Actions.stmtImport (getAdditionalRepoInfo $1) $2 $5 $7
 }
-
--- ***************
--- *             *
--- * stmt import *
--- *             *
--- ***************
-stmt_import_2:
-'ImportDeclaration' loc
-'('
-    importKeyword
-    stringLiteral
-')'
-{
-    Ast.StmtBlock $ Ast.StmtBlockContent
-    {
-        Ast.stmtBlockContent = importify (getAdditionalRepoInfo $1) $5 [],
-        Ast.stmtBlockLocation = $2
-    }
-}
-
-stmt_import: stmt_import_1 { $1 } | stmt_import_2 { $1 }
 
 literalType:
 'LiteralType' loc '(' stringLiteral ')' { Nothing } |
@@ -1002,7 +978,7 @@ stmt_property:
     }
 }
 
-body:
+block:
 'Block' loc
 '('
     commalistof(stmt)
@@ -1012,7 +988,7 @@ body:
 }
 
 lambdaBody:
-body { $1 } |
+block { $1 } |
 exp { [] }
 
 default_value:
@@ -1035,7 +1011,7 @@ stmt_function:
     parameters
     closeParenToken
     optional(type_hint)
-    optional(body)
+    optional(block)
 ')'
 {
     Ast.StmtFunc $ Ast.StmtFuncContent
@@ -1049,64 +1025,29 @@ stmt_function:
     }
 }
 
-else_part:
-elseKeyword body
+elsePart:
+elseKeyword stmtOrBlock
 {
     $2
 }
 
--- ***********
--- *         *
--- * stmt if *
--- *         *
--- ***********
-stmt_if_1:
+stmtOrBlock:
+stmt { [$1] } |
+block { $1 }
+
+stmtIf:
 'IfStatement' loc
 '('
     ifKeyword
     openParenToken
     exp
     closeParenToken
-    body
-    optional(else_part)
+    stmtOrBlock
+    optional(elsePart)
 ')'
 {
-    Ast.StmtIf $ Ast.StmtIfContent
-    {
-        Ast.stmtIfCond = $6,
-        Ast.stmtIfBody = $8,
-        Ast.stmtElseBody = [],
-        Ast.stmtIfLocation = $2
-    }
+    Actions.stmtIf $2 $6 $8 $9
 }
-
--- ***********
--- *         *
--- * stmt if *
--- *         *
--- ***********
-stmt_if_2:
-'IfStatement' loc
-'('
-    ifKeyword
-    openParenToken
-    exp
-    closeParenToken
-    stmt
-')'
-{
-    Ast.StmtIf $ Ast.StmtIfContent
-    {
-        Ast.stmtIfCond = $6,
-        Ast.stmtIfBody = [$8],
-        Ast.stmtElseBody = [],
-        Ast.stmtIfLocation = $2
-    }
-}
-
-stmt_if:
-stmt_if_1 { $1 } |
-stmt_if_2 { $1 }
 
 -- ************
 -- *          *
@@ -1173,7 +1114,7 @@ catch_clause:
     openParenToken
     'VariableDeclaration' loc '(' identifier optional(type_hint) ')'
     closeParenToken
-    body
+    block
 ')'
 {
     Nothing
@@ -1183,7 +1124,7 @@ stmt_try:
 'TryStatement' loc
 '('
     tryKeyword
-    body
+    block
     catch_clause
 ')'
 {
@@ -1200,10 +1141,10 @@ stmt_try:
 -- *      *
 -- ********
 stmt:
-stmt_if          { $1 } |
+stmtIf           { $1 } |
 stmt_exp         { $1 } |
 stmt_try         { $1 } |
-stmt_import      { $1 } |
+stmtImport       { $1 } |
 stmt_function    { $1 } |
 stmt_property    { $1 } |
 stmt_class       { $1 } |
@@ -1224,7 +1165,7 @@ exp_arrow_func:
     closeParenToken
     optional(type_hint)
     equalsGreaterThanToken
-    body
+    block
 ')'
 {
     Ast.ExpLambda $ Ast.ExpLambdaContent
@@ -1240,47 +1181,17 @@ exp_arrow_func:
 -- * exp call *
 -- *          *
 -- ************
-exp_call_1:
+expCall:
 'CallExpression' loc
 '('
     exp
     openParenToken
-    commalistof(exp)
+    possibly_empty_commalistof(exp)
     closeParenToken
 ')'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
-    {
-        Ast.callee = $4,
-        Ast.args = $6,
-        Ast.expCallLocation = $2
-    }
+    Actions.expCall $2 $4 $6
 }
-
--- ************
--- *          *
--- * exp call *
--- *          *
--- ************
-exp_call_2:
-'CallExpression' loc
-'('
-    exp
-    openParenToken
-    closeParenToken
-')'
-{
-    Ast.ExpCall $ Ast.ExpCallContent
-    {
-        Ast.callee = $4,
-        Ast.args = [],
-        Ast.expCallLocation = $2
-    }
-}
-
-exp_call:
-exp_call_1 { $1 } |
-exp_call_2 { $1 }
 
 -- ***********
 -- *         *
@@ -1542,7 +1453,7 @@ stmt_method:
     openParenToken
     parameters
     closeParenToken
-    body
+    block
 ')'
 {
     Ast.StmtMethodContent
@@ -1811,7 +1722,7 @@ spread_exp { $1 }
 exp_dict:
 'ObjectLiteralExpression' loc
 '('
-    possibly_empty_listof(property_assignment)
+    possibly_empty_commalistof(property_assignment)
 ')'
 {
     Ast.ExpCall $ Ast.ExpCallContent
@@ -1867,7 +1778,7 @@ exp_await      { $1 } |
 exp_bool       { $1 } |
 exp_null       { $1 } |
 fstring        { $1 } |
-exp_call       { $1 } |
+expCall        { $1 } |
 exp_meta       { $1 } |
 exp_array      { $1 } |
 exp_ternary    { $1 } |
@@ -1901,36 +1812,6 @@ loc:
 unquote :: String -> String
 unquote s = let n = length s in take (n-2) (drop 1 s)
 
-normalizeImportPath :: String -> String
-normalizeImportPath i = case Data.List.stripPrefix "./" i of { Just p -> p; _ -> i }
-
-resolvePathAlias :: [ Common.PathMapping ] -> String -> String
-resolvePathAlias [] imported = imported
-resolvePathAlias (m:rest) imported =
-    case Data.List.stripPrefix (Common.path_mapping_from m) imported of
-        Just suffix -> (Common.path_mapping_to m) ++ suffix
-        Nothing -> resolvePathAlias rest imported
-
-isKnownFilename :: [ String ] -> String -> Bool
-isKnownFilename filenames imported = (imported ++ ".ts") `elem` filenames
-
-resolveImportSource :: Common.AdditionalRepoInfo -> String -> Ast.ImportSource
-resolveImportSource repoInfo imported = let
-    aliases = Common.path_mappings repoInfo
-    knownFilenames = Common.filenames repoInfo
-    importedNorm = normalizeImportPath imported
-    resolved = resolvePathAlias aliases importedNorm
-    in resolveImportSource' knownFilenames importedNorm resolved
-
-resolveImportSource' :: [ String ] -> String -> String -> Ast.ImportSource
-resolveImportSource' knownFilenames importedNorm resolved = case Data.List.isPrefixOf "@" importedNorm of
-    False -> if isKnownFilename knownFilenames importedNorm
-        then ImportLocal (ImportLocalFile (importedNorm ++ ".ts"))
-        else ImportThirdParty (ImportThirdPartyContent importedNorm)
-    True -> if (resolved /= importedNorm) && (isKnownFilename knownFilenames resolved)
-        then ImportLocal (ImportLocalFile (resolved ++ ".ts"))
-        else ImportThirdParty (ImportThirdPartyContent importedNorm)
-
 assignify' :: Ast.Var -> Exp -> Ast.Stmt
 assignify' v e = Ast.StmtAssign (Ast.StmtAssignContent v e)
 
@@ -1938,19 +1819,8 @@ assignify :: [ Ast.Var ] -> Exp -> [ Ast.Stmt ]
 assignify [] _ = []
 assignify (v:vs) e = (assignify' v e):(assignify vs e)
 
-importify' :: Common.AdditionalRepoInfo -> Token.ConstStr -> Token.Named -> Ast.Stmt
-importify' repoInfo importSource importFromSource = Ast.StmtImport $ Ast.StmtImportContent {
-    Ast.stmtImportSource = resolveImportSource repoInfo (Token.constStrValue importSource),
-    Ast.stmtImportSpecific = Just (Ast.ImportSpecific (Token.content importFromSource)),
-    Ast.stmtImportAlias = Nothing,
-    Ast.stmtImportLocation = Token.location importFromSource
-}
-
 varme :: Token.Named -> Ast.Var
 varme = Ast.VarSimple . Ast.VarSimpleContent . Token.VarName
-
-importify :: Common.AdditionalRepoInfo -> Token.ConstStr -> [ Token.Named ] -> [ Ast.Stmt ]
-importify repoInfo = Data.List.map . (importify' repoInfo)
 
 lambdame' :: Ast.StmtMethodContent -> Ast.Exp
 lambdame' m = let
