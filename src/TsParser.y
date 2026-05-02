@@ -81,12 +81,7 @@ import Data.Map ( empty, fromList )
 ',' { AlexTokenTag AlexRawToken_COMMA _ _ }
 '-' { AlexTokenTag AlexRawToken_MINUS _ _ }
 
--- *********************
--- *                   *
--- * reserved keywords *
--- *                   *
--- *********************
-
+-- reserved keywords start
 'Unknown' { AlexTokenTag AlexRawToken_Unknown _ _ }
 'EndOfFileToken' { AlexTokenTag AlexRawToken_EndOfFileToken _ _ }
 'SingleLineCommentTrivia' { AlexTokenTag AlexRawToken_SingleLineCommentTrivia _ _ }
@@ -478,6 +473,7 @@ import Data.Map ( empty, fromList )
 'LastJSDocNode' { AlexTokenTag AlexRawToken_LastJSDocNode _ _ }
 'FirstJSDocTagNode' { AlexTokenTag AlexRawToken_FirstJSDocTagNode _ _ }
 'LastJSDocTagNode' { AlexTokenTag AlexRawToken_LastJSDocTagNode _ _ }
+-- reserved keywords end
 
 -- ****************************
 -- *                          *
@@ -704,6 +700,7 @@ union_type { Nothing } |
 intersection_type { Nothing } |
 parenthesized_type { Nothing } |
 type_operator { Nothing } |
+array_type { Nothing } |
 internal_type optional(generics) { $1 }
 
 -- helpers related to type
@@ -720,6 +717,17 @@ indexedAccessType:
 ')'
 {
     $4
+}
+
+array_type:
+'ArrayType' loc
+'('
+    type
+    openBracketToken
+    closeBracketToken
+')'
+{
+    Nothing
 }
 
 -- helpers related to type
@@ -776,6 +784,7 @@ templateHead:        'TemplateHead'        loc '(' ')' { Nothing }
 templateMiddle:      'TemplateMiddle'      loc '(' ')' { Nothing }
 lastTemplateToken:   'LastTemplateToken'   loc '(' ')' { Nothing }
 dotToken:            'DotToken'            loc '(' ')' { Nothing }
+questionDotToken:    'QuestionDotToken'    loc '(' ')' { Nothing }
 barBarToken:         'BarBarToken'         loc '(' ')' { Nothing }
 stringKeyword:       'StringKeyword'       loc '(' ')' { Nothing }
 numberKeyword:       'NumberKeyword'       loc '(' ')' { Nothing }
@@ -798,6 +807,7 @@ catchKeyword:        'CatchKeyword'        loc '(' ')' { Nothing }
 firstAssignment:     'FirstAssignment'     loc '(' ')' { Nothing }
 firstBinaryOperator: 'FirstBinaryOperator' loc '(' ')' { Nothing }
 greaterThanToken:    'GreaterThanToken'    loc '(' ')' { Nothing }
+greaterThanEqualsToken: 'GreaterThanEqualsToken' loc '(' ')' { Nothing }
 questionQuestionToken: 'QuestionQuestionToken' loc '(' ')' { Nothing }
 equalsGreaterThanToken: 'EqualsGreaterThanToken' loc '(' ')' { Nothing }
 ampAmpToken:         'AmpersandAmpersandToken' loc '(' ')' { Nothing }
@@ -810,10 +820,10 @@ importee: asteriskToken { Nothing }
 importSpecifier:
 'ImportSpecifier' loc
 '('
-    identifier
+    identifier optional(alias)
 ')'
 {
-    $4
+    case $5 of { Just a -> a; _ -> $4 }
 }
 
 
@@ -954,7 +964,7 @@ block:
 
 lambdaBody:
 block { $1 } |
-exp { [] }
+exp { [ Ast.StmtExp $1 ] }
 
 default_value:
 firstAssignment exp
@@ -980,7 +990,7 @@ expArrowFunction:
     closeParenToken
     optional(type_hint)
     equalsGreaterThanToken
-    block
+    lambdaBody
 ')'
 {
     Actions.expArrowFunction $2 $5 $9
@@ -996,6 +1006,17 @@ expCall:
 ')'
 {
     Actions.expCall $2 $4 $6
+}
+|
+'CallExpression' loc
+'('
+    importKeyword
+    openParenToken
+    possibly_empty_commalistof(exp)
+    closeParenToken
+')'
+{
+    Actions.instrumentationCall "import" $2 $6
 }
 
 -- ***********
@@ -1019,6 +1040,7 @@ ampAmpToken          { Nothing } |
 asteriskToken        { Nothing } |
 slashToken           { Nothing } |
 greaterThanToken     { Nothing } |
+greaterThanEqualsToken { Nothing } |
 questionQuestionToken { Nothing } |
 exclamationEqEqToken { Nothing }
 
@@ -1059,6 +1081,16 @@ varField:
 '('
     exp
     dotToken
+    identifier
+')'
+{
+    Actions.varField $2 $4 $6
+}
+|
+'PropertyAccessExpression' loc
+'('
+    exp
+    questionDotToken
     identifier
 ')'
 {
@@ -1405,6 +1437,26 @@ property:
     {
         Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "key_value" $2,
         Ast.args = [ $4, $6 ],
+        Ast.expCallLocation = $2
+    }
+}
+|
+'PropertyAssignment' loc
+'('
+    'ComputedPropertyName' loc
+    '('
+        openBracketToken
+        exp
+        closeBracketToken
+    ')'
+    colonToken
+    exp
+')'
+{
+    Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "key_value" $2,
+        Ast.args = [ $8, $12 ],
         Ast.expCallLocation = $2
     }
 }

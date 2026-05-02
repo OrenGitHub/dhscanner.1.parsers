@@ -1,0 +1,39 @@
+name: dhscanner-parsers-dev
+
+# Independent dev stack for iterating on TsParser.y / TsParserActions.hs.
+# It is intentionally separate from dhscanner.vps/compose/compose.*.yaml --
+# those use the prebuilt parsers image, this one builds from source.
+#
+# Usage from this directory:
+#     docker compose up -d --build              # initial bring-up
+#     docker compose stop parsers               # before applying a grammar edit
+#     docker compose up -d --build parsers      # rebuild + restart only the parsers service
+#
+# Host ports are deliberately non-standard (4000 / 4001) so this stack can
+# coexist with the dhscanner.vps prebuilt stack on the same machine.
+
+services:
+
+  frontts:
+    build:
+      context: ../dhscanner.0.fronts/ts
+      dockerfile: Dockerfile
+    ports:
+      - "4000:3000"
+    networks:
+      - dev
+
+  parsers:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4001:3000"
+    depends_on:
+      - frontts
+    networks:
+      - dev
+
+networks:
+  dev:
+    driver: bridge
