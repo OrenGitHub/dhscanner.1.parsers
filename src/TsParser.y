@@ -66,10 +66,10 @@ import Data.Map ( empty, fromList )
 -- *             *
 -- ***************
 
-'('    { AlexTokenTag AlexRawToken_LPAREN _ _ }
-')'    { AlexTokenTag AlexRawToken_RPAREN _ _ }
-'['    { AlexTokenTag AlexRawToken_LBRACK _ _ }
-']'    { AlexTokenTag AlexRawToken_RBRACK _ _ }
+'(' { AlexTokenTag AlexRawToken_LPAREN _ _ }
+')' { AlexTokenTag AlexRawToken_RPAREN _ _ }
+'[' { AlexTokenTag AlexRawToken_LBRACK _ _ }
+']' { AlexTokenTag AlexRawToken_RBRACK _ _ }
 
 -- ************
 -- *          *
@@ -77,9 +77,9 @@ import Data.Map ( empty, fromList )
 -- *          *
 -- ************
 
-':'    { AlexTokenTag AlexRawToken_COLON _ _ }
-','    { AlexTokenTag AlexRawToken_COMMA _ _ }
-'-'    { AlexTokenTag AlexRawToken_MINUS _ _ }
+':' { AlexTokenTag AlexRawToken_COLON _ _ }
+',' { AlexTokenTag AlexRawToken_COMMA _ _ }
+'-' { AlexTokenTag AlexRawToken_MINUS _ _ }
 
 -- *********************
 -- *                   *
@@ -485,9 +485,9 @@ import Data.Map ( empty, fromList )
 -- *                          *
 -- ****************************
 
-INT    { AlexTokenTag (AlexRawToken_INT  i) _ _ }
-STR    { AlexTokenTag (AlexRawToken_STR  s) _ _ }
-ID     { AlexTokenTag (AlexRawToken_ID  id) _ _ }
+INT { AlexTokenTag (AlexRawToken_INT  i) _ _ }
+STR { AlexTokenTag (AlexRawToken_STR  s) _ _ }
+ID  { AlexTokenTag (AlexRawToken_ID  id) _ _ }
 
 -- *************************
 -- *                       *
@@ -529,20 +529,104 @@ commalistof_with_optional_trailing_comma_rest(a): ',' a commalistof_with_optiona
 -- ******************
 optional(a): { Nothing } | a { Just $1 }
 
--- *********************
--- *                   *
--- * Ast root: program *
--- *                   *
--- *********************
-program: commalistof(stmt)
+-- direct translation to dhscanner Ast.Root
+program: commalistof(stmt) { Actions.root $1 }
+
+stmt:
+stmtIf { $1 } |
+stmtExp { $1 } |
+stmtTry { $1 } |
+stmtFunc { $1 } |
+stmtImport { $1 } |
+stmt_property    { $1 } |
+stmtClass        { $1 } |
+stmtReturn       { $1 } |
+stmtThrow        { $1 } |
+stmtDecvar       { $1 }
+
+-- direct translation to dhscanner Ast.StmtIf
+stmtIf:
+'IfStatement' loc
+'('
+    ifKeyword
+    openParenToken
+    exp
+    closeParenToken
+    stmtOrBlock
+    optional(elsePart)
+')'
 {
-    Ast.Root
-    {
-        Ast.filename = "",
-        stmts = $1
-    }
+    Actions.stmtIf $2 $6 $8 $9
 }
 
+-- helpers related to stmtIf
+elsePart: elseKeyword stmtOrBlock { $2 }
+stmtOrBlock: stmt { [$1] } | block { $1 }
+
+-- direct translation to dhscanner Ast.StmtExp
+stmtExp: 'ExpressionStatement' loc '(' expOrStmtAssign ')' { $4 }
+
+-- helpers related to stmtExp
+expOrStmtAssign: exp { Ast.StmtExp $1 } | stmtAssign { $1 }
+
+-- direct translation to dhscanner Ast.StmtTry
+stmtTry:
+'TryStatement' loc
+'('
+    tryKeyword
+    block
+    catchPart
+')'
+{
+    Actions.stmtTry $2 $5 $6
+}
+
+-- helpers related to stmtTry
+catchPart:
+'CatchClause' loc
+'('
+    catchKeyword
+    openParenToken
+    'VariableDeclaration' loc '(' identifier optional(type_hint) ')'
+    closeParenToken
+    block
+')'
+{
+    $13
+}
+
+-- instrumented as dhscanner Ast.StmtExp
+stmtThrow: 'ThrowStatement' loc '(' throwKeyword exp ')' { Actions.stmtThrow $2 $5 }
+
+-- direct translation to dhscanner Ast.StmtClass
+stmtClass:
+'InterfaceDeclaration' loc
+'('
+    interfaceKeyword
+    identifier
+    optional(extends)
+    listof(stmt)
+')'
+{
+    Actions.stmtClass $5
+}
+
+stmtFunc:
+'FunctionDeclaration' loc
+'('
+    functionKeyword
+    identifier
+    openParenToken
+    parameters
+    closeParenToken
+    optional(type_hint)
+    optional(block)
+')'
+{
+    Actions.stmtFunc $2 $5 $7 $10
+}
+
+-- helpers related to stmtFunc
 identifier:
 'Identifier' loc
 '('
@@ -556,10 +640,12 @@ identifier:
     }
 }
 
+-- helpers related to stmtFunc
 parameters:
 possibly_empty_commalistof(simple_parameter) { $1 } |
 bound_parameters { $1 }
 
+-- helpers related to parameters
 simple_parameter:
 'Parameter' loc
 '('
@@ -576,6 +662,7 @@ simple_parameter:
     }
 }
 
+-- helpers related to parameters
 bound_parameters:
 'Parameter' loc
 '('
@@ -590,6 +677,7 @@ bound_parameters:
     $9
 }
 
+-- helpers related to stmtFunc
 property_signature_as_param:
 'PropertySignature' loc
 '('
@@ -604,6 +692,64 @@ property_signature_as_param:
         Ast.paramSerialIdx = 156
     }
 }
+
+-- helpers related to stmtFunc
+type_hint: colonToken type { $2 }
+
+-- helpers related to stmtFunc
+type:
+expressionWithTypeArguments { Nothing } |
+indexedAccessType { Nothing } |
+union_type { Nothing } |
+intersection_type { Nothing } |
+parenthesized_type { Nothing } |
+type_operator { Nothing } |
+internal_type optional(generics) { $1 }
+
+-- helpers related to type
+expressionWithTypeArguments: 'ExpressionWithTypeArguments' loc '(' type ')' { $4 }
+
+-- helpers related to type
+indexedAccessType:
+'IndexedAccessType' loc
+'('
+    type
+    openBracketToken
+    internal_type
+    closeBracketToken
+')'
+{
+    $4
+}
+
+-- helpers related to type
+union_type: 'UnionType' loc '(' barlistof(type) ')' { Nothing }
+intersection_type: 'IntersectionType' loc '(' ampersandlistof(type) ')' { Nothing }
+parenthesized_type: 'ParenthesizedType' loc '(' openParenToken type closeParenToken ')' { $5 }
+type_operator: 'TypeOperator' loc '(' type ')' { $4 }
+
+internal_type:
+booleanKeyword { Nothing } |
+anyKeyword { Nothing } |
+unknownKeyword { Nothing } |
+undefinedKeyword { Nothing } |
+stringKeyword { Nothing } |
+numberKeyword { Nothing } |
+voidKeyword { Nothing } |
+identifier { Just $1 } |
+typeReference { $1 } |
+literalType { Nothing } |
+typeLiteral { Nothing }
+
+-- helpers related to type
+generics: firstBinaryOperator commalistof(type) greaterThanToken { Nothing }
+typeReference: 'TypeReference' loc '(' type ')' { $4 }
+typeLiteral: 'TypeLiteral' loc '(' optional(commalistof(stmt_property)) ')' { Nothing }
+
+literalType:
+'LiteralType' loc '(' stringLiteral ')' { Nothing } |
+'LiteralType' loc '(' nullKeyword   ')' { Nothing }
+
 
 throwKeyword:        'ThrowKeyword'        loc '(' ')' { Nothing }
 importKeyword:       'ImportKeyword'       loc '(' ')' { Nothing }
@@ -736,54 +882,6 @@ stmtImport:
     Actions.stmtImport (getAdditionalRepoInfo $1) $2 $5 $7
 }
 
-literalType:
-'LiteralType' loc '(' stringLiteral ')' { Nothing } |
-'LiteralType' loc '(' nullKeyword   ')' { Nothing }
-
-typeLiteral:
-'TypeLiteral' loc
-'('
-    optional(commalistof(stmt_property))
-')'
-{
-    Nothing
-}
-
-internal_type:
-booleanKeyword   { Nothing } |
-anyKeyword       { Nothing } |
-unknownKeyword   { Nothing } |
-undefinedKeyword { Nothing } |
-stringKeyword    { Nothing } |
-numberKeyword    { Nothing } |
-voidKeyword      { Nothing } |
-identifier       { Just $1 } |
-typeReference    {      $1 } |
-literalType      { Nothing } |
-typeLiteral      { Nothing }
-
-generics:
-firstBinaryOperator
-commalistof(type)
-greaterThanToken
-{
-    Nothing
-}
-
-typeReference:
-'TypeReference' loc
-'('
-    type
-')'
-{
-    $4
-}
-
-type_hint: colonToken type
-{
-    $2
-}
-
 bindingElement:
 'BindingElement' loc
 '('
@@ -815,74 +913,6 @@ stmtDecvar:
     Actions.stmtDecvar $2 $7 $9
 }
 
-expressionWithTypeArguments:
-'ExpressionWithTypeArguments' loc
-'('
-    type
-')'
-{
-    $4
-}
-
-indexedAccessType:
-'IndexedAccessType' loc
-'('
-    type
-    openBracketToken
-    internal_type
-    closeBracketToken
-')'
-{
-    $4
-}
-
-union_type:
-'UnionType' loc
-'('
-    barlistof(type)
-')'
-{
-    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "any" $2
-}
-
-intersection_type:
-'IntersectionType' loc
-'('
-    ampersandlistof(type)
-')'
-{
-    Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "any" $2
-}
-
-parenthesized_type:
-'ParenthesizedType' loc
-'('
-    openParenToken
-    type
-    closeParenToken
-')'
-{
-    $5
-}
-
-type_operator:
-'TypeOperator' loc
-'('
-    type
-')'
-{
-    $4
-}
-
-type:
-expressionWithTypeArguments      { Nothing } |
-indexedAccessType                { Nothing } |
-union_type                       { Nothing } |
-intersection_type                { Nothing } |
-parenthesized_type               { Nothing } |
-type_operator                    { Nothing } |
-internal_type optional(generics) { $1 }
-
 extends:
 'HeritageClause' loc
 '('
@@ -892,37 +922,6 @@ extends:
 {
     Nothing
 }
-
--- ******************
--- *                *
--- * stmt interface *
--- *                *
--- ******************
-stmt_interface:
-'InterfaceDeclaration' loc
-'('
-    interfaceKeyword
-    identifier
-    optional(extends)
-    listof(stmt)
-')'
-{
-    Ast.StmtClass $ Ast.StmtClassContent
-    {
-        Ast.stmtClassName = Token.ClassName $5,
-        Ast.stmtClassSupers = [],
-        Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
-        Ast.stmtClassMethods = Ast.Methods Data.Map.empty
-    }
-}
-
--- **************
--- *            *
--- * stmt class *
--- *            *
--- **************
-stmt_class:
-stmt_interface { $1 }
 
 -- ***************
 -- *             *
@@ -963,58 +962,6 @@ firstAssignment exp
     $2
 }
 
-stmtFunction:
-'FunctionDeclaration' loc
-'('
-    functionKeyword
-    identifier
-    openParenToken
-    parameters
-    closeParenToken
-    optional(type_hint)
-    optional(block)
-')'
-{
-    Actions.stmtFunction $2 $5 $7 $10
-}
-
-elsePart:
-elseKeyword stmtOrBlock
-{
-    $2
-}
-
-stmtOrBlock:
-stmt { [$1] } |
-block { $1 }
-
-stmtIf:
-'IfStatement' loc
-'('
-    ifKeyword
-    openParenToken
-    exp
-    closeParenToken
-    stmtOrBlock
-    optional(elsePart)
-')'
-{
-    Actions.stmtIf $2 $6 $8 $9
-}
-
-expOrStmtAssign:
-exp { Ast.StmtExp $1 } |
-stmtAssign { $1 }
-
-stmtExp:
-'ExpressionStatement' loc
-'('
-    expOrStmtAssign
-')'
-{
-    $4
-}
-
 stmtReturn:
 'ReturnStatement' loc
 '('
@@ -1024,56 +971,6 @@ stmtReturn:
 {
     Actions.stmtReturn $2 $5
 }
-
-stmt_throw:
-'ThrowStatement' loc
-'('
-    throwKeyword
-    exp
-')'
-{
-    Ast.StmtExp $5
-}
-
-catch_clause:
-'CatchClause' loc
-'('
-    catchKeyword
-    openParenToken
-    'VariableDeclaration' loc '(' identifier optional(type_hint) ')'
-    closeParenToken
-    block
-')'
-{
-    Nothing
-}
-
-stmt_try:
-'TryStatement' loc
-'('
-    tryKeyword
-    block
-    catch_clause
-')'
-{
-    Ast.StmtBlock $ Ast.StmtBlockContent
-    {
-        Ast.stmtBlockContent = $5,
-        Ast.stmtBlockLocation = $2
-    }
-}
-
-stmt:
-stmtIf           { $1 } |
-stmtExp          { $1 } |
-stmt_try         { $1 } |
-stmtImport       { $1 } |
-stmtFunction     { $1 } |
-stmt_property    { $1 } |
-stmt_class       { $1 } |
-stmtReturn       { $1 } |
-stmt_throw       { $1 } |
-stmtDecvar       { $1 }
 
 expArrowFunction:
 'ArrowFunction' loc
@@ -1157,7 +1054,7 @@ stmtAssign:
     Actions.stmtAssign $4 $6
 }
 
-var_field:
+varField:
 'PropertyAccessExpression' loc
 '('
     exp
@@ -1165,15 +1062,10 @@ var_field:
     identifier
 ')'
 {
-    Ast.VarField $ Ast.VarFieldContent
-    {
-        Ast.varFieldLhs = $4,
-        Ast.varFieldName = Token.FieldName $6,
-        Ast.varFieldLocation = $2
-    }
+    Actions.varField $2 $4 $6
 }
 
-var_subscript:
+varSubscript:
 'ElementAccessExpression' loc
 '('
     exp
@@ -1182,12 +1074,7 @@ var_subscript:
     closeBracketToken
 ')'
 {
-    Ast.VarSubscript $ Ast.VarSubscriptContent
-    {
-        Ast.varSubscriptLhs = $4,
-        Ast.varSubscriptIdx = $6,
-        Ast.varSubscriptLocation = $2
-    }
+    Actions.varSubscript $2 $4 $6
 }
 
 var_simple:
@@ -1197,9 +1084,9 @@ identifier
 }
 
 var:
-var_simple    { $1 } |
-var_field     { $1 } |
-var_subscript { $1 }
+var_simple   { $1 } |
+varField     { $1 } |
+varSubscript { $1 }
 
 -- ***********
 -- *         *
@@ -1398,28 +1285,15 @@ shorthandPropertyAssignment:
 shorthandPropertyAssignment_1 { $1 } |
 shorthandPropertyAssignment_2 { $1 }
 
--- **************
--- *            *
--- * exp delete *
--- *            *
--- **************
-exp_delete:
+-- instrumented as dhscanner Ast.ExpCall
+expDelete:
 'DeleteExpression' loc
 '('
     deleteKeyword
     exp
 ')'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
-    {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
-        {
-            Token.content = "delete",
-            Token.location = $2
-        },
-        Ast.args = [],
-        Ast.expCallLocation = $2
-    }
+    Actions.expDelete $2 $5
 }
 
 -- **********
@@ -1444,12 +1318,8 @@ expBool: expTrue  { $1 } | expFalse { $1 }
 
 expNull: nullKeyword { Actions.expNull $1 }
 
--- ***********
--- *         *
--- * exp new *
--- *         *
--- ***********
-exp_new:
+-- instrumented as dhscanner Ast.ExpCall
+expNew:
 'NewExpression' loc
 '('
     newKeyword
@@ -1459,16 +1329,7 @@ exp_new:
     closeParenToken
 ')'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
-    {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
-        {
-            Token.content = case $5 of { Just t -> Token.content t; _ -> "nondet"},
-            Token.location = $2
-        },
-        Ast.args = case $7 of { Nothing -> []; Just exps -> exps },
-        Ast.expCallLocation = $2
-    }
+    Actions.expNew $2 $5 $7
 }
 
 -- *************
@@ -1617,7 +1478,7 @@ exp_non_null:
 exp:
 exp_str        { $1 } |
 exp_int        { $1 } |
-exp_new        { $1 } |
+expNew         { $1 } |
 exp_dict       { $1 } |
 exp_await      { $1 } |
 expBool        { $1 } |
@@ -1631,7 +1492,7 @@ exp_var        { $1 } |
 exp_as         { $1 } |
 exp_paren      { $1 } |
 exp_unop       { $1 } |
-exp_delete     { $1 } |
+expDelete      { $1 } |
 exp_typeof     { $1 } |
 expBinop       { $1 } |
 exp_regex      { $1 } |

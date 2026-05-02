@@ -17,6 +17,19 @@ import qualified Common
 -- *******************
 import Data.Maybe ( fromMaybe )
 import Data.List ( map, stripPrefix, isPrefixOf )
+import qualified Data.Map
+
+-- ********
+-- *      *
+-- * root *
+-- *      *
+-- ********
+root :: [Ast.Stmt] -> Ast.Root
+root rootStmts = Ast.Root
+    {
+        Ast.filename = "",
+        Ast.stmts = rootStmts
+    }
 
 -- ***********
 -- *         *
@@ -30,6 +43,19 @@ stmtIf loc cond body elsePart = Ast.StmtIf $ Ast.StmtIfContent
         Ast.stmtIfBody = body,
         Ast.stmtElseBody = fromMaybe [] elsePart,
         Ast.stmtIfLocation = loc
+    }
+
+-- ************
+-- *          *
+-- * stmt try *
+-- *          *
+-- ************
+stmtTry :: Location -> [Ast.Stmt] -> [Ast.Stmt] -> Ast.Stmt
+stmtTry loc tryBody catchBody = Ast.StmtTry $ Ast.StmtTryContent
+    {
+        Ast.stmtTryPart = tryBody,
+        Ast.stmtCatchPart = catchBody,
+        Ast.stmtTryLocation = loc
     }
 
 -- ************
@@ -50,8 +76,8 @@ expCall loc funcExp callArgs = Ast.ExpCall $ Ast.ExpCallContent
 -- * stmt function *
 -- *               *
 -- *****************
-stmtFunction :: Location -> Token.Named -> [Ast.Param] -> Maybe [Ast.Stmt] -> Ast.Stmt
-stmtFunction loc fname params body = Ast.StmtFunc $ Ast.StmtFuncContent
+stmtFunc :: Location -> Token.Named -> [Ast.Param] -> Maybe [Ast.Stmt] -> Ast.Stmt
+stmtFunc loc fname params body = Ast.StmtFunc $ Ast.StmtFuncContent
     {
         Ast.stmtFuncReturnType = Just (varify (Token.Named "any" loc)),
         Ast.stmtFuncName = Token.FuncName fname,
@@ -132,6 +158,28 @@ stmtReturn loc value = Ast.StmtReturn $ Ast.StmtReturnContent
         Ast.stmtReturnLocation = loc
     }
 
+-- **************
+-- *            *
+-- * stmt throw *
+-- *            *
+-- **************
+stmtThrow :: Location -> Ast.Exp -> Ast.Stmt
+stmtThrow loc thrownExp = Ast.StmtExp $ instrumentationCall "throw" loc [thrownExp]
+
+-- **************
+-- *            *
+-- * stmt class *
+-- *            *
+-- **************
+stmtClass :: Token.Named -> Ast.Stmt
+stmtClass name = Ast.StmtClass $ Ast.StmtClassContent
+    {
+        Ast.stmtClassName = Token.ClassName name,
+        Ast.stmtClassSupers = [],
+        Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
+        Ast.stmtClassMethods = Ast.Methods Data.Map.empty
+    }
+
 -- ******************
 -- *                *
 -- * exp arrow func *
@@ -169,6 +217,78 @@ expNull loc = Ast.ExpNull $ Ast.ExpNullContent
             {
                 Token.constNullLocation = loc
             }
+    }
+
+-- *************
+-- *           *
+-- * var field *
+-- *           *
+-- *************
+varField :: Location -> Ast.Exp -> Token.Named -> Ast.Var
+varField loc lhs name = Ast.VarField $ Ast.VarFieldContent
+    {
+        Ast.varFieldLhs = lhs,
+        Ast.varFieldName = Token.FieldName name,
+        Ast.varFieldLocation = loc
+    }
+
+-- *****************
+-- *               *
+-- * var subscript *
+-- *               *
+-- *****************
+varSubscript :: Location -> Ast.Exp -> Ast.Exp -> Ast.Var
+varSubscript loc lhs idx = Ast.VarSubscript $ Ast.VarSubscriptContent
+    {
+        Ast.varSubscriptLhs = lhs,
+        Ast.varSubscriptIdx = idx,
+        Ast.varSubscriptLocation = loc
+    }
+
+-- **********************
+-- *                    *
+-- * instrumentation    *
+-- * (shared lowering   *
+-- *  for native nodes  *
+-- *  that have no 1:1  *
+-- *  dhscanner shape)  *
+-- *                    *
+-- **********************
+instrumentationCall :: String -> Location -> [Ast.Exp] -> Ast.Exp
+instrumentationCall tag loc callArgs = Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+            {
+                Token.content = "<dhscanner-instrumentation>[" ++ tag ++ "]",
+                Token.location = loc
+            },
+        Ast.args = callArgs,
+        Ast.expCallLocation = loc
+    }
+
+-- **************
+-- *            *
+-- * exp delete *
+-- *            *
+-- **************
+expDelete :: Location -> Ast.Exp -> Ast.Exp
+expDelete loc _operand = instrumentationCall "delete" loc []
+
+-- ***********
+-- *         *
+-- * exp new *
+-- *         *
+-- ***********
+expNew :: Location -> Maybe Token.Named -> Maybe [Ast.Exp] -> Ast.Exp
+expNew loc maybeType maybeArgs = Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
+            {
+                Token.content = case maybeType of { Just t -> Token.content t; _ -> "nondet" },
+                Token.location = loc
+            },
+        Ast.args = fromMaybe [] maybeArgs,
+        Ast.expCallLocation = loc
     }
 
 -- ***************
