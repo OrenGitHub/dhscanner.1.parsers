@@ -526,7 +526,9 @@ commalistof_with_optional_trailing_comma_rest(a): ',' a commalistof_with_optiona
 optional(a): { Nothing } | a { Just $1 }
 
 -- direct translation to dhscanner Ast.Root
-program: commalistof(stmt) { Actions.root $1 }
+program:
+commalistof(stmt) { Actions.root $1 } |
+',' commalistof(stmt) { Actions.root $2 }
 
 stmt:
 stmtIf { $1 } |
@@ -601,7 +603,7 @@ stmtClass:
     interfaceKeyword
     identifier
     optional(extends)
-    listof(stmt)
+    commalistof(stmt)
 ')'
 {
     Actions.stmtClass $5
@@ -636,30 +638,36 @@ identifier:
     }
 }
 
--- helpers related to stmtFunc
 parameters:
-possibly_empty_commalistof(simple_parameter) { $1 } |
-bound_parameters { $1 }
+possibly_empty_commalistof(parameterChunk) { concat $1 }
 
--- helpers related to parameters
-simple_parameter:
+parameterChunk:
+parameterChunk1 { $1 } |
+parameterChunk2 { $1 } |
+parameterChunk3 { $1 }
+
+parameterChunk1:
 'Parameter' loc
 '('
     identifier
+    optional(questionToken)
     optional(type_hint)
     optional(default_value)
 ')'
 {
-    Ast.Param
-    {
-        Ast.paramName = Token.ParamName $4,
-        Ast.paramNominalType = case $5 of { Just (Just t) -> Just (Actions.varify t); _ -> Nothing },
-        Ast.paramSerialIdx = 156
-    }
+    Actions.parameterChunk1 $4 $6
 }
 
--- helpers related to parameters
-bound_parameters:
+parameterChunk2:
+'Parameter' loc
+'('
+    objectBindingPattern
+')'
+{
+    []
+}
+
+parameterChunk3:
 'Parameter' loc
 '('
     objectBindingPattern
@@ -799,6 +807,7 @@ closeBracketToken:   'CloseBracketToken'   loc '(' ')' { Nothing }
 closeParenToken:     'CloseParenToken'     loc '(' ')' { Nothing }
 asKeyword:           'AsKeyword'           loc '(' ')' { Nothing }
 asteriskToken:       'AsteriskToken'       loc '(' ')' { Nothing }
+plusToken:           'PlusToken'           loc '(' ')' { Nothing }
 colonToken:          'ColonToken'          loc '(' ')' { Nothing }
 tryKeyword:          'TryKeyword'          loc '(' ')' { Nothing }
 elseKeyword:         'ElseKeyword'         loc '(' ')' { Nothing }
@@ -1000,12 +1009,13 @@ expCall:
 'CallExpression' loc
 '('
     exp
+    optional(generics)
     openParenToken
     possibly_empty_commalistof(exp)
     closeParenToken
 ')'
 {
-    Actions.expCall $2 $4 $6
+    Actions.expCall $2 $4 $7
 }
 |
 'CallExpression' loc
@@ -1038,6 +1048,7 @@ barBarToken          { Nothing } |
 eqEqEqToken          { Nothing } |
 ampAmpToken          { Nothing } |
 asteriskToken        { Nothing } |
+plusToken            { Nothing } |
 slashToken           { Nothing } |
 greaterThanToken     { Nothing } |
 greaterThanEqualsToken { Nothing } |
@@ -1107,6 +1118,18 @@ varSubscript:
 ')'
 {
     Actions.varSubscript $2 $4 $6
+}
+|
+'ElementAccessExpression' loc
+'('
+    exp
+    questionDotToken
+    openBracketToken
+    exp
+    closeBracketToken
+')'
+{
+    Actions.varSubscript $2 $4 $7
 }
 
 var_simple:
@@ -1425,7 +1448,12 @@ exp_await:
     $5
 }
 
+-- instrumented as dhscanner Ast.ExpCall
 property:
+property_1 { $1 } |
+property_2 { $1 }
+
+property_1:
 'PropertyAssignment' loc
 '('
     exp
@@ -1433,14 +1461,10 @@ property:
     exp
 ')'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
-    {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "key_value" $2,
-        Ast.args = [ $4, $6 ],
-        Ast.expCallLocation = $2
-    }
+    Actions.property $2 $4 $6
 }
-|
+
+property_2:
 'PropertyAssignment' loc
 '('
     'ComputedPropertyName' loc
@@ -1453,12 +1477,7 @@ property:
     exp
 ')'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
-    {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named "key_value" $2,
-        Ast.args = [ $8, $12 ],
-        Ast.expCallLocation = $2
-    }
+    Actions.property $2 $8 $12
 }
 
 spread_exp:

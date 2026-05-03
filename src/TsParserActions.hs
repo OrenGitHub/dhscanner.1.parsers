@@ -87,6 +87,28 @@ stmtFunc loc fname params body = Ast.StmtFunc $ Ast.StmtFuncContent
         Ast.stmtFuncLocation = loc
     }
 
+-- ********************
+-- *                  *
+-- * parameter chunk *
+-- *                  *
+-- ********************
+-- Lowering for the trivial Parameter(Identifier ..., type_hint?, default?)
+-- shape used by `parameterChunk_1` in TsParser.y. Returns a singleton
+-- [Ast.Param] so the surrounding `parameters` rule can `concat` per-slot
+-- lists from a comma-separated `parameterChunk` sequence.
+--
+-- The doubly-wrapped `Maybe (Maybe Token.Named)` reflects the grammar
+-- exactly: outer `Maybe` is `optional(type_hint)`, inner `Maybe` is
+-- `type`'s own `Maybe Token.Named` (most type alternatives carry no name
+-- and return `Nothing`). Only `Just (Just t)` has a usable nominal type.
+parameterChunk1 :: Token.Named -> Maybe (Maybe Token.Named) -> [Ast.Param]
+parameterChunk1 name maybeTypeHint = [Ast.Param
+    {
+        Ast.paramName = Token.ParamName name,
+        Ast.paramNominalType = case maybeTypeHint of { Just (Just t) -> Just (varify t); _ -> Nothing },
+        Ast.paramSerialIdx = 156
+    }]
+
 -- ***************
 -- *             *
 -- * stmt decvar *
@@ -94,6 +116,13 @@ stmtFunc loc fname params body = Ast.StmtFunc $ Ast.StmtFuncContent
 -- ***************
 varify :: Token.Named -> Ast.Var
 varify = Ast.VarSimple . Ast.VarSimpleContent . Token.VarName
+
+-- Lifts varify all the way to Ast.Exp. Use this whenever a rule needs a
+-- bare-name expression -- e.g. an instrumented callee like
+-- `<dhscanner-instrumentation>[kv]` (see `instrumentationCall`) -- instead
+-- of repeating the four-layer wrapper inline.
+expvarify :: Token.Named -> Ast.Exp
+expvarify = Ast.ExpVar . Ast.ExpVarContent . varify
 
 assignify :: [Ast.Var] -> Ast.Exp -> [Ast.Stmt]
 assignify vars e = Data.List.map (\v -> Ast.StmtAssign (Ast.StmtAssignContent v e)) vars
@@ -257,11 +286,7 @@ varSubscript loc lhs idx = Ast.VarSubscript $ Ast.VarSubscriptContent
 instrumentationCall :: String -> Location -> [Ast.Exp] -> Ast.Exp
 instrumentationCall tag loc callArgs = Ast.ExpCall $ Ast.ExpCallContent
     {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
-            {
-                Token.content = "<dhscanner-instrumentation>[" ++ tag ++ "]",
-                Token.location = loc
-            },
+        Ast.callee = expvarify (Token.Named ("<dhscanner-instrumentation>[" ++ tag ++ "]") loc),
         Ast.args = callArgs,
         Ast.expCallLocation = loc
     }
@@ -290,6 +315,18 @@ expNew loc maybeType maybeArgs = Ast.ExpCall $ Ast.ExpCallContent
         Ast.args = fromMaybe [] maybeArgs,
         Ast.expCallLocation = loc
     }
+
+-- ************
+-- *          *
+-- * property *
+-- *          *
+-- ************
+-- Object-literal `key: value` (or `[expr]: value`) assignments. Lowered as
+-- a standard Ast.ExpCall instrumentation tagged `[kv]`, so the callee is
+-- `<dhscanner-instrumentation>[kv]` -- same convention as every other
+-- instrumented Ast.ExpCall in this module (see `instrumentationCall`).
+property :: Location -> Ast.Exp -> Ast.Exp -> Ast.Exp
+property loc keyExp valueExp = instrumentationCall "kv" loc [keyExp, valueExp]
 
 -- ***************
 -- *             *

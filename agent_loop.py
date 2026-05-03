@@ -463,6 +463,43 @@ Rules of the road:
   5. If you cannot see a clearly safe minimal edit, return `edits: []`
      and explain in `rationale`. An empty patch is better than a guess
      that risks regressing other files.
+
+  6. The project builds with `-Werror=incomplete-uni-patterns` (and
+     `-Werror=incomplete-patterns`). To eliminate this entire class of
+     mistake by construction, your patches MUST NOT introduce anonymous
+     lambdas (`\\... -> ...`) at all -- not in `Data.List.map`, not in
+     `fmap`, not in `foldr`, not anywhere. Use a NAMED top-level
+     function instead, defined in the same file, with an explicit type
+     signature, and (when its scrutinee is a sum type) one clause per
+     constructor. Pass that name by reference to whatever higher-order
+     combinator needs it.
+
+     In particular, if your scrutinee is one of the dhscanner sum types
+     (`Ast.Var`, `Ast.Exp`, `Ast.Stmt`, ...), every clause MUST cover
+     every constructor. For `Ast.Var` (3 cases) the canonical shape is
+     one clause per constructor delegating to a per-constructor helper:
+
+         foo :: Ast.Var -> R
+         foo (Ast.VarSimple    v) = fooVarSimple    v
+         foo (Ast.VarField     v) = fooVarField     v
+         foo (Ast.VarSubscript v) = fooVarSubscript v
+
+         fooVarSimple    :: Ast.VarSimpleContent    -> R
+         fooVarField     :: Ast.VarFieldContent     -> R
+         fooVarSubscript :: Ast.VarSubscriptContent -> R
+
+     ...and then `Data.List.map foo someVars` -- never
+     `Data.List.map (\\(Ast.VarSimple ...) -> ...) someVars`. Same
+     shape for `Ast.Exp`, `Ast.Stmt`, etc. -- one clause per
+     constructor, each delegating to a per-constructor helper named
+     after that constructor's content type. If a case is genuinely
+     impossible, write it explicitly (e.g. with `error "unreachable: ..."`
+     or a `_` fallback) rather than leaving it implicit; never rely on
+     `-Wno-incomplete-uni-patterns` -- it is not enabled. Partial
+     anonymous lambdas like `\\(Ast.VarSimple ...) -> ...` mapped over
+     a list of `Ast.Var` are the single most common cause of
+     build_failed iterations -- the named-function rule above
+     eliminates them by construction.
 """
 
 
