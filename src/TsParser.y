@@ -525,6 +525,13 @@ commalistof_with_optional_trailing_comma_rest(a): ',' a commalistof_with_optiona
 -- ******************
 optional(a): { Nothing } | a { Just $1 }
 
+-- ****************
+-- *              *
+-- * choice rules *
+-- *              *
+-- ****************
+choice(a, b): a { Left $1 } | b { Right $1 }
+
 -- direct translation to dhscanner Ast.Root
 program:
 commalistof(stmt) { Actions.root $1 } |
@@ -540,6 +547,7 @@ stmt_property    { $1 } |
 stmtClass        { $1 } |
 stmtReturn       { $1 } |
 stmtThrow        { $1 } |
+stmtForOf        { $1 } |
 stmtDecvar       { $1 }
 
 -- direct translation to dhscanner Ast.StmtIf
@@ -584,6 +592,15 @@ catchPart:
 'CatchClause' loc
 '('
     catchKeyword
+    block
+')'
+{
+    $5
+}
+|
+'CatchClause' loc
+'('
+    catchKeyword
     openParenToken
     'VariableDeclaration' loc '(' identifier optional(type_hint) ')'
     closeParenToken
@@ -595,6 +612,32 @@ catchPart:
 
 -- instrumented as dhscanner Ast.StmtExp
 stmtThrow: 'ThrowStatement' loc '(' throwKeyword exp ')' { Actions.stmtThrow $2 $5 }
+
+-- instrumented as dhscanner Ast.StmtBlock
+stmtForOf:
+'ForOfStatement' loc
+'('
+    forKeyword
+    openParenToken
+    'VariableDeclarationList' loc
+    '('
+        'VariableDeclaration' loc
+        '('
+            decvarLhs
+        ')'
+    ')'
+    ofKeyword
+    exp
+    closeParenToken
+    stmtOrBlock
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = $18,
+        Ast.stmtBlockLocation = $2
+    }
+}
 
 -- direct translation to dhscanner Ast.StmtClass
 stmtClass:
@@ -811,6 +854,8 @@ plusToken:           'PlusToken'           loc '(' ')' { Nothing }
 colonToken:          'ColonToken'          loc '(' ')' { Nothing }
 tryKeyword:          'TryKeyword'          loc '(' ')' { Nothing }
 elseKeyword:         'ElseKeyword'         loc '(' ')' { Nothing }
+forKeyword:          'ForKeyword'          loc '(' ')' { Nothing }
+ofKeyword:           'OfKeyword'           loc '(' ')' { Nothing }
 minusToken:          'MinusToken'          loc '(' ')' { Nothing }
 catchKeyword:        'CatchKeyword'        loc '(' ')' { Nothing }
 firstAssignment:     'FirstAssignment'     loc '(' ')' { Nothing }
@@ -931,6 +976,14 @@ stmtDecvar:
 {
     Actions.stmtDecvar $2 $7 $9
 }
+|
+'VariableDeclarationList' loc
+'('
+    'VariableDeclaration' loc '(' decvarLhs ')'
+')'
+{
+    Actions.stmtDecvarNoInit $2 $7
+}
 
 extends:
 'HeritageClause' loc
@@ -1049,6 +1102,7 @@ eqEqEqToken          { Nothing } |
 ampAmpToken          { Nothing } |
 asteriskToken        { Nothing } |
 plusToken            { Nothing } |
+minusToken           { Nothing } |
 slashToken           { Nothing } |
 greaterThanToken     { Nothing } |
 greaterThanEqualsToken { Nothing } |
@@ -1091,17 +1145,7 @@ varField:
 'PropertyAccessExpression' loc
 '('
     exp
-    dotToken
-    identifier
-')'
-{
-    Actions.varField $2 $4 $6
-}
-|
-'PropertyAccessExpression' loc
-'('
-    exp
-    questionDotToken
+    choice(dotToken, questionDotToken)
     identifier
 ')'
 {
@@ -1112,18 +1156,7 @@ varSubscript:
 'ElementAccessExpression' loc
 '('
     exp
-    openBracketToken
-    exp
-    closeBracketToken
-')'
-{
-    Actions.varSubscript $2 $4 $6
-}
-|
-'ElementAccessExpression' loc
-'('
-    exp
-    questionDotToken
+    optional(questionDotToken)
     openBracketToken
     exp
     closeBracketToken
@@ -1219,6 +1252,25 @@ exp_unop:
     $5
 }
 
+postfix_operator:
+'PlusPlusToken' loc '(' ')' { Nothing } |
+'MinusMinusToken' loc '(' ')' { Nothing }
+
+-- ***************
+-- *             *
+-- * exp postunop*
+-- *             *
+-- ***************
+exp_post_unop:
+'PostfixUnaryExpression' loc
+'('
+    exp
+    postfix_operator
+')'
+{
+    $4
+}
+
 -- *************
 -- *           *
 -- * exp paren *
@@ -1235,36 +1287,19 @@ exp_paren:
     $5
 }
 
--- **************
--- *            *
--- * exp typeof *
--- *            *
--- **************
-exp_typeof:
+-- instrumented as dhscanner Ast.ExpCall
+expTypeof:
 'TypeOfExpression' loc
 '('
     typeOfKeyword
     exp
 ')'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
-    {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
-        {
-            Token.content = "typeof",
-            Token.location = $2
-        },
-        Ast.args = [],
-        Ast.expCallLocation = $2
-    }
+    Actions.expTypeof $2 $5
 }
 
--- ***************
--- *             *
--- * exp ternary *
--- *             *
--- ***************
-exp_ternary:
+-- instrumented as dhscanner Ast.ExpCall
+expTernary:
 'ConditionalExpression' loc
 '('
     exp
@@ -1274,16 +1309,7 @@ exp_ternary:
     exp
 ')'
 {
-    Ast.ExpCall $ Ast.ExpCallContent
-    {
-        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent $ Ast.VarSimple $ Ast.VarSimpleContent $ Token.VarName $ Token.Named
-        {
-            Token.content = "ternary",
-            Token.location = $2
-        },
-        Ast.args = [],
-        Ast.expCallLocation = $2
-    }
+    Actions.expTernary $2 $4 $6 $8
 }
 
 stmt_method:
@@ -1558,13 +1584,14 @@ fstring        { $1 } |
 expCall        { $1 } |
 exp_meta       { $1 } |
 exp_array      { $1 } |
-exp_ternary    { $1 } |
+expTernary     { $1 } |
 exp_var        { $1 } |
 exp_as         { $1 } |
 exp_paren      { $1 } |
 exp_unop       { $1 } |
+exp_post_unop  { $1 } |
 expDelete      { $1 } |
-exp_typeof     { $1 } |
+expTypeof      { $1 } |
 expBinop       { $1 } |
 exp_regex      { $1 } |
 exp_non_null   { $1 } |

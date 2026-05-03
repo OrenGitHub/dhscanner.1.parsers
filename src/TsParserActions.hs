@@ -149,6 +149,20 @@ stmtDecvar :: Location -> [Ast.Var] -> Ast.Exp -> Ast.Stmt
 stmtDecvar _   [Ast.VarSimple (Ast.VarSimpleContent v)] initExp = normalizeVardec v initExp
 stmtDecvar loc vars                                     initExp = Ast.StmtBlock $ Ast.StmtBlockContent (assignify vars initExp) loc
 
+stmtDecvarNoInit :: Location -> [Ast.Var] -> Ast.Stmt
+stmtDecvarNoInit _   [Ast.VarSimple (Ast.VarSimpleContent v)] = Ast.StmtVardec $ Ast.StmtVardecContent
+    {
+        Ast.stmtVardecName = v,
+        Ast.stmtVardecNominalType = Just (varify (Token.Named "any" (Token.getVarNameLocation v))),
+        Ast.stmtVardecInitValue = Nothing,
+        Ast.stmtVardecLocation = Token.getVarNameLocation v
+    }
+stmtDecvarNoInit loc _ = Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = [],
+        Ast.stmtBlockLocation = loc
+    }
+
 -- *************
 -- *           *
 -- * exp binop *
@@ -315,6 +329,22 @@ expNew loc maybeType maybeArgs = Ast.ExpCall $ Ast.ExpCallContent
         Ast.args = fromMaybe [] maybeArgs,
         Ast.expCallLocation = loc
     }
+
+-- **************
+-- *            *
+-- * exp typeof *
+-- *            *
+-- **************
+expTypeof :: Location -> Ast.Exp -> Ast.Exp
+expTypeof loc _operand = instrumentationCall "typeof" loc []
+
+-- ***************
+-- *             *
+-- * exp ternary *
+-- *             *
+-- ***************
+expTernary :: Location -> Ast.Exp -> Ast.Exp -> Ast.Exp -> Ast.Exp
+expTernary loc _cond _thenExp _elseExp = instrumentationCall "ternary" loc []
 
 -- ************
 -- *          *
