@@ -209,6 +209,9 @@ stmtReturn loc value = Ast.StmtReturn $ Ast.StmtReturnContent
 stmtThrow :: Location -> Ast.Exp -> Ast.Stmt
 stmtThrow loc thrownExp = Ast.StmtExp $ instrumentationCall "throw" loc [thrownExp]
 
+stmtBreak :: Location -> Ast.Stmt
+stmtBreak loc = Ast.StmtExp $ instrumentationCall "break" loc []
+
 -- **************
 -- *            *
 -- * stmt class *

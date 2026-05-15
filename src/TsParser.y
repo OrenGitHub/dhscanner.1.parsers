@@ -547,7 +547,12 @@ stmt_property    { $1 } |
 stmtClass        { $1 } |
 stmtReturn       { $1 } |
 stmtThrow        { $1 } |
+stmtBreak       { $1 } |
+stmtWhile       { $1 } |
 stmtForOf        { $1 } |
+stmtFor        { $1 } |
+stmtSwitch     { $1 } |
+stmtEnum        { $1 } |
 stmtDecvar       { $1 }
 
 -- direct translation to dhscanner Ast.StmtIf
@@ -639,6 +644,102 @@ stmtForOf:
     }
 }
 
+-- instrumented as dhscanner Ast.StmtBlock
+stmtFor:
+'ForStatement' loc
+'('
+    forKeyword
+    openParenToken
+    'VariableDeclarationList' loc
+    '('
+        'VariableDeclaration' loc
+        '('
+            decvarLhs
+            firstAssignment
+            exp
+        ')'
+    ')'
+    optional(semicolonToken)
+    exp
+    optional(semicolonToken)
+    exp
+    closeParenToken
+    stmtOrBlock
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = $22,
+        Ast.stmtBlockLocation = $2
+    }
+}
+
+-- instrumented as dhscanner Ast.StmtBlock
+stmtWhile:
+'WhileStatement' loc
+'('
+    whileKeyword
+    openParenToken
+    exp
+    closeParenToken
+    stmtOrBlock
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = $8,
+        Ast.stmtBlockLocation = $2
+    }
+}
+
+-- instrumented as dhscanner Ast.StmtBlock
+stmtSwitch:
+'SwitchStatement' loc
+'('
+    'SwitchKeyword' loc '(' ')'
+    openParenToken
+    exp
+    closeParenToken
+    'CaseBlock' loc
+    '('
+        possibly_empty_commalistof(switchClause)
+    ')'
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = concat $14,
+        Ast.stmtBlockLocation = $2
+    }
+}
+
+switchClause:
+switchCase { $1 } |
+switchDefault { $1 }
+
+switchCase:
+'CaseClause' loc
+'('
+    optional(caseKeyword)
+    exp
+    optional(colonToken)
+    possibly_empty_commalistof(stmtOrBlock)
+')'
+{
+    concat $7
+}
+
+switchDefault:
+'DefaultClause' loc
+'('
+    optional(defaultKeyword)
+    optional(colonToken)
+    possibly_empty_commalistof(stmtOrBlock)
+')'
+{
+    concat $6
+}
+
 -- direct translation to dhscanner Ast.StmtClass
 stmtClass:
 'InterfaceDeclaration' loc
@@ -687,7 +788,8 @@ possibly_empty_commalistof(parameterChunk) { concat $1 }
 parameterChunk:
 parameterChunk1 { $1 } |
 parameterChunk2 { $1 } |
-parameterChunk3 { $1 }
+parameterChunk3 { $1 } |
+parameterChunk4 { $1 }
 
 parameterChunk1:
 'Parameter' loc
@@ -725,6 +827,15 @@ parameterChunk3:
 }
 
 -- helpers related to stmtFunc
+parameterChunk4:
+'Parameter' loc
+'('
+    arrayBindingPattern
+')'
+{
+    []
+}
+
 property_signature_as_param:
 'PropertySignature' loc
 '('
@@ -752,6 +863,7 @@ intersection_type { Nothing } |
 parenthesized_type { Nothing } |
 type_operator { Nothing } |
 array_type { Nothing } |
+firstNode { $1 } |
 internal_type optional(generics) { $1 }
 
 -- helpers related to type
@@ -803,6 +915,7 @@ typeLiteral { Nothing }
 -- helpers related to type
 generics: firstBinaryOperator commalistof(type) greaterThanToken { Nothing }
 typeReference: 'TypeReference' loc '(' type ')' { $4 }
+firstNode: 'FirstNode' loc '(' identifier dotToken identifier ')' { Nothing }
 typeLiteral: 'TypeLiteral' loc '(' optional(commalistof(stmt_property)) ')' { Nothing }
 
 literalType:
@@ -818,10 +931,12 @@ nullKeyword:         'NullKeyword'         loc '(' ')' { $2 }
 trueKeyword:         'TrueKeyword'         loc '(' ')' { $2 }
 falseKeyword:        'FalseKeyword'        loc '(' ')' { $2 }
 ifKeyword:           'IfKeyword'           loc '(' ')' { Nothing }
+whileKeyword:        'WhileKeyword'        loc '(' ')' { Nothing }
 functionKeyword:     'FunctionKeyword'     loc '(' ')' { Nothing }
 inKeyword:           'InKeyword'           loc '(' ')' { Nothing }
 anyKeyword:          'AnyKeyword'          loc '(' ')' { Nothing }
 commaToken:          'CommaToken'          loc '(' ')' { Nothing }
+semicolonToken:       'SemicolonToken'      loc '(' ')' { Nothing }
 booleanKeyword:      'BooleanKeyword'      loc '(' ')' { Nothing }
 newKeyword:          'NewKeyword'          loc '(' ')' { Nothing }
 unknownKeyword:      'UnknownKeyword'      loc '(' ')' { Nothing }
@@ -860,14 +975,18 @@ minusToken:          'MinusToken'          loc '(' ')' { Nothing }
 catchKeyword:        'CatchKeyword'        loc '(' ')' { Nothing }
 firstAssignment:     'FirstAssignment'     loc '(' ')' { Nothing }
 firstBinaryOperator: 'FirstBinaryOperator' loc '(' ')' { Nothing }
+firstCompoundAssignment: 'FirstCompoundAssignment' loc '(' ')' { Nothing }
 greaterThanToken:    'GreaterThanToken'    loc '(' ')' { Nothing }
 greaterThanEqualsToken: 'GreaterThanEqualsToken' loc '(' ')' { Nothing }
+lessThanEqualsToken: 'LessThanEqualsToken' loc '(' ')' { Nothing }
 questionQuestionToken: 'QuestionQuestionToken' loc '(' ')' { Nothing }
 equalsGreaterThanToken: 'EqualsGreaterThanToken' loc '(' ')' { Nothing }
 ampAmpToken:         'AmpersandAmpersandToken' loc '(' ')' { Nothing }
 eqEqEqToken:         'EqualsEqualsEqualsToken' loc '(' ')' { Nothing }
 exclamationEqEqToken: 'ExclamationEqualsEqualsToken' loc '(' ')' { Nothing }
 dotDotDotToken: 'DotDotDotToken' loc '(' ')' { Nothing }
+caseKeyword:        'CaseKeyword'        loc '(' ')' { Nothing }
+defaultKeyword:     'DefaultKeyword'     loc '(' ')' { Nothing }
 
 importee: asteriskToken { Nothing }
 
@@ -954,6 +1073,16 @@ bindingElement:
 {
     Actions.varify $4
 }
+|
+'BindingElement' loc
+'('
+    identifier
+    colonToken
+    identifier
+')'
+{
+    Actions.varify $6
+}
 
 objectBindingPattern:
 'ObjectBindingPattern' loc
@@ -964,9 +1093,46 @@ objectBindingPattern:
     $4
 }
 
+arrayBindingPattern:
+'ArrayBindingPattern' loc
+'('
+    openBracketToken
+    possibly_empty_commalistof(arrayBindingElement)
+    closeBracketToken
+')'
+{
+    concat $5
+}
+
+arrayBindingElement:
+'BindingElement' loc
+'('
+    identifier
+')'
+{
+    [Actions.varify $4]
+}
+|
+'BindingElement' loc
+'('
+    objectBindingPattern
+')'
+{
+    $4
+}
+|
+'BindingElement' loc
+'('
+    arrayBindingPattern
+')'
+{
+    $4
+}
+
 decvarLhs:
 identifier optional(type_hint) { [Actions.varify $1] } |
-objectBindingPattern           { $1 }
+objectBindingPattern           { $1 } |
+arrayBindingPattern            { $1 }
 
 stmtDecvar:
 'VariableDeclarationList' loc
@@ -994,6 +1160,36 @@ extends:
 {
     Nothing
 }
+
+-- instrumented as dhscanner Ast.StmtBlock
+stmtEnum:
+'EnumDeclaration' loc
+'('
+    'EnumKeyword' loc '(' ')'
+    identifier
+    commalistof(enumMember)
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = [],
+        Ast.stmtBlockLocation = $2
+    }
+}
+
+enumMember:
+'EnumMember' loc
+'('
+    identifier
+    optional(enumInitializer)
+')'
+{
+    []
+}
+
+enumInitializer:
+firstAssignment stringLiteral { Nothing } |
+firstAssignment 'NumericLiteral' loc '(' INT ')' { Nothing }
 
 -- ***************
 -- *             *
@@ -1042,6 +1238,16 @@ stmtReturn:
 ')'
 {
     Actions.stmtReturn $2 $5
+}
+
+-- instrumented as dhscanner Ast.StmtExp
+stmtBreak:
+'BreakStatement' loc
+'('
+    'FirstKeyword' loc '(' ')'
+')'
+{
+    Actions.stmtBreak $2
 }
 
 expArrowFunction:
@@ -1096,6 +1302,7 @@ stringLiteral
 operator:
 inKeyword            { Nothing } |
 firstBinaryOperator  { Nothing } |
+firstCompoundAssignment  { Nothing } |
 instanceOfKeyword    { Nothing } |
 barBarToken          { Nothing } |
 eqEqEqToken          { Nothing } |
@@ -1106,6 +1313,7 @@ minusToken           { Nothing } |
 slashToken           { Nothing } |
 greaterThanToken     { Nothing } |
 greaterThanEqualsToken { Nothing } |
+lessThanEqualsToken  { Nothing } |
 questionQuestionToken { Nothing } |
 exclamationEqEqToken { Nothing }
 
@@ -1572,6 +1780,16 @@ exp_non_null:
     $4
 }
 
+exp_spread_element:
+'SpreadElement' loc
+'('
+    dotDotDotToken
+    exp
+')'
+{
+    $5
+}
+
 exp:
 exp_str        { $1 } |
 exp_int        { $1 } |
@@ -1596,6 +1814,7 @@ expBinop       { $1 } |
 exp_regex      { $1 } |
 exp_non_null   { $1 } |
 exp_jsx        { $1 } |
+exp_spread_element { $1 } |
 expArrowFunction { $1 }
 
 loc:
