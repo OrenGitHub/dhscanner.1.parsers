@@ -300,6 +300,19 @@ expArrowFunction loc params body = Ast.ExpLambda $ Ast.ExpLambdaContent
         Ast.expLambdaLocation = loc
     }
 
+-- ******************
+-- *                *
+-- * exp func expr  *
+-- *                *
+-- ******************
+expFunctionExpression :: Location -> [Ast.Param] -> [Ast.Stmt] -> Ast.Exp
+expFunctionExpression loc params body = Ast.ExpLambda $ Ast.ExpLambdaContent
+    {
+        Ast.expLambdaParams = params,
+        Ast.expLambdaBody = body,
+        Ast.expLambdaLocation = loc
+    }
+
 -- ***************
 -- *             *
 -- * stmt assign *

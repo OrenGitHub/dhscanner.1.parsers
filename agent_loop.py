@@ -790,6 +790,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="first",
         help="failure-picking strategy",
     )
+    ap.add_argument(
+        "--reshuffle",
+        action="store_true",
+        help=(
+            "shorthand for --pick random with a non-deterministic seed. "
+            "Use when the loop appears stuck on the same failing file's "
+            "esoteric edge case to start from a different file's failure "
+            "this iteration."
+        ),
+    )
     ap.add_argument("--seed", type=int, default=None, help="random seed")
     ap.add_argument(
         "--rebuild-baseline",
@@ -944,7 +954,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         save_baseline(args.corpus, files_map)
 
-    chosen = pick_failure(files_map, args.pick, rng)
+    pick_strategy = "random" if args.reshuffle else args.pick
+    chosen = pick_failure(files_map, pick_strategy, rng)
     if chosen is None:
         print("no failures in baseline -- nothing to do.")
         return 0

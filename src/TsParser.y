@@ -817,7 +817,8 @@ parameterChunk:
 parameterChunk1 { $1 } |
 parameterChunk2 { $1 } |
 parameterChunk3 { $1 } |
-parameterChunk4 { $1 }
+parameterChunk4 { $1 } |
+parameterChunk5 { $1 }
 
 parameterChunk1:
 'Parameter' loc
@@ -864,17 +865,29 @@ parameterChunk4:
     []
 }
 
+parameterChunk5:
+'Parameter' loc
+'('
+    objectBindingPattern
+    colonToken
+    typeReference
+')'
+{
+    []
+}
+
 property_signature_as_param:
 'PropertySignature' loc
 '('
     identifier
+    optional(questionToken)
     type_hint
 ')'
 {
     Ast.Param
     {
         Ast.paramName = Token.ParamName $4,
-        Ast.paramNominalType = case $5 of { Just t -> Just (Actions.varify t); _ -> Nothing },
+        Ast.paramNominalType = case $6 of { Just t -> Just (Actions.varify t); _ -> Nothing },
         Ast.paramSerialIdx = 156
     }
 }
@@ -891,6 +904,7 @@ intersection_type { Nothing } |
 parenthesized_type { Nothing } |
 type_operator { Nothing } |
 array_type { Nothing } |
+function_type { $1 } |
 typeQuery { Nothing } |
 firstNode { $1 } |
 firstTypeNode { $1 } |
@@ -934,8 +948,24 @@ array_type:
     Nothing
 }
 
+function_type:
+'FunctionType' loc
+'('
+    openParenToken
+    parameters
+    closeParenToken
+    equalsGreaterThanToken
+    type
+')'
+{
+    Nothing
+}
+
 -- helpers related to type
-union_type: 'UnionType' loc '(' barlistof(type) ')' { Nothing }
+union_type: 'UnionType' loc '(' barlistof(type) ')' { Nothing } |
+'UnionType' loc '(' unionTypeTail ')' { Nothing }
+unionTypeTail: 'BarToken' loc '(' ')' ',' type unionTypeTailRest { 0 }
+unionTypeTailRest: ',' 'BarToken' loc '(' ')' ',' type unionTypeTailRest { 0 } | { 0 }
 intersection_type: 'IntersectionType' loc '(' ampersandlistof(type) ')' { Nothing }
 parenthesized_type: 'ParenthesizedType' loc '(' openParenToken type closeParenToken ')' { $5 }
 type_operator: 'TypeOperator' loc '(' type ')' { $4 }
@@ -964,6 +994,7 @@ typeParameter:
 'TypeParameter' loc
 '('
     identifier
+    optional(typeParameterExtends)
     optional(firstAssignment)
     optional(type)
 ')'
@@ -971,11 +1002,46 @@ typeParameter:
     Nothing
 }
 
-typeLiteral: 'TypeLiteral' loc '(' optional(commalistof(stmt_property)) ')' { Nothing }
+typeParameterExtends:
+extendsKeyword type { Nothing }
+
+-- helpers related to arrow function generics
+typeParameters:
+firstBinaryOperator commalistof(typeParameter) greaterThanToken { Nothing }
+
+typeLiteral: 'TypeLiteral' loc '(' optional(commalistof(type_literal_member)) ')' { Nothing }
+
+type_literal_member:
+stmt_property { $1 } |
+indexSignature { $1 }
+
+indexSignature:
+'IndexSignature' loc
+'('
+    openBracketToken
+    'Parameter' loc
+    '('
+        identifier
+        colonToken
+        stringKeyword
+    ')'
+    closeBracketToken
+    colonToken
+    type
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = [],
+        Ast.stmtBlockLocation = $2
+    }
+}
 
 literalType:
 'LiteralType' loc '(' stringLiteral ')' { Nothing } |
-'LiteralType' loc '(' nullKeyword   ')' { Nothing }
+'LiteralType' loc '(' nullKeyword   ')' { Nothing } |
+'LiteralType' loc '(' trueKeyword   ')' { Nothing } |
+'LiteralType' loc '(' falseKeyword  ')' { Nothing }
 
 
 throwKeyword:        'ThrowKeyword'        loc '(' ')' { Nothing }
@@ -1177,10 +1243,19 @@ identifier colonToken identifier { $3 }
 bindingElement:
 'BindingElement' loc
 '('
-    destructBinding
+    destructBinding optional(default_value)
 ')'
 {
     Actions.varify $4
+}
+|
+'BindingElement' loc
+'('
+    dotDotDotToken
+    identifier
+')'
+{
+    Actions.varify $5
 }
 
 objectBindingPattern:
@@ -1315,6 +1390,21 @@ stmt_property:
         Ast.stmtVardecLocation = $2
     }
 }
+|
+'PropertySignature' loc
+'('
+    stringLiteral optional(questionToken) optional(type_hint) optional(commaToken)
+')'
+{
+    let name = Token.Named { Token.content = Token.constStrValue $4, Token.location = Token.constStrLocation $4 } in
+    Ast.StmtVardec $ Ast.StmtVardecContent
+    {
+        Ast.stmtVardecName = Token.VarName name,
+        Ast.stmtVardecNominalType = Just (Actions.varify name),
+        Ast.stmtVardecInitValue = Nothing,
+        Ast.stmtVardecLocation = $2
+    }
+}
 
 block:
 'Block' loc
@@ -1368,6 +1458,7 @@ stmtContinue:
 expArrowFunction:
 'ArrowFunction' loc
 '('
+    optional(typeParameters)
     openParenToken
     parameters
     closeParenToken
@@ -1376,7 +1467,23 @@ expArrowFunction:
     lambdaBody
 ')'
 {
-    Actions.expArrowFunction $2 $5 $9
+    Actions.expArrowFunction $2 $6 $10
+}
+
+-- direct dhscanner subtree creation: Ast.ExpLambda
+expFunctionExpression:
+'FunctionExpression' loc
+'('
+    functionKeyword
+    optional(identifier)
+    openParenToken
+    parameters
+    closeParenToken
+    optional(type_hint)
+    block
+')'
+{
+    Actions.expFunctionExpression $2 $7 $10
 }
 
 expCall:
@@ -1978,6 +2085,7 @@ exp_regex      { $1 } |
 exp_non_null   { $1 } |
 exp_jsx        { $1 } |
 exp_spread_element { $1 } |
+expFunctionExpression { $1 } |
 expArrowFunction { $1 }
 
 loc:
