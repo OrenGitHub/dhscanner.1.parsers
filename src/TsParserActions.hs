@@ -394,6 +394,15 @@ expNew loc maybeType maybeArgs = Ast.ExpCall $ Ast.ExpCallContent
         Ast.expCallLocation = loc
     }
 
+-- NewExpression with an expression/var callee (e.g., new google.auth.OAuth2(...))
+expNewCalleeVar :: Location -> Ast.Var -> Maybe [Ast.Exp] -> Ast.Exp
+expNewCalleeVar loc v maybeArgs = Ast.ExpCall $ Ast.ExpCallContent
+    {
+        Ast.callee = Ast.ExpVar $ Ast.ExpVarContent v,
+        Ast.args = fromMaybe [] maybeArgs,
+        Ast.expCallLocation = loc
+    }
+
 -- **************
 -- *            *
 -- * exp typeof *

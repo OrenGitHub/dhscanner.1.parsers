@@ -499,7 +499,7 @@ ID  { AlexTokenTag (AlexRawToken_ID  id) _ _ }
 -- **********************
 listof(a):          a { [$1] } | a listof(a)                                       { $1:$2 }
 barlistof(a):       a { [$1] } | a ',' 'BarToken'   loc '(' ')' ',' barlistof(a)   { $1:$8 }
-ampersandlistof(a): a { [$1] } | a 'AmpersandToken' loc '(' ')' ampersandlistof(a) { $1:$6 }
+ampersandlistof(a): a { [$1] } | a 'AmpersandToken' loc '(' ')' ampersandlistof(a) { $1:$6 } | a ',' 'AmpersandToken' loc '(' ')' ',' ampersandlistof(a) { $1:$8 }
 
 -- **********************
 -- *                    *
@@ -550,6 +550,7 @@ stmtBreak       { $1 } |
 stmtContinue     { $1 } |
 stmtWhile       { $1 } |
 stmtForOf        { $1 } |
+stmtForIn        { $1 } |
 stmtFor        { $1 } |
 stmtSwitch     { $1 } |
 stmtEnum        { $1 } |
@@ -636,6 +637,32 @@ stmtForOf:
         ')'
     ')'
     ofKeyword
+    exp
+    closeParenToken
+    stmtOrBlock
+')'
+{
+    Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = $18,
+        Ast.stmtBlockLocation = $2
+    }
+}
+
+-- instrumented as dhscanner Ast.StmtBlock
+stmtForIn:
+'ForInStatement' loc
+'('
+    forKeyword
+    openParenToken
+    'VariableDeclarationList' loc
+    '('
+        'VariableDeclaration' loc
+        '('
+            decvarLhs
+        ')'
+    ')'
+    inKeyword
     exp
     closeParenToken
     stmtOrBlock
@@ -746,6 +773,7 @@ stmtClass:
 '('
     interfaceKeyword
     identifier
+    optional(generics)
     optional(extends)
     commalistof(stmt)
 ')'
@@ -865,6 +893,8 @@ type_operator { Nothing } |
 array_type { Nothing } |
 typeQuery { Nothing } |
 firstNode { $1 } |
+firstTypeNode { $1 } |
+typeParameter { Nothing } |
 internal_type optional(generics) { $1 }
 
 -- helpers related to type
@@ -928,6 +958,19 @@ typeLiteral { Nothing }
 generics: firstBinaryOperator commalistof(type) greaterThanToken { Nothing }
 typeReference: 'TypeReference' loc '(' type ')' { $4 }
 firstNode: 'FirstNode' loc '(' identifier dotToken identifier ')' { Nothing }
+firstTypeNode: 'FirstTypeNode' loc '(' identifier isKeyword internal_type ')' { Nothing }
+
+typeParameter:
+'TypeParameter' loc
+'('
+    identifier
+    optional(firstAssignment)
+    optional(type)
+')'
+{
+    Nothing
+}
+
 typeLiteral: 'TypeLiteral' loc '(' optional(commalistof(stmt_property)) ')' { Nothing }
 
 literalType:
@@ -939,6 +982,7 @@ throwKeyword:        'ThrowKeyword'        loc '(' ')' { Nothing }
 importKeyword:       'ImportKeyword'       loc '(' ')' { Nothing }
 interfaceKeyword:    'InterfaceKeyword'    loc '(' ')' { Nothing }
 instanceOfKeyword:   'InstanceOfKeyword'   loc '(' ')' { Nothing }
+isKeyword:           'IsKeyword'           loc '(' ')' { Nothing }
 nullKeyword:         'NullKeyword'         loc '(' ')' { $2 }
 trueKeyword:         'TrueKeyword'         loc '(' ')' { $2 }
 falseKeyword:        'FalseKeyword'        loc '(' ')' { $2 }
@@ -977,6 +1021,7 @@ openBracketToken:    'OpenBracketToken'    loc '(' ')' { Nothing }
 closeBracketToken:   'CloseBracketToken'   loc '(' ')' { Nothing }
 closeParenToken:     'CloseParenToken'     loc '(' ')' { Nothing }
 asKeyword:           'AsKeyword'           loc '(' ')' { Nothing }
+satisfiesKeyword:    'SatisfiesKeyword'    loc '(' ')' { Nothing }
 asteriskToken:       'AsteriskToken'       loc '(' ')' { Nothing }
 plusToken:           'PlusToken'           loc '(' ')' { Nothing }
 colonToken:          'ColonToken'          loc '(' ')' { Nothing }
@@ -996,6 +1041,7 @@ lessThanEqualsToken: 'LessThanEqualsToken' loc '(' ')' { Nothing }
 questionQuestionToken: 'QuestionQuestionToken' loc '(' ')' { Nothing }
 equalsGreaterThanToken: 'EqualsGreaterThanToken' loc '(' ')' { Nothing }
 ampAmpToken:         'AmpersandAmpersandToken' loc '(' ')' { Nothing }
+eqEqToken:         'EqualsEqualsToken' loc '(' ')' { Nothing }
 eqEqEqToken:         'EqualsEqualsEqualsToken' loc '(' ')' { Nothing }
 exclamationEqEqToken: 'ExclamationEqualsEqualsToken' loc '(' ')' { Nothing }
 dotDotDotToken: 'DotDotDotToken' loc '(' ')' { Nothing }
@@ -1091,6 +1137,7 @@ stmtExport:
     '('
         commalistof(exportSpecifier)
     ')'
+    optional(exportFrom)
 ')'
 {
     Actions.stmtExport $2
@@ -1114,6 +1161,9 @@ exportSpecifier:
 {
     Nothing
 }
+
+exportFrom:
+fromKeyword stringLiteral { Nothing }
 
 -- The bound local in an object destructuring element.
 --   { x }    -> shorthand: property `x`, local `x`         -> returns `x`
@@ -1364,12 +1414,28 @@ stringLiteral
     Ast.ExpStr $ Ast.ExpStrContent $1
 }
 
+-- ***************
+-- *             *
+-- * exp template token *
+-- *             *
+-- ***************
+exp_template_token:
+'FirstTemplateToken' loc '(' ')'
+{
+    Ast.ExpStr $ Ast.ExpStrContent $ Token.ConstStr
+    {
+        Token.constStrValue = "",
+        Token.constStrLocation = $2
+    }
+}
+
 operator:
 inKeyword            { Nothing } |
 firstBinaryOperator  { Nothing } |
 firstCompoundAssignment  { Nothing } |
 instanceOfKeyword    { Nothing } |
 barBarToken          { Nothing } |
+eqEqToken            { Nothing } |
 eqEqEqToken          { Nothing } |
 ampAmpToken          { Nothing } |
 asteriskToken        { Nothing } |
@@ -1666,6 +1732,24 @@ exp_as:
     $4
 }
 
+-- ***************
+-- *             *
+-- * exp satisfies *
+-- *             *
+-- ***************
+exp_satisfies:
+'SatisfiesExpression' loc
+'('
+    exp
+    optional(satisfiesTail)
+')'
+{
+    $4
+}
+
+satisfiesTail:
+satisfiesKeyword type { Nothing }
+
 expTrue: trueKeyword { Actions.expBool True $1 }
 expFalse: falseKeyword { Actions.expBool False $1 }
 expBool: expTrue  { $1 } | expFalse { $1 }
@@ -1684,6 +1768,18 @@ expNew:
 ')'
 {
     Actions.expNew $2 $5 $7
+}
+|
+'NewExpression' loc
+'('
+    newKeyword
+    varField
+    openParenToken
+    optional(commalistof(exp))
+    closeParenToken
+')'
+{
+    Actions.expNewCalleeVar $2 $5 $7
 }
 
 -- *************
@@ -1857,6 +1953,7 @@ exp_spread_element:
 
 exp:
 exp_str        { $1 } |
+exp_template_token { $1 } |
 exp_int        { $1 } |
 expNew         { $1 } |
 exp_dict       { $1 } |
@@ -1869,6 +1966,7 @@ exp_meta       { $1 } |
 exp_array      { $1 } |
 expTernary     { $1 } |
 exp_var        { $1 } |
+exp_satisfies  { $1 } |
 exp_as         { $1 } |
 exp_paren      { $1 } |
 exp_unop       { $1 } |
