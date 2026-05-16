@@ -145,19 +145,27 @@ normalizeVardec v initValue = Ast.StmtVardec $ Ast.StmtVardecContent
         Ast.stmtVardecLocation = Token.getVarNameLocation v
     }
 
-stmtDecvar :: Location -> [Ast.Var] -> Ast.Exp -> Ast.Stmt
-stmtDecvar _   [Ast.VarSimple (Ast.VarSimpleContent v)] initExp = normalizeVardec v initExp
-stmtDecvar loc vars                                     initExp = Ast.StmtBlock $ Ast.StmtBlockContent (assignify vars initExp) loc
-
-stmtDecvarNoInit :: Location -> [Ast.Var] -> Ast.Stmt
-stmtDecvarNoInit _   [Ast.VarSimple (Ast.VarSimpleContent v)] = Ast.StmtVardec $ Ast.StmtVardecContent
+-- Consolidated `stmtDecvar` — the init expression is now optional
+-- (`optional(decvarInit)` in the grammar), so the grammar's two old
+-- alternatives are a single production. Dispatch internally:
+--   single-name LHS + init  -> normalizeVardec (Ast.StmtFunc if init is a
+--                              lambda, otherwise Ast.StmtVardec)
+--   single-name LHS, no init -> Ast.StmtVardec with init=Nothing
+--   multi-name LHS  + init   -> Ast.StmtBlock of per-name Ast.StmtAssigns
+--   multi-name LHS, no init  -> empty Ast.StmtBlock (the names are declared
+--                               at the destructure level but we have no
+--                               initializer to thread into them)
+stmtDecvar :: Location -> [Ast.Var] -> Maybe Ast.Exp -> Ast.Stmt
+stmtDecvar _   [Ast.VarSimple (Ast.VarSimpleContent v)] (Just initExp) = normalizeVardec v initExp
+stmtDecvar loc vars                                     (Just initExp) = Ast.StmtBlock $ Ast.StmtBlockContent (assignify vars initExp) loc
+stmtDecvar _   [Ast.VarSimple (Ast.VarSimpleContent v)] Nothing        = Ast.StmtVardec $ Ast.StmtVardecContent
     {
         Ast.stmtVardecName = v,
         Ast.stmtVardecNominalType = Just (varify (Token.Named "any" (Token.getVarNameLocation v))),
         Ast.stmtVardecInitValue = Nothing,
         Ast.stmtVardecLocation = Token.getVarNameLocation v
     }
-stmtDecvarNoInit loc _ = Ast.StmtBlock $ Ast.StmtBlockContent
+stmtDecvar loc _                                        Nothing        = Ast.StmtBlock $ Ast.StmtBlockContent
     {
         Ast.stmtBlockContent = [],
         Ast.stmtBlockLocation = loc
@@ -209,8 +217,34 @@ stmtReturn loc value = Ast.StmtReturn $ Ast.StmtReturnContent
 stmtThrow :: Location -> Ast.Exp -> Ast.Stmt
 stmtThrow loc thrownExp = Ast.StmtExp $ instrumentationCall "throw" loc [thrownExp]
 
+-- **************
+-- *            *
+-- * stmt break *
+-- *            *
+-- **************
 stmtBreak :: Location -> Ast.Stmt
-stmtBreak loc = Ast.StmtExp $ instrumentationCall "break" loc []
+stmtBreak loc = Ast.StmtBreak $ Ast.StmtBreakContent { Ast.stmtBreakLocation = loc }
+
+-- ***************
+-- *             *
+-- * stmt continue *
+-- *             *
+-- ***************
+stmtContinue :: Location -> Ast.Stmt
+stmtContinue loc = Ast.StmtContinue $ Ast.StmtContinueContent { Ast.stmtContinueLocation = loc }
+
+-- **************
+-- *            *
+-- * stmt while *
+-- *            *
+-- **************
+stmtWhile :: Location -> Ast.Exp -> [Ast.Stmt] -> Ast.Stmt
+stmtWhile loc cond body = Ast.StmtWhile $ Ast.StmtWhileContent
+    {
+        Ast.stmtWhileCond = cond,
+        Ast.stmtWhileBody = body,
+        Ast.stmtWhileLocation = loc
+    }
 
 -- **************
 -- *            *
@@ -223,6 +257,33 @@ stmtClass name = Ast.StmtClass $ Ast.StmtClassContent
         Ast.stmtClassName = Token.ClassName name,
         Ast.stmtClassSupers = [],
         Ast.stmtClassDataMembers = Ast.DataMembers Data.Map.empty,
+        Ast.stmtClassMethods = Ast.Methods Data.Map.empty
+    }
+
+-- *************
+-- *           *
+-- * stmt enum *
+-- *           *
+-- *************
+-- A TS `enum Foo { A, B, C }` has no direct dhscanner counterpart, so we
+-- model it as an `Ast.StmtClass` whose data members are the enum cases and
+-- whose methods set is empty. Init values are dropped for now; can be wired
+-- through `enumInitializer` later.
+enumDataMember :: Token.Named -> Ast.DataMember
+enumDataMember name = Ast.DataMember
+    {
+        Ast.dataMemberName = Token.MemberName name,
+        Ast.dataMemberNominalType = Nothing,
+        Ast.dataMemberInitValue = Nothing
+    }
+
+stmtEnum :: Token.Named -> [Ast.DataMember] -> Ast.Stmt
+stmtEnum name members = Ast.StmtClass $ Ast.StmtClassContent
+    {
+        Ast.stmtClassName = Token.ClassName name,
+        Ast.stmtClassSupers = [],
+        Ast.stmtClassDataMembers = Ast.DataMembers $ Data.Map.fromList
+            [ (Ast.dataMemberName m, m) | m <- members ],
         Ast.stmtClassMethods = Ast.Methods Data.Map.empty
     }
 
@@ -411,5 +472,17 @@ stmtImport :: Common.AdditionalRepoInfo -> Location -> Maybe [Token.Named] -> To
 stmtImport repoInfo loc maybeImports importSource = Ast.StmtBlock $ Ast.StmtBlockContent
     {
         Ast.stmtBlockContent = importify repoInfo importSource (fromMaybe [] maybeImports),
+        Ast.stmtBlockLocation = loc
+    }
+
+-- **************
+-- *            *
+-- * stmt export*
+-- *            *
+-- **************
+stmtExport :: Location -> Ast.Stmt
+stmtExport loc = Ast.StmtBlock $ Ast.StmtBlockContent
+    {
+        Ast.stmtBlockContent = [],
         Ast.stmtBlockLocation = loc
     }

@@ -532,10 +532,8 @@ optional(a): { Nothing } | a { Just $1 }
 -- ****************
 choice(a, b): a { Left $1 } | b { Right $1 }
 
--- direct translation to dhscanner Ast.Root
-program:
-commalistof(stmt) { Actions.root $1 } |
-',' commalistof(stmt) { Actions.root $2 }
+-- direct translation to: Ast.Root
+program: optional(',') commalistof(stmt) { Actions.root $2 }
 
 stmt:
 stmtIf { $1 } |
@@ -543,11 +541,13 @@ stmtExp { $1 } |
 stmtTry { $1 } |
 stmtFunc { $1 } |
 stmtImport { $1 } |
+stmtExport { $1 } |
 stmt_property    { $1 } |
 stmtClass        { $1 } |
 stmtReturn       { $1 } |
 stmtThrow        { $1 } |
 stmtBreak       { $1 } |
+stmtContinue     { $1 } |
 stmtWhile       { $1 } |
 stmtForOf        { $1 } |
 stmtFor        { $1 } |
@@ -587,6 +587,7 @@ stmtTry:
     tryKeyword
     block
     catchPart
+    optional(finallyPart)
 ')'
 {
     Actions.stmtTry $2 $5 $6
@@ -614,6 +615,9 @@ catchPart:
 {
     $13
 }
+
+finallyPart:
+finallyKeyword block { $2 }
 
 -- instrumented as dhscanner Ast.StmtExp
 stmtThrow: 'ThrowStatement' loc '(' throwKeyword exp ')' { Actions.stmtThrow $2 $5 }
@@ -674,7 +678,7 @@ stmtFor:
     }
 }
 
--- instrumented as dhscanner Ast.StmtBlock
+-- direct dhscanner subtree creation: Ast.StmtWhile
 stmtWhile:
 'WhileStatement' loc
 '('
@@ -685,11 +689,7 @@ stmtWhile:
     stmtOrBlock
 ')'
 {
-    Ast.StmtBlock $ Ast.StmtBlockContent
-    {
-        Ast.stmtBlockContent = $8,
-        Ast.stmtBlockLocation = $2
-    }
+    Actions.stmtWhile $2 $6 $8
 }
 
 -- instrumented as dhscanner Ast.StmtBlock
@@ -863,6 +863,7 @@ intersection_type { Nothing } |
 parenthesized_type { Nothing } |
 type_operator { Nothing } |
 array_type { Nothing } |
+typeQuery { Nothing } |
 firstNode { $1 } |
 internal_type optional(generics) { $1 }
 
@@ -880,6 +881,16 @@ indexedAccessType:
 ')'
 {
     $4
+}
+
+typeQuery:
+'TypeQuery' loc
+'('
+    typeOfKeyword
+    identifier
+')'
+{
+    Nothing
 }
 
 array_type:
@@ -907,6 +918,7 @@ undefinedKeyword { Nothing } |
 stringKeyword { Nothing } |
 numberKeyword { Nothing } |
 voidKeyword { Nothing } |
+neverKeyword { Nothing } |
 identifier { Just $1 } |
 typeReference { $1 } |
 literalType { Nothing } |
@@ -940,6 +952,7 @@ semicolonToken:       'SemicolonToken'      loc '(' ')' { Nothing }
 booleanKeyword:      'BooleanKeyword'      loc '(' ')' { Nothing }
 newKeyword:          'NewKeyword'          loc '(' ')' { Nothing }
 unknownKeyword:      'UnknownKeyword'      loc '(' ')' { Nothing }
+neverKeyword:       'NeverKeyword'       loc '(' ')' { Nothing }
 deleteKeyword:       'DeleteKeyword'       loc '(' ')' { Nothing }
 typeOfKeyword:       'TypeOfKeyword'       loc '(' ')' { Nothing }
 returnKeyword:       'ReturnKeyword'       loc '(' ')' { Nothing }
@@ -973,6 +986,7 @@ forKeyword:          'ForKeyword'          loc '(' ')' { Nothing }
 ofKeyword:           'OfKeyword'           loc '(' ')' { Nothing }
 minusToken:          'MinusToken'          loc '(' ')' { Nothing }
 catchKeyword:        'CatchKeyword'        loc '(' ')' { Nothing }
+finallyKeyword:      'FinallyKeyword'      loc '(' ')' { Nothing }
 firstAssignment:     'FirstAssignment'     loc '(' ')' { Nothing }
 firstBinaryOperator: 'FirstBinaryOperator' loc '(' ')' { Nothing }
 firstCompoundAssignment: 'FirstCompoundAssignment' loc '(' ')' { Nothing }
@@ -1018,9 +1032,13 @@ namedImports
 importClauseStuff_2:
 identifier { [$1] }
 
+importClauseStuff_3:
+namespaceImport { [] }
+
 importClauseStuff:
 importClauseStuff_1 { $1 } |
-importClauseStuff_2 { $1 }
+importClauseStuff_2 { $1 } |
+importClauseStuff_3 { $1 }
 
 importClause:
 'ImportClause' loc
@@ -1065,23 +1083,54 @@ stmtImport:
     Actions.stmtImport (getAdditionalRepoInfo $1) $2 $5 $7
 }
 
+-- instrumented as dhscanner Ast.StmtBlock
+stmtExport:
+'ExportDeclaration' loc
+'('
+    'NamedExports' loc
+    '('
+        commalistof(exportSpecifier)
+    ')'
+')'
+{
+    Actions.stmtExport $2
+}
+
+exportSpecifier:
+'ExportSpecifier' loc
+'('
+    identifier
+')'
+{
+    Nothing
+}
+|
+'ExportSpecifier' loc
+'('
+    identifier
+    asKeyword
+    identifier
+')'
+{
+    Nothing
+}
+
+-- The bound local in an object destructuring element.
+--   { x }    -> shorthand: property `x`, local `x`         -> returns `x`
+--   { x: y } -> rename:    property `x`, local `y`         -> returns `y`
+-- In both cases this returns the identifier that actually becomes a local
+-- (i.e. the one after the colon when there is a colon, else the only one).
+destructBinding:
+identifier                       { $1 } |
+identifier colonToken identifier { $3 }
+
 bindingElement:
 'BindingElement' loc
 '('
-    identifier
+    destructBinding
 ')'
 {
     Actions.varify $4
-}
-|
-'BindingElement' loc
-'('
-    identifier
-    colonToken
-    identifier
-')'
-{
-    Actions.varify $6
 }
 
 objectBindingPattern:
@@ -1104,7 +1153,19 @@ arrayBindingPattern:
     concat $5
 }
 
+-- One slot of an `arrayBindingPattern` (the `[...]` LHS of a destructure).
+-- The three sub-rules cover the three shapes a slot can take:
+--   _1: bare identifier       -> const [x]    = ...
+--   _2: nested object pattern -> const [{x}]  = ...
+--   _3: nested array pattern  -> const [[x]]  = ...
+-- All three return a list of bound locals (alt _1 is a singleton; _2 / _3
+-- can be N, depending on how many names the nested pattern declares).
 arrayBindingElement:
+arrayBindingElement_1 { $1 } |
+arrayBindingElement_2 { $1 } |
+arrayBindingElement_3 { $1 }
+
+arrayBindingElement_1:
 'BindingElement' loc
 '('
     identifier
@@ -1112,7 +1173,8 @@ arrayBindingElement:
 {
     [Actions.varify $4]
 }
-|
+
+arrayBindingElement_2:
 'BindingElement' loc
 '('
     objectBindingPattern
@@ -1120,7 +1182,8 @@ arrayBindingElement:
 {
     $4
 }
-|
+
+arrayBindingElement_3:
 'BindingElement' loc
 '('
     arrayBindingPattern
@@ -1134,21 +1197,17 @@ identifier optional(type_hint) { [Actions.varify $1] } |
 objectBindingPattern           { $1 } |
 arrayBindingPattern            { $1 }
 
+-- The optional `= exp` tail of a `stmtDecvar`. `firstAssignment` matches the
+-- literal `=` token (its value is discarded); only the initializer flows on.
+decvarInit: firstAssignment exp { $2 }
+
 stmtDecvar:
 'VariableDeclarationList' loc
 '('
-    'VariableDeclaration' loc '(' decvarLhs firstAssignment exp ')'
+    'VariableDeclaration' loc '(' decvarLhs optional(decvarInit) ')'
 ')'
 {
-    Actions.stmtDecvar $2 $7 $9
-}
-|
-'VariableDeclarationList' loc
-'('
-    'VariableDeclaration' loc '(' decvarLhs ')'
-')'
-{
-    Actions.stmtDecvarNoInit $2 $7
+    Actions.stmtDecvar $2 $7 $8
 }
 
 extends:
@@ -1161,7 +1220,7 @@ extends:
     Nothing
 }
 
--- instrumented as dhscanner Ast.StmtBlock
+-- instrumented as dhscanner Ast.StmtClass (enum modeled as class of data members, no methods)
 stmtEnum:
 'EnumDeclaration' loc
 '('
@@ -1170,11 +1229,7 @@ stmtEnum:
     commalistof(enumMember)
 ')'
 {
-    Ast.StmtBlock $ Ast.StmtBlockContent
-    {
-        Ast.stmtBlockContent = [],
-        Ast.stmtBlockLocation = $2
-    }
+    Actions.stmtEnum $8 $9
 }
 
 enumMember:
@@ -1184,7 +1239,7 @@ enumMember:
     optional(enumInitializer)
 ')'
 {
-    []
+    Actions.enumDataMember $4
 }
 
 enumInitializer:
@@ -1240,7 +1295,7 @@ stmtReturn:
     Actions.stmtReturn $2 $5
 }
 
--- instrumented as dhscanner Ast.StmtExp
+-- direct dhscanner subtree creation: Ast.StmtBreak
 stmtBreak:
 'BreakStatement' loc
 '('
@@ -1248,6 +1303,16 @@ stmtBreak:
 ')'
 {
     Actions.stmtBreak $2
+}
+
+-- direct dhscanner subtree creation: Ast.StmtContinue
+stmtContinue:
+'ContinueStatement' loc
+'('
+    'ContinueKeyword' loc '(' ')'
+')'
+{
+    Actions.stmtContinue $2
 }
 
 expArrowFunction:
